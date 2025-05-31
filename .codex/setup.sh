@@ -3,46 +3,39 @@ set -euo pipefail
 
 echo "Setting up development environment for Codex..."
 
-# Update package lists
-apt-get update
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
 
-# Install system dependencies
-echo "Installing system packages..."
-apt-get install -y \
-    postgresql-client-15 \
-    redis-tools \
-    gcc \
-    python3-dev \
-    libpq-dev \
-    curl \
-    wget \
-    unzip
+# Function to handle errors
+handle_error() {
+    echo "Error: $1"
+    exit 1
+}
 
-# Install AWS CLI v2
-echo "Installing AWS CLI v2..."
-if ! command -v aws &> /dev/null; then
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-    unzip awscliv2.zip
-    ./aws/install
-    rm -rf aws awscliv2.zip
-fi
-
-# Install Flyway
-echo "Installing Flyway..."
-if ! command -v flyway &> /dev/null; then
+# Install Flyway if not present
+echo "Checking Flyway installation..."
+if ! command_exists flyway; then
+    echo "Installing Flyway..."
     FLYWAY_VERSION="10.4.1"
-    wget -qO- https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/${FLYWAY_VERSION}/flyway-commandline-${FLYWAY_VERSION}-linux-x64.tar.gz | tar -xz
-    mv flyway-${FLYWAY_VERSION} /opt/flyway
-    ln -sf /opt/flyway/flyway /usr/local/bin/flyway
+    wget -qO- https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/${FLYWAY_VERSION}/flyway-commandline-${FLYWAY_VERSION}-linux-x64.tar.gz | tar -xz || handle_error "Failed to download/extract Flyway"
+    mv flyway-${FLYWAY_VERSION} /opt/flyway || handle_error "Failed to move Flyway to /opt"
+    ln -sf /opt/flyway/flyway /usr/local/bin/flyway || handle_error "Failed to create Flyway symlink"
 fi
 
-# Upgrade pip
-echo "Upgrading pip..."
-python3 -m pip install --upgrade pip
+# Verify Python3 is available
+if ! command_exists python3; then
+    handle_error "Python3 is not installed"
+fi
 
-# Install Python dependencies
+# Upgrade pip with error handling
+echo "Upgrading pip..."
+python3 -m pip install --upgrade pip || handle_error "Failed to upgrade pip"
+
+# Install Python dependencies with error handling
 echo "Installing Python packages..."
-python3 -m pip install \
+python3 -m pip install --no-cache-dir \
     flask \
     python-dotenv \
     stripe \
@@ -64,11 +57,11 @@ python3 -m pip install \
     pandas \
     annotated-types \
     pydantic-core==2.16.3 \
-    pydantic==2.6.4
+    pydantic==2.6.4 || handle_error "Failed to install Python packages"
 
 # Set up environment variables for development
 echo "Setting up environment variables..."
-cat > /tmp/dev_env.sh << 'EOF'
+cat > /tmp/dev_env.sh << 'EOF' || handle_error "Failed to create environment file"
 # PostgreSQL settings
 export DB_HOST="localhost"
 export DB_PORT="5464"
@@ -88,10 +81,10 @@ export PATH="/opt/flyway:$PATH"
 EOF
 
 # Source the environment in the current shell
-source /tmp/dev_env.sh
+source /tmp/dev_env.sh || handle_error "Failed to source environment variables"
 
 # Make environment available for future sessions
-echo "source /tmp/dev_env.sh" >> ~/.bashrc
+echo "source /tmp/dev_env.sh" >> ~/.bashrc || handle_error "Failed to update .bashrc"
 
 echo "Setup complete! Environment variables have been configured."
 echo "You can start your Flask app with: flask run --host=0.0.0.0 --port=6513"
