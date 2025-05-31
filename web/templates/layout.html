@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}CTGov Compliance{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uswds@3.7.0/dist/css/uswds.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/uswds@3.7.0/dist/js/uswds.min.js" defer></script>
 </head>
 <body>
@@ -18,6 +19,7 @@
   </div>
 </header>
 <main class="usa-section">
+  <div class="grid-container">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="usa-alert">
@@ -28,6 +30,7 @@
       {% endif %}
     {% endwith %}
     {% block content %}{% endblock %}
+  </div>
 </main>
 <footer class="usa-footer usa-footer--slim">
   <div class="grid-container">

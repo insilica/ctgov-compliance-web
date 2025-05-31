@@ -1,19 +1,23 @@
 {% extends 'layout.html' %}
 {% block title %}Login - CTGov Compliance{% endblock %}
 {% block content %}
-<div class="grid-row">
-  <div class="tablet:grid-col-4">
-    <form method="post">
-      <div class="usa-form-group">
-        <label class="usa-label" for="email">Email</label>
-        <input class="usa-input" id="email" name="email" type="email" required>
+<div class="grid-row flex-justify-center">
+  <div class="grid-col-12 tablet:grid-col-6">
+    <div class="usa-card login-card">
+      <div class="usa-card__body">
+        <form method="post">
+          <div class="usa-form-group">
+            <label class="usa-label" for="email">Email</label>
+            <input class="usa-input" id="email" name="email" type="email" required>
+          </div>
+          <div class="usa-form-group">
+            <label class="usa-label" for="password">Password</label>
+            <input class="usa-input" id="password" name="password" type="password" required>
+          </div>
+          <button class="usa-button" type="submit">Login</button>
+        </form>
       </div>
-      <div class="usa-form-group">
-        <label class="usa-label" for="password">Password</label>
-        <input class="usa-input" id="password" name="password" type="password" required>
-      </div>
-      <button class="usa-button" type="submit">Login</button>
-    </form>
+    </div>
   </div>
 </div>
 {% endblock %}
