@@ -2,7 +2,8 @@
 {% block title %}Dashboard - CTGov Compliance{% endblock %}
 {% block content %}
 <h1 class="usa-heading">Your Trials</h1>
-<table class="usa-table">
+<div class="table-container">
+<table class="usa-table usa-table--striped usa-table--stacked">
   <thead>
     <tr>
       <th>NCT ID</th>
@@ -20,9 +21,11 @@
   {% endfor %}
   </tbody>
 </table>
+</div>
 
 <h2 class="usa-heading">Organization Compliance Rates</h2>
-<table class="usa-table">
+<div class="table-container">
+<table class="usa-table usa-table--striped usa-table--stacked">
   <thead>
     <tr>
       <th>Organization</th>
@@ -38,4 +41,5 @@
   {% endfor %}
   </tbody>
 </table>
+</div>
 {% endblock %}
