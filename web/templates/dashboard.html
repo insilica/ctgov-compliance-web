@@ -1,0 +1,41 @@
+{% extends 'layout.html' %}
+{% block title %}Dashboard - CTGov Compliance{% endblock %}
+{% block content %}
+<h1 class="usa-heading">Your Trials</h1>
+<table class="usa-table">
+  <thead>
+    <tr>
+      <th>NCT ID</th>
+      <th>Title</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for trial in trials %}
+    <tr>
+      <td>{{ trial.nct_id }}</td>
+      <td>{{ trial.title }}</td>
+      <td>{{ trial.status }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h2 class="usa-heading">Organization Compliance Rates</h2>
+<table class="usa-table">
+  <thead>
+    <tr>
+      <th>Organization</th>
+      <th>On-time Reporting %</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for row in org_rates %}
+    <tr>
+      <td>{{ row.name }}</td>
+      <td>{{ row.rate }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
