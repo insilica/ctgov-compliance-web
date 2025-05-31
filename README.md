@@ -20,3 +20,12 @@ cd scripts
 
 The setup script is idempotent. It starts the containers, runs Flyway and
 Django migrations and loads mock data into Blazegraph.
+
+### Mock Data
+
+For convenience a helper script is included to load mock organizations,
+users, trials and compliance information into both PostgreSQL and Blazegraph.
+
+```bash
+python scripts/init_mock_data.py
+```
