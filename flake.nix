@@ -73,6 +73,7 @@
             pkgs.awscli2
             pkgs.python310Packages.pip
             pkgs.gcc
+            pkgs.openjdk
           ];
 
           shellHook = ''source scripts/flake/shellhook.sh'';

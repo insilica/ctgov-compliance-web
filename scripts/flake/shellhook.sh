@@ -20,6 +20,8 @@ source scripts/flake/run_flyway.sh
 
 source scripts/flake/start_redis.sh
 
+source scripts/flake/start_blazegraph.sh
+
 source scripts/load_environment.sh "$AWS_PROFILE" "ctgov-compliance-web-dev"
 
 eval "$OLD_OPTS"
