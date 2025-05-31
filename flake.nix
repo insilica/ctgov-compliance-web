@@ -84,7 +84,7 @@
             #!${pkgs.bash}/bin/bash
             set -euo pipefail 
 
-            export FLASK_APP=webserver.app
+            export FLASK_APP=web.app
             export FLASK_ENV=development
             export DEBUG=1 
             export PREFERRED_URL_SCHEME=http

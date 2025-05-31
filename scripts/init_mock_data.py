@@ -1,5 +1,5 @@
 import os
-import hashlib
+from werkzeug.security import generate_password_hash
 import psycopg2
 import pathlib
 import sys
@@ -19,7 +19,7 @@ def get_conn():
 
 
 def hash_pwd(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+    return generate_password_hash(password)
 
 
 def populate_postgres():
@@ -43,6 +43,14 @@ def populate_postgres():
         ("bob@example.com", hash_pwd("password")),
     )
     bob_id = cur.fetchone()[0]
+
+    # record sample login activity
+    cur.execute(
+        "INSERT INTO login_activity (user_id) VALUES (%s)", (alice_id,)
+    )
+    cur.execute(
+        "INSERT INTO login_activity (user_id) VALUES (%s)", (bob_id,)
+    )
 
     # memberships
     cur.execute(

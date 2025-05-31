@@ -26,7 +26,7 @@ source scripts/load_environment.sh "$AWS_PROFILE" "ctgov-compliance-web-dev"
 
 eval "$OLD_OPTS"
 
-export FLASK_APP=webserver.app
+export FLASK_APP=web.app
 export FLASK_ENV=development
 export DEBUG=1
 export PREFERRED_URL_SCHEME=http

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}CTGov Compliance{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uswds@3.7.0/dist/css/uswds.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/uswds@3.7.0/dist/js/uswds.min.js" defer></script>
+</head>
+<body>
+<header class="usa-header usa-header--basic">
+  <div class="usa-nav-container">
+    <div class="usa-navbar">
+      <div class="usa-logo" id="basic-logo">
+        <em class="usa-logo__text"><a href="/" title="Home">CTGov Compliance</a></em>
+      </div>
+    </div>
+  </div>
+</header>
+<main class="usa-section">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="usa-alert">
+          {% for category, message in messages %}
+            <div class="usa-alert__body">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+</main>
+<footer class="usa-footer usa-footer--slim">
+  <div class="grid-container">
+    <div class="usa-footer__return-to-top"><a href="#">Return to top</a></div>
+  </div>
+</footer>
+</body>
+</html>
