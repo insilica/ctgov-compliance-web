@@ -18,7 +18,7 @@ SECRET_JSON=$(aws secretsmanager get-secret-value \
   --output text)
 
 # Parse and export each key/value
-echo "$SECRET_JSON" | jq -r 'to_entries[] | "export \(.key)=\(.value)"' > .env
+echo "$SECRET_JSON" | jq -r 'to_entries[] | "export \(.key)=\"\(.value)\""' > .env
 
 # Load into current shell
 set -a

@@ -5,6 +5,11 @@ if [ -f .aws-profile ]; then
   echo "Using saved AWS_PROFILE=$AWS_PROFILE"
 else
   echo "No saved AWS_PROFILE found."
+  echo "Note: Your AWS SSO profile name is usually 'ctgov-{name}' where {name} is"
+  echo "the part before @ in your insilica.co email. For example:"
+  echo "  - If your email is tom@insilica.co, use: ctgov-tom"
+  echo "  - If your email is jane@insilica.co, use: ctgov-jane"
+  echo ""
   read -p "Enter your AWS SSO profile name: " entered_profile
   export AWS_PROFILE=$entered_profile
   echo "$AWS_PROFILE" > .aws-profile

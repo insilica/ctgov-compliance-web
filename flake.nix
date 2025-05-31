@@ -14,8 +14,8 @@
         pgSettings = {
           user = "postgres";
           password = "devpassword";
-          port = "5433";
-          dbName = "toxindex";
+          port = "5464";
+          dbName = "ctgov-web";
           host = "localhost";
           # Define a local socket directory
           socketDirSubPath = "socket"; # Relative to $PWD/.postgres

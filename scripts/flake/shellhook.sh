@@ -8,8 +8,8 @@ set -euo pipefail
 source scripts/flake/setup_postgres.sh \
   "postgres" \
   "devpassword" \
-  "5433" \
-  "toxindex" \
+  "5464" \
+  "ctgov-web" \
   "localhost" \
   "socket" \
   "/nix/store/3pzlrs5nddszkpgasnrcpf4ifrzm76lb-postgresql-15.13/bin"
@@ -20,7 +20,7 @@ source scripts/flake/run_flyway.sh
 
 source scripts/flake/start_redis.sh
 
-source scripts/load_environment.sh "$AWS_PROFILE" "insilica/toxindex+dev-secret"
+source scripts/load_environment.sh "$AWS_PROFILE" "ctgov-compliance-web-dev"
 
 eval "$OLD_OPTS"
 

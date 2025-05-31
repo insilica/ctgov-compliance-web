@@ -1,0 +1,28 @@
+app.log
+
+*.env
+scratch.py
+deploy.zip
+*.sqlite
+
+# add python ignore
+__pycache__/*
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+
+# development postgres
+.postgres
+
+pgdata/
+
+.aws-profile
+
+# celery
+celery_tasks.db
+dump.rdb
+
+# redis
+redis-server.log

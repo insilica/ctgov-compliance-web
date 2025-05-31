@@ -20,8 +20,8 @@ export PG_SOCKET_DIR="$PWD/.postgres/socket"
 export PGUSER="postgres"
 export PGPASSWORD="devpassword"
 export PGHOST="localhost"
-export PGPORT="5433"
-export PGDATABASE="toxindex"
+export PGPORT="5464"
+export PGDATABASE="ctgov-web"
 
 # Check for any running PostgreSQL processes on our port
 echo "Checking for PostgreSQL processes on port $PGPORT..."
