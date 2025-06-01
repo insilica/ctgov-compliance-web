@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import LoginManager, login_user, logout_user, login_required, UserMixin
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
+from datetime import datetime, timedelta
+import secrets
 from .db import query, execute
 
 bp = Blueprint('auth', __name__)
@@ -42,8 +44,61 @@ def login():
     return render_template('login.html')
 
 
+@bp.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        existing = query('SELECT id FROM ctgov_user WHERE email=%s', [email], fetchone=True)
+        if existing:
+            flash('Email already registered', 'danger')
+        else:
+            password_hash = generate_password_hash(password)
+            execute('INSERT INTO ctgov_user (email, password_hash) VALUES (%s, %s)', [email, password_hash])
+            flash('Registration successful. Please log in.', 'success')
+            return redirect(url_for('auth.login'))
+    return render_template('register.html')
+
+
 @bp.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))
+
+
+@bp.route('/reset', methods=['GET', 'POST'])
+def reset_request():
+    if request.method == 'POST':
+        email = request.form['email']
+        user = query('SELECT id FROM ctgov_user WHERE email=%s', [email], fetchone=True)
+        if user:
+            token = secrets.token_urlsafe(32)
+            expires_at = datetime.utcnow() + timedelta(hours=1)
+            execute(
+                'INSERT INTO password_reset (user_id, token, expires_at) VALUES (%s, %s, %s)',
+                [user['id'], token, expires_at],
+            )
+            flash(
+                f'Password reset link: {url_for("auth.reset_password", token=token, _external=True)}',
+                'info',
+            )
+        else:
+            flash('If that email is registered, a reset link has been generated.', 'info')
+    return render_template('reset_request.html')
+
+
+@bp.route('/reset/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    row = query('SELECT id, user_id, expires_at FROM password_reset WHERE token=%s', [token], fetchone=True)
+    if not row or row['expires_at'] < datetime.utcnow():
+        flash('Invalid or expired token.', 'danger')
+        return redirect(url_for('auth.reset_request'))
+    if request.method == 'POST':
+        password = request.form['password']
+        password_hash = generate_password_hash(password)
+        execute('UPDATE ctgov_user SET password_hash=%s WHERE id=%s', [password_hash, row['user_id']])
+        execute('DELETE FROM password_reset WHERE id=%s', [row['id']])
+        flash('Password updated. Please log in.', 'success')
+        return redirect(url_for('auth.login'))
+    return render_template('reset_password.html')

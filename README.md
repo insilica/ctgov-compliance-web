@@ -39,3 +39,12 @@ development server:
 ```bash
 flask run --host 0.0.0.0 --port 6513
 ```
+
+### Account Management
+
+You can create an account directly in the application and reset your password when needed.
+
+1. Visit `/register` to sign up for a new account.
+2. Use `/reset` to generate a password reset link.
+
+

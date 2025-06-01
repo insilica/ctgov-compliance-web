@@ -1,5 +1,5 @@
 {% extends 'layout.html' %}
-{% block title %}Login - CTGov Compliance{% endblock %}
+{% block title %}Register - CTGov Compliance{% endblock %}
 {% block content %}
 <div class="grid-row flex-justify-center">
   <div class="grid-col-12 tablet:grid-col-6">
@@ -14,12 +14,8 @@
             <label class="usa-label" for="password">Password</label>
             <input class="usa-input" id="password" name="password" type="password" required>
           </div>
-          <button class="usa-button" type="submit">Login</button>
+          <button class="usa-button" type="submit">Register</button>
         </form>
-        <div class="usa-form-group margin-top-1">
-          <a href="{{ url_for('auth.register') }}">Register</a> |
-          <a href="{{ url_for('auth.reset_request') }}">Forgot password?</a>
-        </div>
       </div>
     </div>
   </div>
