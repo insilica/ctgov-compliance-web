@@ -37,7 +37,7 @@ After the services are running and mock data is loaded you can start the
 development server:
 
 ```bash
-flask run --host 0.0.0.0 --port 6513
+flask run --host 0.0.0.0 --port 6525
 ```
 
 ### Account Management

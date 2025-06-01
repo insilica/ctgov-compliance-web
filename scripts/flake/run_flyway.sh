@@ -19,7 +19,7 @@ flyway \
   -url="jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}" \
   -user="${PGUSER}" \
   -password="${PGPASSWORD}" \
-  -locations="filesystem:./flyway/sql" \
+  -locations="filesystem:./.flyway/sql" \
   migrate
 
 echo "Flyway migrations completed."
