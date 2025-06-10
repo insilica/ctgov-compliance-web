@@ -74,7 +74,7 @@ def reset_request():
         user = query('SELECT id FROM ctgov_user WHERE email=%s', [email], fetchone=True)
         if user:
             token = secrets.token_urlsafe(32)
-            expires_at = datetime.utcnow() + timedelta(hours=1)
+            expires_at = datetime.now(datetime.timezone.utc) + timedelta(hours=1)
             execute(
                 'INSERT INTO password_reset (user_id, token, expires_at) VALUES (%s, %s, %s)',
                 [user['id'], token, expires_at],
@@ -91,7 +91,7 @@ def reset_request():
 @bp.route('/reset/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     row = query('SELECT id, user_id, expires_at FROM password_reset WHERE token=%s', [token], fetchone=True)
-    if not row or row['expires_at'] < datetime.utcnow():
+    if not row or row['expires_at'] < datetime.now(datetime.timezone.utc):
         flash('Invalid or expired token.', 'danger')
         return redirect(url_for('auth.reset_request'))
     if request.method == 'POST':
