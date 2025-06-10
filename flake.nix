@@ -2,7 +2,7 @@
   description = "Dev shell with Flyway, Python, PostgreSQL (TCP/IP focus)";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -20,63 +20,38 @@
           # Define a local socket directory
           socketDirSubPath = "socket"; # Relative to $PWD/.postgres
         };
-
-        python-with-deps = pkgs.python3.withPackages (ps: with ps; [
-          flask
-          python-dotenv
-          stripe
-          requests
-          urllib3
-          flask-login
-          flask-wtf
-          sendgrid
-          gunicorn
-          psycopg2
-          email-validator
-          boto3
-          openai
-          celery
-          redis
-          flask-socketio
-          gevent
-          gevent-websocket
-          pandas
-          annotated-types
-          (ps.buildPythonPackage {
-            pname   = "pydantic-core";
-            version = "2.16.3";
-            format  = "wheel";
-            src = pkgs.fetchurl {
-              url = "https://files.pythonhosted.org/packages/18/0e/1e39cfbffa57e92ab9f1f0869b32ead8a48ab11e4a373421d625f25fcb26/pydantic_core-2.16.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl";
-              sha256 = "prG7CCf1ZlS0Q3lVVV3Dru6+3cR8LX7VdUd/CCYixJ4=";
-            };
-          })
-          (ps.buildPythonPackage rec {
-            pname   = "pydantic";
-            version = "2.6.4";
-            format  = "wheel";
-            src = pkgs.fetchurl {
-              url    = "https://files.pythonhosted.org/packages/e5/f3/8296f550276194a58c5500d55b19a27ae0a5a3a51ffef66710c58544b32d/pydantic-2.6.4-py3-none-any.whl";
-              sha256 = "zEb86GYHWAhnvcM2GtRiurnCIu8ELT2oby+zM+HZFsU=";
-            };
-          })
-        ]);
       in
       {
         devShells.default = pkgs.mkShell {
           buildInputs = [
             pkgs.flyway
-            python-with-deps
             pkgs.postgresql_15
+            pkgs.uv
             pkgs.postgresql_jdbc
             pkgs.redis
             pkgs.awscli2
             pkgs.python310Packages.pip
             pkgs.gcc
-            pkgs.openjdk
+            pkgs.jdk8
           ];
 
-          shellHook = ''source scripts/flake/shellhook.sh'';
+          shellHook = ''
+            if [ ! -d .venv ]; then
+              uv venv
+              source .venv/bin/activate
+              uv sync >/dev/null 2>&1
+            else 
+              source .venv/bin/activate
+            fi
+
+            source scripts/flake/shellhook.sh
+
+            # populate mock data
+            uv run scripts/init_mock_data.py >/dev/null 2>&1
+            uv run -- flask run --host 0.0.0.0 --port 6525
+            uv run -- flask --app ctgov_compliance_web --debug \
+                  --extra-files "web/static, web/templates"
+          '';
         };
 
         apps.flask = flake-utils.lib.mkApp {
