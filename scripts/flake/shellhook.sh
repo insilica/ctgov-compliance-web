@@ -33,6 +33,3 @@ export PREFERRED_URL_SCHEME=http
 export SERVER_NAME=localhost:6513
 source .env
 export PYTHONPATH="$PWD"
-
-# populate mock data
-python scripts/init_mock_data.py
