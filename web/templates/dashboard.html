@@ -1,45 +1,118 @@
-{% extends 'layout.html' %}
-{% block title %}Dashboard - CTGov Compliance{% endblock %}
-{% block content %}
+{% extends 'layout.html' %} {% block title %}Dashboard - CTGov Compliance{% endblock %} {%
+block content %}
 <h1 class="usa-heading">Your Trials</h1>
+<ul class="usa-card-group">
+	<li class="usa-card usa-card--flag flex-1">
+		<div class="usa-card__container hover:shadow-2">
+			<div class="usa-card__header">
+				<h2 class="usa-card__heading font-ui-2xl">24%</h2>
+			</div>
+			<div class="usa-card__media usa-card__media--exdent">
+				<div class="usa-card__img flex-fill padding-x-4 padding-y-2">
+					<img src="{{ url_for('static', filename='img/user-fill.svg') }}" />
+				</div>
+			</div>
+			<div class="usa-card__body">
+				<p>Compliance Rate</p>
+			</div>
+			<div class="usa-card__footer">
+				<a href="#" class="usa-button">View Trials</a>
+			</div>
+		</div>
+	</li>
+	<li class="usa-card usa-card--flag flex-1">
+		<div class="usa-card__container hover:shadow-2">
+			<div class="usa-card__header">
+				<h2 class="usa-card__heading font-ui-2xl">24%</h2>
+			</div>
+			<div class="usa-card__media">
+				<div class="usa-card__img flex-fill padding-x-4 padding-y-2">
+					<img src="{{ url_for('static', filename='img/user-fill.svg') }}" />
+				</div>
+			</div>
+			<div class="usa-card__body">
+				<p>Compliance Rate</p>
+			</div>
+			<div class="usa-card__footer">
+				<a href="#" class="usa-button">View Trials</a>
+			</div>
+		</div>
+	</li>
+	<li class="usa-card usa-card--flag flex-1">
+		<div class="usa-card__container hover:shadow-2">
+			<div class="usa-card__header">
+				<h2 class="usa-card__heading font-ui-2xl">24%</h2>
+			</div>
+			<div class="usa-card__media">
+				<div class="usa-card__img flex-fill padding-x-4 padding-y-2">
+					<img src="{{ url_for('static', filename='img/user-fill.svg') }}" />
+				</div>
+			</div>
+			<div class="usa-card__body">
+				<p>Compliance Rate</p>
+			</div>
+			<div class="usa-card__footer">
+				<a href="#" class="usa-button">View Trials</a>
+			</div>
+		</div>
+	</li>
+	<li class="usa-card usa-card--flag flex-1">
+		<div class="usa-card__container hover:shadow-2">
+			<div class="usa-card__header">
+				<h2 class="usa-card__heading font-ui-2xl">24%</h2>
+			</div>
+			<div class="usa-card__media">
+				<div class="usa-card__img flex-fill padding-x-4 padding-y-2">
+					<img src="{{ url_for('static', filename='img/user-fill.svg') }}" />
+				</div>
+			</div>
+			<div class="usa-card__body">
+				<p>Compliance Rate</p>
+			</div>
+			<div class="usa-card__footer">
+				<a href="#" class="usa-button">View Trials</a>
+			</div>
+		</div>
+	</li>
+</ul>
 <div class="table-container">
-<table class="usa-table usa-table--striped usa-table--stacked">
-  <thead>
-    <tr>
-      <th>NCT ID</th>
-      <th>Title</th>
-      <th>Status</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for trial in trials %}
-    <tr>
-      <td>{{ trial.nct_id }}</td>
-      <td>{{ trial.title }}</td>
-      <td>{{ trial.status }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+	<table class="usa-table usa-table--striped usa-table--stacked">
+		<thead>
+			<tr>
+				<th>NCT ID</th>
+				<th>Title</th>
+				<th>Status</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for trial in trials %}
+			<tr>
+				<td>{{ trial.nct_id }}</td>
+				<td>{{ trial.title }}</td>
+				<td>{{ trial.status }}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
 </div>
 
 <h2 class="usa-heading">Organization Compliance Rates</h2>
 <div class="table-container">
-<table class="usa-table usa-table--striped usa-table--stacked">
-  <thead>
-    <tr>
-      <th>Organization</th>
-      <th>On-time Reporting %</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for row in org_rates %}
-    <tr>
-      <td>{{ row.name }}</td>
-      <td>{{ row.rate }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+	<table class="usa-table usa-table--striped usa-table--stacked">
+		<thead>
+			<tr>
+				<th>Organization</th>
+				<th>On-time Reporting %</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for row in org_rates %}
+			<tr>
+				<td>{{ row.name }}</td>
+				<td>{{ row.rate }}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
 </div>
 {% endblock %}
