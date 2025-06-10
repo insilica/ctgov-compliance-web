@@ -1,7 +1,7 @@
 # CTGOV Compliance Web Application
 
 This project provides a basic Flask web interface for viewing clinical
-trial compliance information.  It also includes supporting scripts and
+trial compliance information. It also includes supporting scripts and
 database services.
 
 ## Components
@@ -12,17 +12,35 @@ database services.
 - **Blazegraph** for graph data with a script to load mock trials.
 - Connection placeholders for **AWS Neptune**.
 
+## Requirements
+
+- **NixOS** must be downloaded onto the system
+  - Run in Terminal (MacOS):
+    ```
+    sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install)
+    ```
+  - [Windows Instructions](https://nixos.org/download/#nix-install-windows)
+- **UV** must be downloaded onto the system
+  - Run in your CLI with Homebrew:
+    ```
+    brew install uv
+    ```
+  - Alternatively, you may use the following:
+    ```
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+
 ## Usage
 
 ```bash
-cd scripts
-./setup.sh
+nix develop
 ```
 
-The setup script is idempotent. It starts the containers, runs Flyway
-migrations and loads mock data into Blazegraph.
+This command will download all dependencies, setup your AWS profile onto the system,
 
 ### Mock Data
+
+_Not required; ran using `nix develop`_
 
 For convenience a helper script is included to load mock organizations,
 users, trials and compliance information into both PostgreSQL and Blazegraph.
@@ -46,5 +64,3 @@ You can create an account directly in the application and reset your password wh
 
 1. Visit `/register` to sign up for a new account.
 2. Use `/reset` to generate a password reset link.
-
-
