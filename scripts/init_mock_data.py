@@ -30,10 +30,11 @@ def populate_postgres():
     org_ids = []
     for i in range(50):
         org_name = f"Organization {i+1}"
+        org_email_domain = f"organization{i+1}.com"
         cur.execute("SELECT id FROM organization WHERE name = %s", (org_name,))
         result = cur.fetchone()
         if not result:
-            cur.execute("INSERT INTO organization (name) VALUES (%s) RETURNING id", (org_name,))
+            cur.execute("INSERT INTO organization (name, email_domain) VALUES (%s, %s) RETURNING id", (org_name,org_email_domain))
             org_id = cur.fetchone()[0]
         else:
             org_id = result[0]

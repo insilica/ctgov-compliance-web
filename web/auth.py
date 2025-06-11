@@ -11,16 +11,17 @@ login_manager.login_view = 'auth.login'
 
 
 class User(UserMixin):
-    def __init__(self, id_, email, password_hash):
+    def __init__(self, id_, email, password_hash, is_organization):
         self.id = id_
         self.email = email
         self.password_hash = password_hash
+        self.is_organization = is_organization
 
     @staticmethod
     def get(user_id):
-        row = query('SELECT id, email, password_hash FROM ctgov_user WHERE id=%s', [user_id], fetchone=True)
+        row = query('SELECT id, email, password_hash, is_organization FROM ctgov_user WHERE id=%s', [user_id], fetchone=True)
         if row:
-            return User(row['id'], row['email'], row['password_hash'])
+            return User(row['id'], row['email'], row['password_hash'], row['is_organization'])
         return None
 
 @login_manager.user_loader
@@ -33,9 +34,9 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        row = query('SELECT id, email, password_hash FROM ctgov_user WHERE email=%s', [email], fetchone=True)
+        row = query('SELECT id, email, password_hash, is_organization FROM ctgov_user WHERE email=%s', [email], fetchone=True)
         if row and check_password_hash(row['password_hash'], password):
-            user = User(row['id'], row['email'], row['password_hash'])
+            user = User(row['id'], row['email'], row['password_hash'], row['is_organization'])
             login_user(user)
             execute('INSERT INTO login_activity (user_id) VALUES (%s)', [user.id])
             flash('Logged in successfully.', 'success')
@@ -50,11 +51,16 @@ def register():
         email = request.form['email']
         password = request.form['password']
         existing = query('SELECT id FROM ctgov_user WHERE email=%s', [email], fetchone=True)
+        email_domain = email.partition("@")[2]
+        org_check = query('SELECT id FROM organization WHERE email_domain=%s', [email_domain], fetchone=True)
         if existing:
             flash('Email already registered', 'danger')
         else:
             password_hash = generate_password_hash(password)
-            execute('INSERT INTO ctgov_user (email, password_hash) VALUES (%s, %s)', [email, password_hash])
+            if org_check:
+                execute('INSERT INTO ctgov_user (email, password_hash, is_organization) VALUES (%s, %s, %s)', [email, password_hash, True])
+            else:
+                execute('INSERT INTO ctgov_user (email, password_hash) VALUES (%s, %s)', [email, password_hash])
             flash('Registration successful. Please log in.', 'success')
             return redirect(url_for('auth.login'))
     return render_template('register.html')

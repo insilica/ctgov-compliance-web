@@ -48,6 +48,10 @@ def get_org_compliance():
 @bp.route('/')
 @login_required
 def index():
-    trials = get_user_trials()
     org_rates = get_org_compliance()
-    return render_template('dashboard.html', trials=trials, org_rates=org_rates)
+    if (current_user.is_organization):
+        trials = get_user_trials()
+        return render_template('org_dashboard.html', trials=trials, org_rates=org_rates)
+    else:
+        trials = get_user_trials()
+        return render_template('user_dashboard.html', trials=trials, org_rates=org_rates)

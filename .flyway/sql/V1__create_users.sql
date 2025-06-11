@@ -6,6 +6,7 @@ CREATE TABLE ctgov_user (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE,
     is_admin BOOLEAN DEFAULT FALSE,
+    is_organization BOOLEAN DEFAULT FALSE,
     last_login TIMESTAMP WITH TIME ZONE
 );
 
