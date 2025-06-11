@@ -74,50 +74,7 @@ block content %}
 		</div>
 	</li>
 </ul> -->
-{% include 'ring.html' with context %}
-<script>
-	const trials = {{ trials|tojson }}
-	const onTimeCount = trials.filter((t) => t.status === "on time").length;
-	const lateCount = trials.filter((t) => t.status === "late").length;
-	console.log(onTimeCount);
-	console.log(lateCount);
-	setProgress((onTimeCount / (onTimeCount + lateCount)) * 100, "Compliance Rate");
-</script>
-<h2 class="usa-heading">Clinical Trials Data</h2>
-<div class="table-container">
-	<table class="usa-table usa-table--striped usa-table--borderless">
-		<thead>
-			<tr>
-				<th scope="col">Title</th>
-				<th scope="col">NCT ID</th>
-				<th scope="col">Name</th>
-				<th scope="col">Status</th>
-				<th scope="col">Start Date</th>
-				<th scope="col">Completion Date</th>
-				<th scope="col">Reporting Due Date</th>
-				<th scope="col">Last Checked</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for trial in trials %}
-			<tr>
-				<td scope="row">
-					<a href="https://clinicaltrials.gov/study/{{ trial.nct_id }}"
-						>{{ trial.title }}</a
-					>
-				</td>
-				<td scope="row">{{ trial.nct_id }}</td>
-				<td scope="row">{{ trial.name }}</td>
-				<td scope="row">{{ trial.status }}</td>
-				<td scope="row">{{ trial.start_date }}</td>
-				<td scope="row">{{ trial.completion_date }}</td>
-				<td scope="row">{{ trial.reporting_due_date }}</td>
-				<td scope="row">{{ trial.last_checked }}</td>
-			</tr>
-			{% endfor %}
-		</tbody>
-	</table>
-</div>
+{% include 'ring.html' with context %} {% include 'trials.html' with context %}
 
 <!-- <h2 class="usa-heading">Organization Compliance Rates</h2>
 <div class="table-container">
@@ -137,5 +94,5 @@ block content %}
 			{% endfor %}
 		</tbody>
 	</table>
-</div>
-{% endblock %} -->
+</div>  -->
+{% endblock %}

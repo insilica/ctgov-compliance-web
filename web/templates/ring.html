@@ -67,7 +67,9 @@
 		label.textContent = labelText;
 	}
 
-	// Example: set initial value
-	setProgress(80, "Compliance Rate");
+	const trials = {{ trials|tojson }}
+	const onTimeCount = trials.filter((t) => t.status === "on time").length;
+	const lateCount = trials.filter((t) => t.status === "late").length;
+	setProgress((onTimeCount / (onTimeCount + lateCount)) * 100, "Compliance Rate");
 </script>
 {% endblock %}
