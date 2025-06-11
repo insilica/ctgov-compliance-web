@@ -48,31 +48,30 @@
 
             # populate mock data
             uv run scripts/init_mock_data.py >/dev/null 2>&1
-            uv run -- flask run --host 0.0.0.0 --port 6525 --debug \
-                  --extra-files "/web"
+            uv run -- flask run --host 0.0.0.0 --port 6525 --debug --extra-files "/web"
           '';
         };
 
-        apps.flask = flake-utils.lib.mkApp {
-          drv = pkgs.writeShellScriptBin "flask-dev" ''
-            #!${pkgs.bash}/bin/bash
-            set -euo pipefail 
+        # apps.flask = flake-utils.lib.mkApp {
+        #   drv = pkgs.writeShellScriptBin "flask-dev" ''
+        #     #!${pkgs.bash}/bin/bash
+        #     set -euo pipefail 
 
-            export FLASK_APP=web.app
-            export FLASK_ENV=development
-            export DEBUG=1 
-            export PREFERRED_URL_SCHEME=http
-            export SERVER_NAME="${pgSettings.host}:6513" 
+        #     export FLASK_APP=web.app
+        #     export FLASK_ENV=development
+        #     export DEBUG=1 
+        #     export PREFERRED_URL_SCHEME=http
+        #     export SERVER_NAME="${pgSettings.host}:6513" 
 
-            export DB_HOST="${pgSettings.host}" # Connect via TCP
-            export DB_PORT="${pgSettings.port}"
-            export DB_NAME="${pgSettings.dbName}"
-            export DB_USER="${pgSettings.user}"
-            export DB_PASSWORD="${pgSettings.password}"
+        #     export DB_HOST="${pgSettings.host}" # Connect via TCP
+        #     export DB_PORT="${pgSettings.port}"
+        #     export DB_NAME="${pgSettings.dbName}"
+        #     export DB_USER="${pgSettings.user}"
+        #     export DB_PASSWORD="${pgSettings.password}"
 
-            echo "Starting Flask development server on http://${pgSettings.host}:6513..."
-            exec flask run --host=0.0.0.0 --port=6513
-          '';
-        };
+        #     echo "Starting Flask development server on http://${pgSettings.host}:6513..."
+        #     exec flask run --host=0.0.0.0 --port=6513
+        #   '';
+        # };
       });
 }
