@@ -48,9 +48,8 @@
 
             # populate mock data
             uv run scripts/init_mock_data.py >/dev/null 2>&1
-            uv run -- flask run --host 0.0.0.0 --port 6525
-            uv run -- flask --app ctgov_compliance_web --debug \
-                  --extra-files "web/static, web/templates"
+            uv run -- flask run --host 0.0.0.0 --port 6525 --debug \
+                  --extra-files "/web"
           '';
         };
 
