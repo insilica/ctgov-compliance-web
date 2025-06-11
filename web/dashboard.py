@@ -1,20 +1,35 @@
 from flask import Blueprint, render_template
 from flask_login import login_required, current_user
-from .db import query
+from .db import query, aact_query
 
 bp = Blueprint('dashboard', __name__)
 
 
-def get_user_trials(user_id):
+def get_user_trials():
     sql = '''
-    SELECT t.nct_id, t.title, tc.status
+    SELECT 
+        t.nct_id,
+        t.title,
+        o.name,
+        tc.status,
+        t.start_date,
+        t.completion_date,
+        t.reporting_due_date,
+        tc.last_checked
     FROM trial t
-    JOIN trial_compliance tc ON t.id = tc.trial_id
-    JOIN user_organization uo ON t.organization_id = uo.organization_id
-    WHERE uo.user_id = %s
-    ORDER BY t.nct_id
+    LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
+    LEFT JOIN organization o ON o.id = t.organization_id
+    ORDER BY nct_id ASC
     '''
-    return query(sql, [user_id])
+    return query(sql)
+
+def get_aact_trials():
+    sql = '''
+    SELECT *
+    FROM studies
+    LIMIT 500
+    '''
+    return aact_query(sql)
 
 
 def get_org_compliance():
@@ -33,6 +48,6 @@ def get_org_compliance():
 @bp.route('/')
 @login_required
 def index():
-    trials = get_user_trials(current_user.id)
+    trials = get_user_trials()
     org_rates = get_org_compliance()
     return render_template('dashboard.html', trials=trials, org_rates=org_rates)

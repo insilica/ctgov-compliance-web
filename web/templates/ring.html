@@ -1,0 +1,73 @@
+{% block content %}
+<div class="progress-container">
+	<svg class="progress-ring" width="200" height="112">
+		<path
+			class="progress-ring-bg"
+			d="M10,100 A90,90 0 0,1 190,100"
+			fill="none"
+			stroke="#e0e0e0"
+			stroke-width="20"
+			stroke-linecap="round"
+		/>
+		<path
+			id="progress-ring-fill"
+			class="progress-ring-fill"
+			d="M10,100 A90,90 0 0,1 190,100"
+			fill="none"
+			stroke="#00cc66"
+			stroke-width="20"
+			stroke-linecap="round"
+			stroke-dasharray="283"
+			stroke-dashoffset="283"
+		/>
+		<text
+			id="progress-ring-text"
+			x="105"
+			y="105"
+			font-size="54"
+			text-anchor="middle"
+			alignment-baseline="baseline"
+			fill="#00cc66"
+		></text>
+	</svg>
+	<div class="progress-label" id="progress-label">Progress</div>
+</div>
+
+<style>
+	.progress-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		font-family: Arial, sans-serif;
+		margin: 2em;
+	}
+
+	.progress-ring-fill {
+		transition: stroke-dashoffset 0.5s ease;
+	}
+
+	.progress-label {
+		margin-top: 0.5em;
+		font-size: 0.95em;
+		color: #333;
+	}
+</style>
+
+<script>
+	function setProgress(percent, labelText = "Progress") {
+		const fill = document.getElementById("progress-ring-fill");
+		const text = document.getElementById("progress-ring-text");
+		const label = document.getElementById("progress-label");
+
+		const clamped = Math.max(0, Math.min(percent, 100));
+		const offset = 283 - (clamped / 100) * 283;
+
+		fill.style.strokeDashoffset = offset;
+		text.textContent = `${clamped}%`;
+		label.textContent = labelText;
+	}
+
+	// Example: set initial value
+	setProgress(80, "Compliance Rate");
+</script>
+{% endblock %}
