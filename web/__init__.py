@@ -10,6 +10,9 @@ csrf = CSRFProtect()
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev')
+    
+    # Add Jinja2 extensions
+    app.jinja_env.add_extension('jinja2.ext.do')
 
     csrf.init_app(app)
 
