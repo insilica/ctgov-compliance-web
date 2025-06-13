@@ -1,0 +1,43 @@
+{% block content %}
+<div class=" usa-table-container--scrollable" style="max-width: 100%">
+	<table
+		class="usa-table usa-table--borderless usa-table--striped usa-table--sticky-header"
+	>
+		<thead>
+			<tr>
+				<th data-sortable scope="col" role="columnheader">Title</th>
+				<th data-sortable scope="col" role="columnheader">NCT ID</th>
+				<th data-sortable scope="col" role="columnheader">Organization</th>
+				<th data-sortable scope="col" role="columnheader">User</th>
+				<th data-sortable scope="col" role="columnheader">Status</th>
+				<th data-sortable scope="col" role="columnheader">Start Date</th>
+				<th data-sortable scope="col" role="columnheader">Completion Date</th>
+				<th data-sortable scope="col" role="columnheader">Reporting Due Date</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for trial in trials %}
+			<tr>
+				<td scope="row" role="rowheader">
+					<a href="https://clinicaltrials.gov/study/{{ trial.nct_id }}"
+						>{{ trial.title }}</a
+					>
+				</td>
+				<td>{{ trial.nct_id }}</td>
+				<td>
+					<a href="/organization/{{ trial.id }}">{{trial.name}}</a>
+				</td>
+				<td>
+					<a href="/user/{{ trial.user_id }}">{{trial.email}}</a>
+				</td>
+				<td>{{ trial.status }}</td>
+				<td>{{ trial.start_date }}</td>
+				<td>{{ trial.completion_date }}</td>
+				<td>{{ trial.reporting_due_date }}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	<div class="usa-sr-only usa-table__announcement-region" aria-live="polite"></div>
+</div>
+{% endblock %}
