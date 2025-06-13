@@ -11,17 +11,35 @@ login_manager.login_view = 'auth.login'
 
 
 class User(UserMixin):
-    def __init__(self, id_, email, password_hash, organization_id):
+    def __init__(self, id_, email, password_hash):
         self.id = id_
         self.email = email
         self.password_hash = password_hash
-        self.organization_id = organization_id
+        self._organizations = None
+
+    @property
+    def organizations(self):
+        if self._organizations is None:
+            rows = query('''
+                SELECT o.id, o.name, uo.role 
+                FROM organization o 
+                JOIN user_organization uo ON o.id = uo.organization_id 
+                WHERE uo.user_id = %s
+            ''', [self.id])
+            self._organizations = rows
+        return self._organizations
+
+    @property
+    def primary_organization_id(self):
+        # Get first organization if user has any
+        orgs = self.organizations
+        return orgs[0]['id'] if orgs else None
 
     @staticmethod
     def get(user_id):
-        row = query('SELECT id, email, password_hash, organization_id FROM ctgov_user WHERE id=%s', [user_id], fetchone=True)
+        row = query('SELECT id, email, password_hash FROM ctgov_user WHERE id=%s', [user_id], fetchone=True)
         if row:
-            return User(row['id'], row['email'], row['password_hash'], row['organization_id'])
+            return User(row['id'], row['email'], row['password_hash'])
         return None
 
 @login_manager.user_loader
@@ -34,9 +52,9 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        row = query('SELECT id, email, password_hash, organization_id FROM ctgov_user WHERE email=%s', [email], fetchone=True)
+        row = query('SELECT id, email, password_hash FROM ctgov_user WHERE email=%s', [email], fetchone=True)
         if row and check_password_hash(row['password_hash'], password):
-            user = User(row['id'], row['email'], row['password_hash'], row['organization_id'])
+            user = User(row['id'], row['email'], row['password_hash'])
             login_user(user)
             execute('INSERT INTO login_activity (user_id) VALUES (%s)', [user.id])
             flash('Logged in successfully.', 'success')
@@ -53,15 +71,25 @@ def register():
         existing = query('SELECT id FROM ctgov_user WHERE email=%s', [email], fetchone=True)
         email_domain = email.partition("@")[2]
         org_check = query('SELECT id FROM organization WHERE email_domain=%s', [email_domain], fetchone=True)
-        print(org_check)
+        
         if existing:
             flash('Email already registered', 'danger')
         else:
             password_hash = generate_password_hash(password)
+            # First create the user
+            user_id = execute(
+                'INSERT INTO ctgov_user (email, password_hash) VALUES (%s, %s) RETURNING id',
+                [email, password_hash],
+                fetch_one=True
+            )[0]
+            
+            # If matching organization found, create user_organization relationship
             if org_check:
-                execute('INSERT INTO ctgov_user (email, password_hash, organization_id) VALUES (%s, %s, %s)', [email, password_hash, org_check['id']])
-            else:
-                execute('INSERT INTO ctgov_user (email, password_hash) VALUES (%s, %s)', [email, password_hash])
+                execute(
+                    'INSERT INTO user_organization (user_id, organization_id) VALUES (%s, %s)',
+                    [user_id, org_check['id']]
+                )
+            
             flash('Registration successful. Please log in.', 'success')
             return redirect(url_for('auth.login'))
     return render_template('auth/register.html')
