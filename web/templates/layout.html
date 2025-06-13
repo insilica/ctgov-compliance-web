@@ -1,58 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>{% block title %}CTGov Compliance{% endblock %}</title>
-		<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-		<link
-			href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css"
-			rel="stylesheet"
-		/>
-		<link
-			href="{{ url_for('static', filename='dist/css/uswds.min.css') }}"
-			rel="stylesheet"
-		/>
-		<script href="{{ url_for('static', filename='dist/js/uswds.min.js') }}"></script>
-	</head>
-	<body>
-		<header class="usa-header usa-header--basic flex-auto">
-			<div class="usa-nav-container">
-				<div
-					class="usa-navbar display-flex flex-row flex-align-center flex-fill margin-y-3"
-				>
-					<div>
-						<h1 class="usa-logo__text font-body-xl" href="/" title="Home">
-							CTGov Compliance
-						</h1>
-					</div>
-					<!-- Add Logout here -->
-					{% if current_user.is_authenticated %}
-					<div class="margin-left-auto">
-						<a href="{{ url_for('auth.logout') }}" class="usa-button usa-button--outline">
-							Logout
-						</a>
-					</div>
-					{% endif %}
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>{% block title %}CTGov Compliance{% endblock %}</title>
+	<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+	<link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css" rel="stylesheet" />
+	<link href="{{ url_for('static', filename='dist/css/uswds.min.css') }}" rel="stylesheet" />
+	<style>
+		:root {
+			--header-height: 5rem;
+		}
+
+		main {
+			width: 100%;
+			max-width: 100%;
+			height: 100%;
+			max-height: 100%;
+		}
+
+		.grid-container-full {
+			max-width: 100%;
+			padding: 0 2rem;
+		}
+
+		html {
+			height: 100vh;
+			width: 100vw;
+		}
+
+		.usa-header {
+			height: var(--header-height);
+		}
+
+		.content-container {
+			min-height: calc(100vh - var(--header-height));
+		}
+	</style>
+</head>
+
+<body>
+	<header class="usa-header usa-header--basic display-flex flex-justify-center flex-align-center">
+		<div class="usa-nav-container width-full maxw-full">
+			<div class="usa-navbar display-flex flex-fill flex-align-center flex-justify-center">
+				<div class="usa-logo width-full margin-y-0">
+					<h1 class="usa-logo__text">
+						<a class="usa-logo__text" href="/" title="CTGov Compliance">CTGov Compliance</a>
+					</h1>
 				</div>
-			</div>
-		</header>
-		<main class="usa-section flex-fill">
-			<div class="grid-container-desktop-lg">
-				{% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
-				<div class="usa-alert">
-					{% for category, message in messages %}
-					<div class="usa-alert__body">{{ message }}</div>
-					{% endfor %}
+				{% if current_user.is_authenticated %}
+				<nav class="usa-nav flex-align-self-center" style="padding: 0;">
+					<ul class="usa-nav__primary usa-list--unstyled">
+						<li class="usa-nav__primary-item">
+							<button type="button" class="usa-nav__link" aria-expanded="false"
+								aria-controls="basic-nav-section-one">
+								<a href="{{ url_for('dashboard.show_compare_organizations_dashboard') }}">
+									Compare Organizations
+								</a>
+							</button>
+						</li>
+						{% if current_user.primary_organization_id %}
+						<li class="usa-nav__primary-item">
+							<button type="button" class="usa-nav__link" aria-expanded="false"
+								aria-controls="basic-nav-section-one">
+								<a
+									href="{{ url_for('dashboard.show_organization_dashboard', org_id=current_user.primary_organization_id) }}">
+									My Organization
+								</a>
+							</button>
+						</li>
+						{% endif %}
+						<li class="usa-nav__primary-item">
+							<button type="button" class="usa-nav__link" aria-expanded="false"
+								aria-controls="basic-nav-section-one">
+								<a href="{{ url_for('dashboard.show_user_dashboard', user_id=current_user.id) }}">
+									My Trials
+								</a>
+							</button>
+						</li>
+					</ul>
+				</nav>
+				<div class="margin-left-auto">
+					<a href="{{ url_for('auth.logout') }}" class="usa-button usa-button--outline tablet::usa-button-">
+						Logout
+						<svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+							<use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#logout"></use>
+						</svg>
+					</a>
 				</div>
-				{% endif %} {% endwith %}
-				<div class="">{% block content %}{% endblock %}</div>
+				{% endif %}
 			</div>
-		</main>
-		<footer class="position-fixed bottom-0 right-0 z-top padding-1">
+		</div>
+	</header>
+	<main>
+		{% block content %}{% endblock %}
+		<div class="position-fixed bottom-0 right-0 z-top padding-1">
 			<a href="#" class="usa-footer__return-to-top usa-button circle-205">
 				<i class="ri-arrow-up-double-line"></i>
 			</a>
-		</footer>
-	</body>
+		</div>
+	</main>
+
+	<script src="{{url_for('static', filename='dist/js/uswds.min.js')}}"></script>
+</body>
+
 </html>
