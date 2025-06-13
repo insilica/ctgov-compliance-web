@@ -1,0 +1,14 @@
+{% extends 'layout.html' %} {% block title %}{{user_email}} - CTGov Compliance{% endblock
+%} {% block content %}
+<h1>{{user_email}}</h1>
+{% if on_time_count and late_count %}
+<h3>
+	Compliance Rate: {{ (on_time_count / (on_time_count + late_count) * 100)|round|int }}%
+</h3>
+{% endif %}
+{% if user_email == current_user.email %}
+<h2 class="usa-heading">Your Trials</h2>
+{% else %}
+<h2 class="usa-heading">{{ user_email }}'s Trials</h2>
+{% endif %}
+{% include 'dashboards/trials.html' with context %} {% endblock %}
