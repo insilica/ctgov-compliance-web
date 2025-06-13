@@ -1,0 +1,26 @@
+{% block content %}
+<div class="usa-table-wrapper">
+	<table class="usa-table usa-table--sticky-header">
+		<thead>
+			<tr>
+				<th scope="col">Organization</th>
+				<th scope="col">Total Trials</th>
+				<th scope="col">Trials Submitted on Time</th>
+				<th scope="col">Trials Submitted Late</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for org in org_compliance %}
+			<tr>
+				<td scope="row">
+					<a href="/organization/{{ org.id }}">{{org.name}}</a>
+				</td>
+				<td scope="row">{{ org.total_trials }}</td>
+				<td scope="row">{{ org.on_time_count }}</td>
+				<td scope="row">{{ org.late_count }}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+</div>
+{% endblock %}
