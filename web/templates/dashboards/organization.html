@@ -1,0 +1,9 @@
+{% extends 'layout.html' %} {% block title %}{{org_name}} - CTGov Compliance{% endblock %}
+{% block content %}
+<h1>{{org_name}}</h1>
+<h2>{{org_id}}</h2>
+<h3>
+	Compliance Rate: {{ (on_time_count / (on_time_count + late_count) * 100)|round|int }}%
+</h3>
+<h2 class="usa-heading">{{org_name}}'s Trials</h2>
+{% include 'dashboards/trials.html' with context %} {% endblock %}
