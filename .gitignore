@@ -4,6 +4,10 @@ app.log
 scratch.py
 deploy.zip
 *.sqlite
+/.venv
+
+# macOS
+.DS_Store
 
 # add python ignore
 __pycache__/*
@@ -30,3 +34,16 @@ redis-server.log
 # blazegraph
 *.jar
 .blazegraph.pid
+blazegraph.*
+
+# build files
+/build
+/ctgov_compliance_web.egg-info
+report.*
+rules.log
+
+# ignoring USWDS files for now
+/web/static
+
+# ignoring personal vscode settings
+.vscode/
