@@ -11,17 +11,17 @@ login_manager.login_view = 'auth.login'
 
 
 class User(UserMixin):
-    def __init__(self, id_, email, password_hash, is_organization):
+    def __init__(self, id_, email, password_hash, organization_id):
         self.id = id_
         self.email = email
         self.password_hash = password_hash
-        self.is_organization = is_organization
+        self.organization_id = organization_id
 
     @staticmethod
     def get(user_id):
-        row = query('SELECT id, email, password_hash, is_organization FROM ctgov_user WHERE id=%s', [user_id], fetchone=True)
+        row = query('SELECT id, email, password_hash, organization_id FROM ctgov_user WHERE id=%s', [user_id], fetchone=True)
         if row:
-            return User(row['id'], row['email'], row['password_hash'], row['is_organization'])
+            return User(row['id'], row['email'], row['password_hash'], row['organization_id'])
         return None
 
 @login_manager.user_loader
@@ -34,15 +34,15 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        row = query('SELECT id, email, password_hash, is_organization FROM ctgov_user WHERE email=%s', [email], fetchone=True)
+        row = query('SELECT id, email, password_hash, organization_id FROM ctgov_user WHERE email=%s', [email], fetchone=True)
         if row and check_password_hash(row['password_hash'], password):
-            user = User(row['id'], row['email'], row['password_hash'], row['is_organization'])
+            user = User(row['id'], row['email'], row['password_hash'], row['organization_id'])
             login_user(user)
             execute('INSERT INTO login_activity (user_id) VALUES (%s)', [user.id])
             flash('Logged in successfully.', 'success')
             return redirect(url_for('dashboard.index'))
         flash('Invalid credentials', 'danger')
-    return render_template('login.html')
+    return render_template('auth/login.html')
 
 
 @bp.route('/register', methods=['GET', 'POST'])
@@ -53,17 +53,18 @@ def register():
         existing = query('SELECT id FROM ctgov_user WHERE email=%s', [email], fetchone=True)
         email_domain = email.partition("@")[2]
         org_check = query('SELECT id FROM organization WHERE email_domain=%s', [email_domain], fetchone=True)
+        print(org_check)
         if existing:
             flash('Email already registered', 'danger')
         else:
             password_hash = generate_password_hash(password)
             if org_check:
-                execute('INSERT INTO ctgov_user (email, password_hash, is_organization) VALUES (%s, %s, %s)', [email, password_hash, True])
+                execute('INSERT INTO ctgov_user (email, password_hash, organization_id) VALUES (%s, %s, %s)', [email, password_hash, org_check['id']])
             else:
                 execute('INSERT INTO ctgov_user (email, password_hash) VALUES (%s, %s)', [email, password_hash])
             flash('Registration successful. Please log in.', 'success')
             return redirect(url_for('auth.login'))
-    return render_template('register.html')
+    return render_template('auth/register.html')
 
 
 @bp.route('/logout')
@@ -91,7 +92,7 @@ def reset_request():
             )
         else:
             flash('If that email is registered, a reset link has been generated.', 'info')
-    return render_template('reset_request.html')
+    return render_template('auth/reset_request.html')
 
 
 @bp.route('/reset/<token>', methods=['GET', 'POST'])
@@ -107,4 +108,4 @@ def reset_password(token):
         execute('DELETE FROM password_reset WHERE id=%s', [row['id']])
         flash('Password updated. Please log in.', 'success')
         return redirect(url_for('auth.login'))
-    return render_template('reset_password.html')
+    return render_template('auth/reset_password.html')
