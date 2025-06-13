@@ -1,15 +1,18 @@
 {% extends 'layout.html' %} {% block title %}Login - CTGov Compliance{% endblock %} {%
 block content %}
-<div class="login-page">
-	<div class="grid-row flex-justify-center">
-		<div class="grid-col-12 tablet:grid-col-6">
+<div class="grid-container-full display-flex flex-align-center content-container">
+	<div class="grid-row display-flex flex-justify-center width-full maxw-full">
+		<div class="grid-col-4 tablet:grid-col-6">
 			<div class="usa-card login-card">
-				<div class="usa-card__body">
-					<form method="post">
+				<div class="usa-card__body display-flex flex-justify-center">
+					<form
+						method="post"
+						class="width-full display-flex flex-column flex-align-center"
+					>
 						<input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-						<div class="usa-form-group">
+						<div class="usa-form-group width-mobile-lg">
 							<label class="usa-label" for="email">Email</label>
-							<div class="usa-input-group">
+							<div class="usa-input-group width-full">
 								<div class="usa-input-prefix" aria-hidden="true">
 									<svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
 										<use
@@ -27,7 +30,7 @@ block content %}
 								/>
 							</div>
 						</div>
-						<div class="usa-form-group">
+						<div class="usa-form-group width-mobile-lg">
 							<label class="usa-label" for="password">Password</label>
 							<div class="usa-input-group">
 								<div class="usa-input-prefix" aria-hidden="true">
@@ -47,7 +50,7 @@ block content %}
 								/>
 							</div>
 						</div>
-						<div class="usa-form-group margin-y-1">
+						<div class="usa-form-group margin-y-1 width-full">
 							<ul
 								class="usa-button-group display-flex flex-row flex-align-center flex-justify-center"
 							>
@@ -67,7 +70,7 @@ block content %}
 								</li>
 							</ul>
 						</div>
-						<div class="usa-form-group position-relative right-auto">
+						<div class="usa-form-group position-relative left-auto width-mobile-lg">
 							<button class="usa-button" type="submit">Login</button>
 						</div>
 					</form>
