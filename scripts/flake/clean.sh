@@ -22,7 +22,7 @@ delete_target() {
     echo "Deleting: $target"
     if ! rm -rf "$target" 2>/dev/null; then
       echo "Permission denied, trying with sudo..."
-      rm -rf "$target"
+      sudo rm -rf "$target"
     fi
   else
     echo "Not found: $target"
