@@ -1,10 +1,3 @@
-CREATE TABLE organization (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    email_domain VARCHAR(255) NOT NULL UNIQUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE user_organization (
     user_id INTEGER NOT NULL REFERENCES ctgov_user(id) ON DELETE CASCADE,
     organization_id INTEGER NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
@@ -19,6 +12,7 @@ CREATE TABLE trial (
     organization_id INTEGER NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
     title VARCHAR(255),
     start_date DATE,
+    user_id INTEGER NOT NULL REFERENCES ctgov_user(id) ON DELETE CASCADE,
     completion_date DATE,
     reporting_due_date DATE
 );
