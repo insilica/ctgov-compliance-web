@@ -10,7 +10,7 @@
 	<link href="{{ url_for('static', filename='dist/css/uswds.min.css') }}" rel="stylesheet" />
 	<style>
 		:root {
-			--header-height: 5rem;
+			--header-height: fit-content;
 		}
 
 		main {
@@ -41,59 +41,77 @@
 </head>
 
 <body>
-	<header class="usa-header usa-header--basic display-flex flex-justify-center flex-align-center">
+	<header class="usa-header usa-header--basic display-flex flex-justify-center flex-align-center margin-y-1">
 		<div class="usa-nav-container width-full maxw-full">
-			<div class="usa-navbar display-flex flex-fill flex-align-center flex-justify-center">
-				<div class="usa-logo width-full margin-y-0">
+			<div class="usa-navbar width-full display-flex flex-fill flex-align-center">
+				<div class="usa-logo margin-y-0">
 					<h1 class="usa-logo__text">
 						<a class="usa-logo__text" href="/" title="CTGov Compliance">CTGov Compliance</a>
 					</h1>
 				</div>
-				{% if current_user.is_authenticated %}
-				<nav class="usa-nav flex-align-self-center" style="padding: 0;">
-					<ul class="usa-nav__primary usa-list--unstyled">
-						<li class="usa-nav__primary-item">
-							<button type="button" class="usa-nav__link" aria-expanded="false"
-								aria-controls="basic-nav-section-one">
-								<a href="{{ url_for('dashboard.show_compare_organizations_dashboard') }}">
-									Compare Organizations
-								</a>
-							</button>
-						</li>
-						{% if current_user.primary_organization_id %}
-						<li class="usa-nav__primary-item">
-							<button type="button" class="usa-nav__link" aria-expanded="false"
-								aria-controls="basic-nav-section-one">
-								<a
-									href="{{ url_for('dashboard.show_organization_dashboard', org_id=current_user.primary_organization_id) }}">
-									My Organization
-								</a>
-							</button>
-						</li>
-						{% endif %}
-						<li class="usa-nav__primary-item">
-							<button type="button" class="usa-nav__link" aria-expanded="false"
-								aria-controls="basic-nav-section-one">
-								<a href="{{ url_for('dashboard.show_user_dashboard', user_id=current_user.id) }}">
-									My Trials
-								</a>
-							</button>
-						</li>
-					</ul>
-				</nav>
-				<div class="margin-left-auto">
-					<a href="{{ url_for('auth.logout') }}" class="usa-button usa-button--outline tablet::usa-button-">
-						Logout
-						<svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
-							<use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#logout"></use>
-						</svg>
-					</a>
+				<div class="display-flex flex-column flex-fill float-right">
+					{% if current_user.is_authenticated %}
+					<div class="display-flex flex-row flex-align-center">
+						<nav class="usa-nav flex-align-self-center" style="padding: 0;">
+							<ul class="usa-nav__primary usa-list--unstyled">
+								<li class="usa-nav__primary-item">
+									<button type="button" class="usa-nav__link font-body-xs">
+										<a href="{{ url_for('dashboard.show_compare_organizations_dashboard') }}">
+											Compare Organizations
+										</a>
+									</button>
+								</li>
+								{% if current_user.primary_organization_id %}
+								<li class="usa-nav__primary-item">
+									<button type="button" class="usa-nav__link font-body-xs">
+										<a
+											href="{{ url_for('dashboard.show_organization_dashboard', org_id=current_user.primary_organization_id) }}">
+											My Organization
+										</a>
+									</button>
+								</li>
+								{% endif %}
+								<li class="usa-nav__primary-item">
+									<button type="button" class="usa-nav__link font-body-xs">
+										<a
+											href="{{ url_for('dashboard.show_user_dashboard', user_id=current_user.id) }}">
+											My Trials
+										</a>
+									</button>
+								</li>
+							</ul>
+						</nav>
+						<div class="margin-left-auto">
+							<a href="{{ url_for('auth.logout') }}" class="usa-button usa-button--outline height-4">
+								Logout
+								<svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+									<use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#logout"></use>
+								</svg>
+							</a>
+						</div>
+					</div>
+					<p class="flex-align-self-end text-base font-body-2xs padding-0 margin-0">Welcome,
+						{{current_user.email}}</p>
+					{% endif %}
 				</div>
-				{% endif %}
 			</div>
 		</div>
 	</header>
 	<main>
+		{% with messages = get_flashed_messages(with_categories=true) %}
+		{% if messages %}
+		<div class="grid-container">
+			{% for category, message in messages %}
+			<div class="usa-alert usa-alert--{{ category if category != 'message' else 'info' }} margin-y-2"
+				role="alert">
+				<div class="usa-alert__body">
+					<p class="usa-alert__text">{{ message|safe }}</p>
+				</div>
+			</div>
+			{% endfor %}
+		</div>
+		{% endif %}
+		{% endwith %}
 		{% block content %}{% endblock %}
 		<div class="position-fixed bottom-0 right-0 z-top padding-1">
 			<a href="#" class="usa-footer__return-to-top usa-button circle-205">
