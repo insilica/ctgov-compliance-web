@@ -1,33 +1,23 @@
 {% extends 'layout.html' %} {% block title %}Login - CTGov Compliance{% endblock %} {%
 block content %}
-<div class="grid-container-full display-flex flex-align-center content-container">
+<div class="grid-container display-flex flex-align-center content-container">
 	<div class="grid-row display-flex flex-justify-center width-full maxw-full">
 		<div class="grid-col-4 tablet:grid-col-6">
-			<div class="usa-card login-card">
+			<div class="usa-card">
 				<div class="usa-card__body display-flex flex-justify-center">
-					<form
-						method="post"
-						class="width-full display-flex flex-column flex-align-center"
-					>
+					<form method="post" class="width-auto display-flex flex-column flex-align-center">
 						<input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 						<div class="usa-form-group width-mobile-lg">
 							<label class="usa-label" for="email">Email</label>
 							<div class="usa-input-group width-full">
 								<div class="usa-input-prefix" aria-hidden="true">
 									<svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
-										<use
-											href="{{ url_for('static', filename='dist/img/sprite.svg') }}#person"
-										></use>
+										<use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#person">
+										</use>
 									</svg>
 								</div>
-								<input
-									class="usa-input"
-									id="email"
-									name="email"
-									type="email"
-									placeholder="Email"
-									required
-								/>
+								<input class="usa-input" id="email" name="email" type="email" placeholder="Email"
+									required />
 							</div>
 						</div>
 						<div class="usa-form-group width-mobile-lg">
@@ -35,48 +25,32 @@ block content %}
 							<div class="usa-input-group">
 								<div class="usa-input-prefix" aria-hidden="true">
 									<svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
-										<use
-											href="{{ url_for('static', filename='dist/img/sprite.svg') }}#lock"
-										></use>
+										<use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#lock"></use>
 									</svg>
 								</div>
-								<input
-									class="usa-input"
-									id="password"
-									name="password"
-									type="password"
-									placeholder="Password"
-									required
-								/>
+								<input class="usa-input" id="password" name="password" type="password"
+									placeholder="Password" required />
 							</div>
 						</div>
 						<div class="usa-form-group margin-y-1 width-full">
-							<ul
-								class="usa-button-group display-flex flex-row flex-align-center flex-justify-center"
-							>
+							<ul class="usa-button-group display-flex flex-row flex-align-center flex-justify-center">
 								<li class="usa-button-group__item">
-									<a
-										class="usa-button usa-button--unstyled"
-										href="{{ url_for('auth.register') }}"
-										>Create an account</a
-									>
-								</li>
+									<a class="usa-button usa-button--unstyled"
+										href="{{ url_for('auth.register') }}">Create an account</a>
+								</li> |
 								<li class="usa-button-group__item">
-									<a
-										class="usa-button usa-button--unstyled"
-										href="{{ url_for('auth.reset_request') }}"
-										>Forgot password?</a
-									>
+									<a class="usa-button usa-button--unstyled"
+										href="{{ url_for('auth.reset_request') }}">Forgot password?</a>
 								</li>
 							</ul>
 						</div>
-						<div class="usa-form-group position-relative left-auto width-mobile-lg">
-							<button class="usa-button" type="submit">Login</button>
+						<div class="usa-form-group width-full display-flex flex-justify-end">
+							<button class="usa-button margin-0" type="submit">Login</button>
 						</div>
 					</form>
 				</div>
 			</div>
 		</div>
 	</div>
-	{% endblock %}
 </div>
+{% endblock %}

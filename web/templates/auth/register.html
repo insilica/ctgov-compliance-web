@@ -1,0 +1,216 @@
+{% extends 'layout.html' %} {% block title %}Register - CTGov Compliance{% endblock %} {%
+block content %}
+<div class="grid-container display-flex flex-align-center content-container">
+	<div class="grid-row display-flex flex-justify-center width-full maxw-full">
+		<div class="grid-col-4 tablet:grid-col-6">
+			<div class="usa-card">
+				<div class="usa-card__body display-flex flex-justify-center">
+					<form method="post" class="width-auto display-flex flex-column flex-align-center"
+						onsubmit="return validateForm()">
+						<input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+						<div class="usa-form-group width-mobile-lg">
+							<label class="usa-label" for="email">Email</label>
+							<div class="usa-input-group width-full">
+								<div class="usa-input-prefix" aria-hidden="true">
+									<svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+										<use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#person">
+										</use>
+									</svg>
+								</div>
+								<input class="usa-input" id="email" name="email" type="email" placeholder="Email"
+									required onInput="validateEmail(this)" />
+							</div>
+						</div>
+						<div class="usa-form-group width-mobile-lg">
+							<label class="usa-label" for="password">Password</label>
+							<div class="usa-input-group">
+								<div class="usa-input-prefix" aria-hidden="true">
+									<svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+										<use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#lock"></use>
+									</svg>
+								</div>
+								<input class="usa-input" id="password" name="password" type="password"
+									placeholder="Password" required
+									pattern="^(?=.*[A-Z])(?=.*[!@#$&*-])(?=.*[0-9])(?=.*[a-z]).{8,}$"
+									title="Must be at least 8 characters and include: uppercase letter, number, and special character (!@#$&*)" />
+							</div>
+							<div class="usa-form-group">
+								<ul class="usa-checklist margin-top-1 padding-left-7" id="password-checklist"
+									aria-hidden="true" style="list-style: none;">
+									<li class="usa-checklist__item margin-y-1" id="length-check"
+										style="transition: all 0.2s ease-in-out;">
+										<span class="requirement-text">At least 8 characters</span>
+									</li>
+									<li class="usa-checklist__item margin-y-1" id="uppercase-check"
+										style="transition: all 0.2s ease-in-out;">
+										<span class="requirement-text">At least 1 uppercase letter</span>
+									</li>
+									<li class="usa-checklist__item margin-y-1" id="number-check"
+										style="transition: all 0.2s ease-in-out;">
+										<span class="requirement-text">At least 1 number</span>
+									</li>
+									<li class="usa-checklist__item margin-y-1" id="special-check"
+										style="transition: all 0.2s ease-in-out;">
+										<span class="requirement-text">At least 1 special character (!@#$&*-)</span>
+									</li>
+								</ul>
+							</div>
+						</div>
+						<div class="usa-form-group width-mobile-lg">
+							<label class="usa-label" for="confirm_password">Confirm Password</label>
+							<div class="usa-input-group">
+								<div class="usa-input-prefix" aria-hidden="true">
+									<svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+										<use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#lock"></use>
+									</svg>
+								</div>
+								<input class="usa-input" id="confirm_password" name="confirm_password" type="password"
+									placeholder="Confirm Password" required />
+							</div>
+							<span class="usa-error-message" id="password-error" style="display: none;">
+								Passwords do not match
+							</span>
+						</div>
+						<div
+							class="usa-form-group margin-y-1 width-full display-flex flex-row flex-align-center flex-justify-center">
+							<a href="{{ url_for('auth.login') }}" class="usa-button usa-button--unstyled">Back
+								to
+								Login</a>
+						</div>
+						<div class="usa-form-group width-full display-flex flex-justify-end">
+							<button class="usa-button margin-0" type="submit">Register</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+	.requirement-text {
+		position: relative;
+		text-decoration: none;
+		transition: all 0.2s ease-in-out;
+	}
+
+	.requirement-text::after {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 50%;
+		width: 0;
+		height: 1px;
+		background: currentColor;
+		transition: width 0.2s ease-in-out;
+	}
+
+	.usa-checklist__item--checked .requirement-text::after {
+		width: 100%;
+	}
+</style>
+
+<script>
+	function validateEmail(input) {
+		// Convert to lowercase
+		input.value = input.value.toLowerCase();
+
+		// Basic email validation
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		const isValid = emailRegex.test(input.value);
+
+		// Update input styling
+		if (input.value) {
+			if (isValid) {
+				input.classList.remove('usa-input--error');
+				input.classList.add('usa-input--success');
+			} else {
+				input.classList.remove('usa-input--success');
+				input.classList.add('usa-input--error');
+			}
+		} else {
+			// Remove both classes if empty
+			input.classList.remove('usa-input--success', 'usa-input--error');
+		}
+	}
+
+	function validatePassword(password) {
+		const checks = {
+			length: password.length >= 8,
+			uppercase: /[A-Z]/.test(password),
+			number: /[0-9]/.test(password),
+			special: /[!@#$&*\-]/.test(password)
+		};
+
+		// Update checklist UI with colors and strikethrough
+		Object.entries(checks).forEach(([check, isValid]) => {
+			const element = document.getElementById(`${check}-check`);
+			if (isValid) {
+				element.style.color = 'var(--usa-success)';  // USWDS success color
+				element.classList.add('usa-checklist__item--checked');
+			} else {
+				element.style.color = 'var(--usa-error)';    // USWDS error color
+				element.classList.remove('usa-checklist__item--checked');
+			}
+		});
+
+		return Object.values(checks).every(check => check);
+	}
+
+	// Initialize validation state with red color
+	function initializeValidation() {
+		const checklistItems = document.querySelectorAll('.usa-checklist__item');
+		checklistItems.forEach(item => {
+			item.style.color = 'var(--usa-error)';
+		});
+	}
+
+	// Call initialization when document loads
+	document.addEventListener('DOMContentLoaded', initializeValidation);
+
+	function validatePasswords() {
+		const password = document.getElementById('password').value;
+		const confirmPassword = document.getElementById('confirm_password').value;
+		const errorElement = document.getElementById('password-error');
+
+		if (password !== confirmPassword) {
+			errorElement.style.display = 'block';
+			return false;
+		}
+
+		errorElement.style.display = 'none';
+		return true;
+	}
+
+	function validateForm() {
+		const email = document.getElementById('email');
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		const isEmailValid = emailRegex.test(email.value.toLowerCase());
+
+		if (!isEmailValid) {
+			email.classList.add('usa-input--error');
+			return false;
+		}
+
+		const password = document.getElementById('password').value;
+		return validatePassword(password) && validatePasswords();
+	}
+
+	// Real-time validation as user types
+	document.getElementById('password').addEventListener('input', function () {
+		validatePassword(this.value);
+	});
+
+	document.getElementById('confirm_password').addEventListener('input', function () {
+		const password = document.getElementById('password').value;
+		const confirmPassword = this.value;
+		const errorElement = document.getElementById('password-error');
+
+		if (confirmPassword && password !== confirmPassword) {
+			errorElement.style.display = 'block';
+		} else {
+			errorElement.style.display = 'none';
+		}
+	});
+</script>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'layout.html' %}
+{% block title %}Reset Password - CTGov Compliance{% endblock %}
+{% block content %}
+<div class="grid-container display-flex flex-align-center content-container">
+  <div class="grid-row display-flex flex-justify-center width-full maxw-full">
+    <div class="grid-col-4 tablet:grid-col-6">
+      <div class="usa-card">
+        <div class="usa-card__body display-flex flex-justify-center">
+          <form method="post" class="width-auto display-flex flex-column flex-align-center">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <div class="usa-form-group width-mobile-lg">
+              <label class="usa-label" for="email">Email</label>
+              <div class="usa-input-group width-full">
+                <div class="usa-input-prefix" aria-hidden="true">
+                  <svg class="usa-icon" aria-hidden="true" focusable="false" role="img">
+                    <use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#person">
+                    </use>
+                  </svg>
+                </div>
+                <input class="usa-input" id="email" name="email" type="email" placeholder="Email" required />
+              </div>
+            </div>
+            <div
+              class="usa-form-group margin-y-1 width-full display-flex flex-row flex-align-center flex-justify-center">
+              <a href="{{ url_for('auth.login') }}" class="usa-button usa-button--unstyled">Back
+                to
+                Login</a>
+            </div>
+            <div class="usa-form-group width-full display-flex flex-justify-end">
+              <button class="usa-button margin-0" type="submit">Send Reset Request</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
