@@ -7,30 +7,30 @@ block content %}
 			<div class="grid-row grid-gap margin-bottom-2">
 				<div class="grid-col-fill text-left">
 					<h1 class="usa-heading margin-y-1">Clinical Trials Data</h1>
-					<span class="usa-hint"
-						>Showing {{ pagination.start_index }} to {{ pagination.end_index }} of {{
-						pagination.total_entries }} entries</span
-					>
+					<span class="usa-hint">Showing {{ pagination.start_index }} to {{ pagination.end_index }} of {{
+						pagination.total_entries }} entries</span>
 				</div>
 				<div class="grid-col-auto display-flex flex-row flex-justify-center flex-align-center">
 					<form method="GET" class="display-inline">
 						{% for key, value in request.args.items() %}
-							{% if key != 'per_page' and key != 'page' %}
-								<input type="hidden" name="{{ key }}" value="{{ value }}">
-							{% endif %}
+						{% if key != 'per_page' and key != 'page' %}
+						<input type="hidden" name="{{ key }}" value="{{ value }}">
+						{% endif %}
 						{% endfor %}
 						<div class="grid-row">
 							<div class="grid-col-8 display-flex flex-align-center">
-							<label class="usa-label margin-0" for="entries-per-page">Rows per page:</label>
-						</div><div class="grid-col-4">
-							<select class="usa-select margin-0" id="entries-per-page" name="per_page" onchange="this.form.submit()">
-								<option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
-								<option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
-								<option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
-								<option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
-							</select>
-							<input type="hidden" name="page" value="1">
-						</div>
+								<label class="usa-label margin-0" for="entries-per-page">Rows per page:</label>
+							</div>
+							<div class="grid-col-4">
+								<select class="usa-select margin-0" id="entries-per-page" name="per_page"
+									onchange="this.form.submit()">
+									<option value="10" {% if per_page==10 %}selected{% endif %}>10</option>
+									<option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
+									<option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
+									<option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
+								</select>
+								<input type="hidden" name="page" value="1">
+							</div>
 						</div>
 					</form>
 				</div>
@@ -45,24 +45,17 @@ block content %}
 							<li class="usa-pagination__item usa-pagination__arrow">
 								{% set prev_args = request.args.copy() %} {% do prev_args.pop('page',
 								None) %} {% do prev_args.update({'page': pagination.prev_page}) %}
-								<a
-									href="{{ url_for(request.endpoint, **prev_args) }}"
-									class="usa-pagination__link usa-pagination__previous-page"
-								>
+								<a href="{{ url_for(request.endpoint, **prev_args) }}"
+									class="usa-pagination__link usa-pagination__previous-page">
 									<span class="usa-pagination__link-text">Previous</span>
 								</a>
 							</li>
 							{% endif %} {% for p in pagination.iter_pages() %} {% if p %} {% set
 							page_args = request.args.copy() %} {% do page_args.pop('page', None) %} {%
 							do page_args.update({'page': p}) %}
-							<li
-								class="usa-pagination__item {% if p == pagination.page %}usa-current{% endif %}"
-							>
-								<a
-									href="{{ url_for(request.endpoint, **page_args) }}"
-									class="usa-pagination__button"
-									>{{ p }}</a
-								>
+							<li class="usa-pagination__item {% if p == pagination.page %}usa-current{% endif %}">
+								<a href="{{ url_for(request.endpoint, **page_args) }}" class="usa-pagination__button">{{
+									p }}</a>
 							</li>
 							{% else %}
 							<li class="usa-pagination__item usa-pagination__overflow">
@@ -72,10 +65,8 @@ block content %}
 							<li class="usa-pagination__item usa-pagination__arrow">
 								{% set next_args = request.args.copy() %} {% do next_args.pop('page',
 								None) %} {% do next_args.update({'page': pagination.next_page}) %}
-								<a
-									href="{{ url_for(request.endpoint, **next_args) }}"
-									class="usa-pagination__link usa-pagination__next-page"
-								>
+								<a href="{{ url_for(request.endpoint, **next_args) }}"
+									class="usa-pagination__link usa-pagination__next-page">
 									<span class="usa-pagination__link-text">Next</span>
 								</a>
 							</li>

@@ -191,7 +191,7 @@ def index():
     on_time_count = status_counts.get('on time', 0)
     late_count = status_counts.get('late', 0)
     
-    return render_template('dashboards/dashboard.html',
+    return render_template('dashboards/home.html',
                          trials=pagination.items_page,
                          pagination=pagination,
                          per_page=per_page,
@@ -225,7 +225,7 @@ def search():
         on_time_count = status_counts.get('on time', 0)
         late_count = status_counts.get('late', 0)
         
-        return render_template('dashboards/dashboard.html',
+        return render_template('dashboards/home.html',
                             trials=pagination.items_page,
                             pagination=pagination,
                             per_page=per_page,
@@ -272,16 +272,29 @@ def show_user_dashboard(user_id):
     user_trials = get_user_trials(user_id)
     if user_trials:
         user_email = user_trials[0]['email']
+        pagination, per_page = paginate(user_trials)
 
         # Convert to DataFrame
         df = pd.DataFrame(user_trials)
 
         # Count statuses
-        status_counts = df['status'].value_counts()
+        status_counts = df['status'].value_counts() if not df.empty else pd.Series()
         on_time_count = status_counts.get('on time', 0)
         late_count = status_counts.get('late', 0)
-        return render_template('dashboards/user.html', trials=user_trials, user_id=user_id, user_email=user_email, on_time_count=on_time_count, late_count=late_count)
+        return render_template('dashboards/user.html', 
+                            trials=pagination.items_page,
+                            pagination=pagination,
+                            per_page=per_page,
+                            user_id=user_id,
+                            user_email=user_email,
+                            on_time_count=on_time_count,
+                            late_count=late_count)
     else:
         user_email = current_user.get(user_id).email
         print(user_email)
-        return render_template('dashboards/user.html', trials=user_trials, user_id=user_id, user_email=user_email)
+        return render_template('dashboards/user.html',
+                            trials=[],
+                            pagination=None,
+                            per_page=25,
+                            user_id=user_id,
+                            user_email=user_email)
