@@ -41,6 +41,10 @@ targets=(
   "**/*.pyo"
   "**/*.pyd"
   ".pytest_cache"
+  # AWS temporary files
+  ".aws-profile"
+  ".aws/credentials"
+  ".aws/config"
 )
 
 # Function to count total files to be deleted
@@ -80,6 +84,20 @@ delete_target() {
       sudo rm -rf "$target"
     fi
     progress_bar "$current_count" "$total_count"
+  fi
+}
+
+# Clean Nix store references
+clean_nix_references() {
+  echo -e "\nCleaning Nix store references..."
+  if command -v nix &> /dev/null; then
+    # Only clean up the current profile's generations
+    if [ -n "$NIX_PROFILE" ]; then
+      nix-env --profile "$NIX_PROFILE" --delete-generations old &>/dev/null || true
+    fi
+    
+    # Clean up only the user's profile
+    nix-collect-garbage --delete-old &>/dev/null || true
   fi
 }
 
@@ -155,5 +173,8 @@ if [ -n "$REDIS_PIDS" ]; then
 else
   echo "No Redis server processes found"
 fi
+
+# Clean Nix store
+clean_nix_references
 
 echo -e "\nCleanup complete. You can now run 'nix develop' for a fresh environment."
