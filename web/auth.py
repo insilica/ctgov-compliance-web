@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import LoginManager, login_user, logout_user, login_required, UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import secrets
 from .db import query, execute
 
@@ -59,7 +59,7 @@ def login():
             execute('INSERT INTO login_activity (user_id) VALUES (%s)', [user.id])
             flash('Logged in successfully.', 'success')
             return redirect(url_for('dashboard.index'))
-        flash('Invalid credentials', 'danger')
+        flash('Invalid credentials', 'error')
     return render_template('auth/login.html')
 
 
@@ -69,26 +69,16 @@ def register():
         email = request.form['email']
         password = request.form['password']
         existing = query('SELECT id FROM ctgov_user WHERE email=%s', [email], fetchone=True)
-        email_domain = email.partition("@")[2]
-        org_check = query('SELECT id FROM organization WHERE email_domain=%s', [email_domain], fetchone=True)
         
         if existing:
-            flash('Email already registered', 'danger')
+            flash('The email address, ' + email + ', is already registered. <a href="/reset" class="usa-link">Reset your password</a>', 'error')
         else:
             password_hash = generate_password_hash(password)
             # First create the user
-            user_id = execute(
+            execute(
                 'INSERT INTO ctgov_user (email, password_hash) VALUES (%s, %s) RETURNING id',
                 [email, password_hash],
-                fetch_one=True
-            )[0]
-            
-            # If matching organization found, create user_organization relationship
-            if org_check:
-                execute(
-                    'INSERT INTO user_organization (user_id, organization_id) VALUES (%s, %s)',
-                    [user_id, org_check['id']]
-                )
+            )
             
             flash('Registration successful. Please log in.', 'success')
             return redirect(url_for('auth.login'))
@@ -109,7 +99,7 @@ def reset_request():
         user = query('SELECT id FROM ctgov_user WHERE email=%s', [email], fetchone=True)
         if user:
             token = secrets.token_urlsafe(32)
-            expires_at = datetime.now(datetime.timezone.utc) + timedelta(hours=1)
+            expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
             execute(
                 'INSERT INTO password_reset (user_id, token, expires_at) VALUES (%s, %s, %s)',
                 [user['id'], token, expires_at],
@@ -126,14 +116,21 @@ def reset_request():
 @bp.route('/reset/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     row = query('SELECT id, user_id, expires_at FROM password_reset WHERE token=%s', [token], fetchone=True)
-    if not row or row['expires_at'] < datetime.now(datetime.timezone.utc):
-        flash('Invalid or expired token.', 'danger')
+    if not row or row['expires_at'] < datetime.now(timezone.utc):
+        flash('Invalid or expired token.', 'error')
         return redirect(url_for('auth.reset_request'))
+    
+    # Get user's email
+    user = query('SELECT email FROM ctgov_user WHERE id=%s', [row['user_id']], fetchone=True)
+    if not user:
+        flash('User not found.', 'error')
+        return redirect(url_for('auth.reset_request'))
+        
     if request.method == 'POST':
         password = request.form['password']
         password_hash = generate_password_hash(password)
         execute('UPDATE ctgov_user SET password_hash=%s WHERE id=%s', [password_hash, row['user_id']])
         execute('DELETE FROM password_reset WHERE id=%s', [row['id']])
-        flash('Password updated. Please log in.', 'success')
+        flash('Password successfully updated! Please log in.', 'success')
         return redirect(url_for('auth.login'))
-    return render_template('auth/reset_password.html')
+    return render_template('auth/reset_password.html', email=user['email'])
