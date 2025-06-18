@@ -64,7 +64,7 @@
 					</button>
 					<ul class="usa-nav__primary usa-accordion usa-list--unstyled">
 						<li class="usa-nav__primary-item">
-							<a href="{{ url_for('dashboard.index') }}" class="usa-nav-link">
+							<a href="{{ url_for('routes.index') }}" class="usa-nav-link">
 								<span>Advanced Search</span>
 							</a>
 						</li>
@@ -75,14 +75,14 @@
 							</button>
 							<ul id="extended-nav-section-one" class="usa-nav__submenu">
 								<li class="usa-nav__submenu-item">
-									<a href="{{ url_for('dashboard.show_compare_organizations_dashboard') }}">
+									<a href="{{ url_for('routes.show_compare_organizations_dashboard') }}">
 										<span>Compare Organizations</span>
 									</a>
 								</li>
 								{% if current_user.organization_ids %}
 								<li class="usa-nav__submenu-item">
 									<a
-										href="{{ url_for('dashboard.show_organization_dashboard', org_ids=current_user.organization_ids) }}">
+										href="{{ url_for('routes.show_organization_dashboard', org_ids=current_user.organization_ids) }}">
 										<span>View my Organizations</span>
 									</a>
 								</li>
@@ -107,9 +107,9 @@
 										<span>Compare Users</span>
 									</a>
 								</li>
-								{% if current_user.primary_organization_id %}
+								{% if current_user.trials %}
 								<li class="usa-nav__submenu-item">
-									<a href="{{ url_for('dashboard.show_user_dashboard', user_id=current_user.id) }}">
+									<a href="{{ url_for('routes.show_user_dashboard', user_id=current_user.id) }}">
 										<span>View my Trials</span>
 									</a>
 								</li>
