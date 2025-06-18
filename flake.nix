@@ -46,9 +46,14 @@
 
             source scripts/flake/shellhook.sh
 
-            # populate mock data
+            export FLASK_APP=web.app
+            export FLASK_ENV=development
+            export FLASK_DEBUG=1
+
+            WEB_DIR="$(pwd)/web"
+
             uv run scripts/init_mock_data.py >/dev/null 2>&1
-            uv run -- flask run --host 0.0.0.0 --port 6525 --debug --extra-files "web/templates/*.html"
+            uv run -- flask run --host 0.0.0.0 --port 6525 --debug --extra-files "$WEB_DIR"
           '';
         };
 
