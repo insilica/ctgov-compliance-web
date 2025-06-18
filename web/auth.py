@@ -32,6 +32,10 @@ class User(UserMixin):
     @property
     def organization_ids(self):
         return ''.join(str(org['id']) for org in self.organizations)
+    
+    @property
+    def trials(self):
+        return query('SELECT id FROM trial WHERE user_id = %s', [self.id])
 
     @staticmethod
     def get(user_id):
@@ -56,7 +60,7 @@ def login():
             login_user(user)
             execute('INSERT INTO login_activity (user_id) VALUES (%s)', [user.id])
             flash('Logged in successfully.', 'success')
-            return redirect(url_for('dashboard.index'))
+            return redirect(url_for('routes.index'))
         flash('Invalid credentials', 'error')
     return render_template('auth/login.html')
 
