@@ -6,6 +6,7 @@ targets=(
   "build"
   "ctgov_compliance_web.egg-info"
   ".env"
+  ".postgres"
   "blazegraph.jar"
   ".blazegraph.pid"
   "blazegraph.jnl"
@@ -82,7 +83,7 @@ for target in "${targets[@]}"; do
       delete_target "$target" "$current_file" "$total_files"
     fi
   fi
-done
+ done
 
 echo -e "\n\nCleaning up processes..."
 
@@ -135,4 +136,4 @@ else
   echo "No Redis server processes found"
 fi
 
-echo -e "\nCleanup complete. You can now run 'nix develop' for a fresh environment."
+echo -e "\nCleanup complete. You can now run 'nix develop' for a fresh environment." 
