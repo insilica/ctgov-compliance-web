@@ -1,6 +1,6 @@
 {% block content %}
 <div class="usa-table-wrapper">
-	<table class="usa-table usa-table--striped usa-table--sticky-header">
+	<table class="usa-table usa-table--sticky-header">
 		<thead>
 			<tr>
 				<th scope="col">Organization</th>
@@ -22,15 +22,15 @@
 					0)|round|int %}
 					<div class="display-flex flex-align-center">
 						<div class="usa-progress-bar" style="width: 100px; margin-right: 1rem;">
-							<div class="usa-progress-bar__progress"></div>
+							<div class="usa-progress-bar__progress" style="width: {{ compliance_rate }}%;"></div>
 						</div>
 						<span>{{ compliance_rate }}%</span>
 					</div>
 				</td>
-				<td scope="row" class="text-success">
+				<td scope="row" class=" text-success">
 					<i class="ri-check-line"></i> {{ org.on_time_count }}
 				</td>
-				<td scope="row" class="text-error">
+				<td scope="row" class=" text-error">
 					<i class="ri-close-line"></i> {{ org.late_count }}
 				</td>
 			</tr>
