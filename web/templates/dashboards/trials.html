@@ -1,6 +1,6 @@
 {% block content %}
-<div class="table-container" style="max-width: 100%">
-	<table class="usa-table usa-table--borderless usa-table--striped usa-table--sticky-header">
+<div class="table-container overflow-auto" style="max-width: 100%">
+	<table class="usa-table usa-table--striped usa-table--sticky-header">
 		<thead>
 			<tr>
 				<th data-sortable scope="col" role="columnheader">Title</th>
@@ -9,7 +9,7 @@
 				<th data-sortable scope="col" role="columnheader">User</th>
 				<th data-sortable scope="col" role="columnheader">Status</th>
 				<th data-sortable scope="col" role="columnheader">Start Date</th>
-				<th data-sortable scope="col" role="columnheader">Completion Date</th>
+				<th data-sortable scope="col" role="columnheader">End Date</th>
 				<th data-sortable scope="col" role="columnheader">Reporting Due Date</th>
 			</tr>
 		</thead>
@@ -27,9 +27,24 @@
 					<a href="/user/{{ trial.user_id }}">{{trial.email}}</a>
 				</td>
 				<td>{{ trial.status }}</td>
-				<td>{{ trial.start_date }}</td>
-				<td>{{ trial.completion_date }}</td>
-				<td>{{ trial.reporting_due_date }}</td>
+				<td class="date-column">
+					{% if trial.start_date %}
+					<span class="date-full">{{ trial.start_date.strftime('%b %d, %Y') }}</span>
+					<span class="date-mobile">{{ trial.start_date.strftime('%m/%d/%y') }}</span>
+					{% endif %}
+				</td>
+				<td class="date-column">
+					{% if trial.completion_date %}
+					<span class="date-full">{{ trial.completion_date.strftime('%b %d, %Y') }}</span>
+					<span class="date-mobile">{{ trial.completion_date.strftime('%m/%d/%y') }}</span>
+					{% endif %}
+				</td>
+				<td class="date-column">
+					{% if trial.reporting_due_date %}
+					<span class="date-full">{{ trial.reporting_due_date.strftime('%b %d, %Y') }}</span>
+					<span class="date-mobile">{{ trial.reporting_due_date.strftime('%m/%d/%y') }}</span>
+					{% endif %}
+				</td>
 			</tr>
 			{% endfor %}
 		</tbody>
