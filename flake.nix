@@ -52,7 +52,6 @@
 
             WEB_DIR="$(pwd)/web"
 
-            uv run scripts/init_mock_data.py >/dev/null 2>&1
             uv run -- flask run --host 0.0.0.0 --port 6525 --debug --extra-files "$WEB_DIR"
           '';
         };
