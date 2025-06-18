@@ -28,22 +28,16 @@
 				</td>
 				<td>{{ trial.status }}</td>
 				<td class="date-column">
-					{% if trial.start_date %}
 					<span class="date-full">{{ trial.start_date.strftime('%b %d, %Y') }}</span>
 					<span class="date-mobile">{{ trial.start_date.strftime('%m/%d/%y') }}</span>
-					{% endif %}
 				</td>
 				<td class="date-column">
-					{% if trial.completion_date %}
 					<span class="date-full">{{ trial.completion_date.strftime('%b %d, %Y') }}</span>
 					<span class="date-mobile">{{ trial.completion_date.strftime('%m/%d/%y') }}</span>
-					{% endif %}
 				</td>
 				<td class="date-column">
-					{% if trial.reporting_due_date %}
 					<span class="date-full">{{ trial.reporting_due_date.strftime('%b %d, %Y') }}</span>
 					<span class="date-mobile">{{ trial.reporting_due_date.strftime('%m/%d/%y') }}</span>
-					{% endif %}
 				</td>
 			</tr>
 			{% endfor %}
