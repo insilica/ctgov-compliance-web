@@ -1,11 +1,67 @@
 /* Custom styles for CTGov Compliance */
 
 .login-card {
-  max-width: 30rem;
-  margin-left: auto;
-  margin-right: auto;
+    max-width: 30rem;
 }
 
 .table-container {
-  overflow-x: auto;
+    overflow-x: hidden;
+}
+
+.metric-card {
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.metric-value {
+    color: #1a4480;
+}
+
+.metric-details {
+    font-size: 0.9rem;
+    color: #5d5d5d;
+}
+
+/* Table styles */
+td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.date-column {
+    white-space: nowrap;
+    width: auto;
+    min-width: 120px;
+}
+
+.usa-table {
+    table-layout: auto;
+}
+
+/* Mobile date format */
+@media screen and (max-width: 768px) {
+    .date-column {
+        width: 100px;
+        min-width: 100px;
+        max-width: 100px;
+    }
+
+    .date-full {
+        display: none;
+    }
+
+    .date-mobile {
+        display: inline;
+    }
+}
+
+/* Desktop date format */
+@media screen and (min-width: 769px) {
+    .date-full {
+        display: inline;
+    }
+
+    .date-mobile {
+        display: none;
+    }
 }
