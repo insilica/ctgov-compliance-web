@@ -39,7 +39,7 @@ td {
 }
 
 /* Mobile date format */
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 40em) {
     .date-column {
         width: 100px;
         min-width: 100px;
@@ -53,15 +53,23 @@ td {
     .date-mobile {
         display: inline;
     }
+
+    .search-arrow {
+        display: inline;
+    }
 }
 
 /* Desktop date format */
-@media screen and (min-width: 769px) {
+@media screen and (min-width: 40em) {
     .date-full {
         display: inline;
     }
 
     .date-mobile {
+        display: none;
+    }
+
+    .search-arrow {
         display: none;
     }
 }
