@@ -1,23 +1,38 @@
 {% block content %}
 <div class="usa-table-wrapper">
-	<table class="usa-table usa-table--sticky-header">
+	<table class="usa-table usa-table--striped usa-table--sticky-header">
 		<thead>
 			<tr>
 				<th scope="col">Organization</th>
 				<th scope="col">Total Trials</th>
-				<th scope="col">Trials Submitted on Time</th>
-				<th scope="col">Trials Submitted Late</th>
+				<th scope="col">Compliance Rate</th>
+				<th scope="col">On-Time Submissions</th>
+				<th scope="col">Late Submissions</th>
 			</tr>
 		</thead>
 		<tbody>
 			{% for org in org_compliance %}
 			<tr>
 				<td scope="row">
-					<a href="/organization/{{ org.id }}">{{org.name}}</a>
+					<a href="/organization/{{ org.id }}" class="usa-link">{{org.name}}</a>
 				</td>
 				<td scope="row">{{ org.total_trials }}</td>
-				<td scope="row">{{ org.on_time_count }}</td>
-				<td scope="row">{{ org.late_count }}</td>
+				<td scope="row">
+					{% set compliance_rate = ((org.on_time_count / org.total_trials * 100) if org.total_trials > 0 else
+					0)|round|int %}
+					<div class="display-flex flex-align-center">
+						<div class="usa-progress-bar" style="width: 100px; margin-right: 1rem;">
+							<div class="usa-progress-bar__progress"></div>
+						</div>
+						<span>{{ compliance_rate }}%</span>
+					</div>
+				</td>
+				<td scope="row" class="text-success">
+					<i class="ri-check-line"></i> {{ org.on_time_count }}
+				</td>
+				<td scope="row" class="text-error">
+					<i class="ri-close-line"></i> {{ org.late_count }}
+				</td>
 			</tr>
 			{% endfor %}
 		</tbody>

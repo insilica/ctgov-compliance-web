@@ -1,24 +1,27 @@
 {% block content %}
 <div class="grid-row">
 	<div class="grid-col-12">
-		<div class="grid-row">
-			<div class="grid-col-12">
-				<h1 class="margin-y-1">Search</h1>
+		<div class="grid-row display-flex flex-align-center">
+			<div class="grid-col-10">
+				<h2 class="usa-heading margin-y-1">Search</h2>
+			</div>
+			<div class="grid-col-2 display-flex flex-justify-end">
+				<i style="size: 32px;" class="ri-arrow-down-s-line search-arrow"></i>
 			</div>
 		</div>
 		<div class="grid-row">
-			<div class="tablet:grid-col-12">
+			<div class="desktop:grid-col-12">
 				<form class="usa-form width-full maxw-full" method="GET" action="{{ url_for('dashboard.search') }}">
 					<fieldset class="usa-fieldset">
 						<!-- Trial Information -->
-						<div class="grid-row grid-gap">
-							<div class="tablet:grid-col-6">
+						<div class="grid-row grid-gap-1 margin-y-1">
+							<div class="desktop:grid-col-6">
 								<label class="usa-label margin-top-0" for="trial-title">Trial Title</label>
 								<input class="usa-input" id="trial-title" name="title" type="text"
 									value="{{ request.args.get('title', '') }}" />
 							</div>
 
-							<div class="tablet:grid-col-6">
+							<div class="desktop:grid-col-6">
 								<label class="usa-label margin-top-0" for="nct-id">NCT ID</label>
 								<input class="usa-input" id="nct-id" name="nct_id" type="text" pattern="NCT[0-9]{8}"
 									title="NCT ID format: NCT followed by 8 digits"
@@ -27,14 +30,14 @@
 						</div>
 
 						<!-- Organization and Status -->
-						<div class="grid-row grid-gap margin-top-1">
-							<div class="tablet:grid-col-6">
+						<div class="grid-row grid-gap-1 margin-y-1">
+							<div class="desktop:grid-col-6">
 								<label class="usa-label margin-top-0" for="organization">Organization</label>
 								<input class="usa-input" id="organization" name="organization" type="text"
 									value="{{ request.args.get('organization', '') }}" />
 							</div>
 
-							<div class="tablet:grid-col-6">
+							<div class="desktop:grid-col-6">
 								<label class="usa-label margin-top-0" for="status">Trial Status</label>
 								<select class="usa-select" id="status" name="status">
 									<option value="">- Select -</option>
@@ -51,8 +54,8 @@
 						</div>
 
 						<!-- Date Range Fields -->
-						<div class="grid-row grid-gap margin-top-1">
-							<div class="tablet:grid-col-12">
+						<div class="grid-row margin-y-1">
+							<div class="desktop:grid-col-12">
 								<div class="usa-form-group margin-top-0">
 									<label class="usa-label margin-top-0" for="date-range">Date Range Type</label>
 									<select class="usa-select" id="date-range" name="date_type">
@@ -67,8 +70,8 @@
 							</div>
 						</div>
 
-						<div class="grid-row grid-gap margin-top-1">
-							<div class="grid-col-6">
+						<div class="grid-row margin-y-1">
+							<div class="desktop:grid-col-6">
 								<div class="usa-form-group margin-top-0">
 									<label class="usa-label margin-top-0" for="date-from">From</label>
 									<div class="usa-date-picker">
@@ -79,7 +82,7 @@
 								</div>
 							</div>
 
-							<div class="grid-col-6">
+							<div class="desktop:grid-col-6">
 								<div class="usa-form-group margin-top-0">
 									<label class="usa-label margin-top-0" for="date-to">To</label>
 									<div class="usa-date-picker">
@@ -92,48 +95,30 @@
 						</div>
 
 						<!-- Compliance Status -->
-						<div class="grid-row grid-gap margin-top-1">
+						<div class="grid-row margin-y-1">
 							<div class="grid-col-12">
 								<fieldset class="usa-fieldset margin-top-0">
-									<legend class="usa-legend margin-y-1">Compliance Status</legend>
-									<div class="grid-row grid-gap">
-										<div class="grid-col-6">
-											<div class="usa-checkbox">
-												<input class="usa-checkbox__input" id="compliant" type="checkbox"
-													name="compliance_status[]" value="on time" {% if 'on time' in
-													request.args.getlist('compliance_status[]') %}checked{% endif %} />
-												<label class="usa-checkbox__label" for="compliant">Compliant</label>
-											</div>
+									<legend class="usa-legend margin-top-0">Compliance Status</legend>
+									<div class="grid-row grid-gap-1">
+										<div class="usa-checkbox">
+											<input class="usa-checkbox__input" id="compliant" type="checkbox"
+												name="compliance_status[]" value="on time" {% if 'on time' in
+												request.args.getlist('compliance_status[]') %}checked{% endif %} />
+											<label class="usa-checkbox__label" for="compliant">Compliant</label>
 										</div>
-										<div class="grid-col-6">
-											<div class="usa-checkbox">
-												<input class="usa-checkbox__input" id="non-compliant" type="checkbox"
-													name="compliance_status[]" value="late" {% if 'late' in
-													request.args.getlist('compliance_status[]') %}checked{% endif %} />
-												<label class="usa-checkbox__label"
-													for="non-compliant">Noncompliant</label>
-											</div>
+										<div class="usa-checkbox">
+											<input class="usa-checkbox__input" id="non-compliant" type="checkbox"
+												name="compliance_status[]" value="late" {% if 'late' in
+												request.args.getlist('compliance_status[]') %}checked{% endif %} />
+											<label class="usa-checkbox__label" for="non-compliant">Noncompliant</label>
 										</div>
-										<!-- <div class="grid-col-4">
-											<div class="usa-checkbox">
-												<input
-													class="usa-checkbox__input"
-													id="pending"
-													type="checkbox"
-													name="compliance_status[]"
-													value="pending"
-													{% if 'pending' in request.args.getlist('compliance_status[]') %}checked{% endif %}
-												/>
-												<label class="usa-checkbox__label" for="pending">Pending</label>
-											</div>
-										</div> -->
 									</div>
 								</fieldset>
 							</div>
 						</div>
 
 						<!-- Search Button -->
-						<div class="grid-row grid-gap margin-top-2">
+						<div class="grid-row margin-top-2">
 							<div class="grid-col-6 display-flex flex-justify-center">
 								<a href="{{ url_for('dashboard.index') }}" class="usa-button usa-button--outline"
 									style="width: 75%">

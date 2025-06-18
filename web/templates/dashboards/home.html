@@ -2,10 +2,10 @@
 block content %}
 <div class="grid-container-full">
 	<div class="grid-row grid-gap">
-		<div class="grid-col-12 tablet:grid-col-3 padding-2">{% include 'dashboards/search.html' %}</div>
-		<div class="tablet:grid-col-9 padding-2">
+		<div class="tablet:grid-col-3 padding-1">{% include 'dashboards/search.html' %}</div>
+		<div class="tablet:grid-col-9 padding-1">
 			<div class="grid-row grid-gap margin-bottom-2">
-				<div class="grid-col-fill text-left">
+				<div class="desktop:grid-col-fill text-left">
 					<h2 class="usa-heading margin-y-1">Clinical Trials Data</h2>
 					<span class="usa-hint">Showing {{ pagination.end_index }} of {{
 						pagination.total_entries }} entries</span>
@@ -37,8 +37,8 @@ block content %}
 					</form>
 				</div>
 			</div>
-			{% include 'dashboards/trials.html' with context %} {% if pagination.total_pages > 1
-			%}
+			{% include 'dashboards/trials.html' with context %}
+			{% if pagination.total_pages > 1 %}
 			<div class="grid-row margin-top-2">
 				<div class="grid-col-12">
 					<nav class="usa-pagination" aria-label="Pagination">
