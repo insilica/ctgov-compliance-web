@@ -30,10 +30,8 @@ class User(UserMixin):
         return self._organizations
 
     @property
-    def primary_organization_id(self):
-        # Get first organization if user has any
-        orgs = self.organizations
-        return orgs[0]['id'] if orgs else None
+    def organization_ids(self):
+        return ''.join(str(org['id']) for org in self.organizations)
 
     @staticmethod
     def get(user_id):

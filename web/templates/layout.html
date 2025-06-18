@@ -79,10 +79,10 @@
 										<span>Compare Organizations</span>
 									</a>
 								</li>
-								{% if current_user.primary_organization_id %}
+								{% if current_user.organization_ids %}
 								<li class="usa-nav__submenu-item">
 									<a
-										href="{{ url_for('dashboard.show_organization_dashboard', org_id=current_user.primary_organization_id) }}">
+										href="{{ url_for('dashboard.show_organization_dashboard', org_ids=current_user.organization_ids) }}">
 										<span>View my Organizations</span>
 									</a>
 								</li>

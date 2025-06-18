@@ -1,8 +1,8 @@
-{% extends 'layout.html' %} {% block title %}{{org_name}} - CTGov Compliance{% endblock %}
+{% extends 'layout.html' %} {% block title %}My Organizations - CTGov Compliance{% endblock %}
 {% block content %}
 <div class="grid-container-full">
 	<div class="grid-row grid-gap">
-		<div class="grid-col-3 padding-2"><!-- Key Metrics Cards -->
+		<div class="tablet:grid-col-3 padding-2"><!-- Key Metrics Cards -->
 			<div class="grid-row">
 				<div class="grid-col-10 display-flex flex-align-center">
 					<h1>Compliance Rate:</h1>
@@ -31,7 +31,7 @@
 			<section class="trials-section">
 				<div class="display-flex flex-row flex-align-center">
 					<div class="grid-col-fill text-left">
-						<h1 class="usa-heading margin-y-1">{{ org_name }} &mdash; Clinical Trials</h1>
+						<h1 class="usa-heading margin-y-1">My Organizations' Clinical Trials</h1>
 						<span class="usa-hint">Showing {{ pagination.start_index }} to {{ pagination.end_index }} of {{
 							pagination.total_entries }} entries</span>
 					</div>
@@ -70,7 +70,7 @@
 								<li class="usa-pagination__item usa-pagination__arrow">
 									{% set prev_args = request.args.copy() %} {% do prev_args.pop('page',
 									None) %} {% do prev_args.update({'page': pagination.prev_page}) %}
-									<a href="{{ url_for(request.endpoint, org_id=org_id, **prev_args) }}"
+									<a href="{{ url_for(request.endpoint, org_ids=org_ids, **prev_args) }}"
 										class="usa-pagination__link usa-pagination__previous-page">
 										<span class="usa-pagination__link-text">Previous</span>
 									</a>
@@ -79,7 +79,7 @@
 								page_args = request.args.copy() %} {% do page_args.pop('page', None) %} {%
 								do page_args.update({'page': p}) %}
 								<li class="usa-pagination__item {% if p == pagination.page %}usa-current{% endif %}">
-									<a href="{{ url_for(request.endpoint, org_id=org_id, **page_args) }}"
+									<a href="{{ url_for(request.endpoint, org_ids=org_ids, **page_args) }}"
 										class="usa-pagination__button">{{
 										p }}</a>
 								</li>
@@ -91,7 +91,7 @@
 								<li class="usa-pagination__item usa-pagination__arrow">
 									{% set next_args = request.args.copy() %} {% do next_args.pop('page',
 									None) %} {% do next_args.update({'page': pagination.next_page}) %}
-									<a href="{{ url_for(request.endpoint, org_id=org_id, **next_args) }}"
+									<a href="{{ url_for(request.endpoint, org_ids=org_ids, **next_args) }}"
 										class="usa-pagination__link usa-pagination__next-page">
 										<span class="usa-pagination__link-text">Next</span>
 									</a>

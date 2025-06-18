@@ -29,7 +29,7 @@ def get_all_trials():
     '''
     return query(sql)
 
-def get_org_trials(org_id):
+def get_org_trials(org_ids):
     sql = '''
     SELECT 
         t.nct_id,
@@ -47,10 +47,10 @@ def get_org_trials(org_id):
     LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
     LEFT JOIN organization o ON o.id = t.organization_id
     LEFT JOIN ctgov_user u ON u.id = t.user_id
-    WHERE o.id = %s
+    WHERE o.id IN %s
     ORDER BY t.nct_id ASC
     '''
-    return query(sql, [org_id])
+    return query(sql, [org_ids])
 
 def get_user_trials(user_id):
     sql = '''
@@ -236,12 +236,14 @@ def search():
     # If no search parameters, just show the search form
     return render_template('dashboards/search.html')
 
-@bp.route('/organization/<int:org_id>')
+@bp.route('/organization/<org_ids>')
 @login_required
-def show_organization_dashboard(org_id):
-    org_trials = get_org_trials(org_id)
+def show_organization_dashboard(org_ids):
+    # Convert org_ids to a tuple of integers
+    org_list = tuple(int(id) for id in org_ids)
+    print(org_list)
+    org_trials = get_org_trials(org_list)
     pagination, per_page = paginate(org_trials)
-    org_name = org_trials[0]['name'] if org_trials else 'Unknown Organization'
     
     # Convert to DataFrame
     df = pd.DataFrame(org_trials)
@@ -255,8 +257,7 @@ def show_organization_dashboard(org_id):
                          trials=pagination.items_page,
                          pagination=pagination,
                          per_page=per_page,
-                         org_id=org_id,
-                         org_name=org_name,
+                         org_ids=org_ids,
                          on_time_count=on_time_count,
                          late_count=late_count)
 
