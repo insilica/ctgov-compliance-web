@@ -11,7 +11,7 @@
 		</div>
 		<div class="grid-row">
 			<div class="desktop:grid-col-12">
-				<form class="usa-form width-full maxw-full" method="GET" action="{{ url_for('dashboard.search') }}">
+				<form class="usa-form width-full maxw-full" method="GET" action="{{ url_for('routes.search') }}">
 					<fieldset class="usa-fieldset">
 						<!-- Trial Information -->
 						<div class="grid-row grid-gap-1 margin-y-1">
@@ -120,7 +120,7 @@
 						<!-- Search Button -->
 						<div class="grid-row margin-top-2">
 							<div class="grid-col-6 display-flex flex-justify-center">
-								<a href="{{ url_for('dashboard.index') }}" class="usa-button usa-button--outline"
+								<a href="{{ url_for('routes.index') }}" class="usa-button usa-button--outline"
 									style="width: 75%">
 									Clear
 								</a>
