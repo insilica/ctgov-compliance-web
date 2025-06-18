@@ -1,20 +1,5 @@
 #!/usr/bin/env bash
 
-# Progress bar function
-progress_bar() {
-  local current=$1
-  local total=$2
-  local width=50  # Width of the progress bar
-  local percentage=$((current * 100 / total))
-  local completed=$((width * current / total))
-  local remaining=$((width - completed))
-  
-  printf "\rProgress: ["
-  printf "%${completed}s" | tr ' ' '#'
-  printf "%${remaining}s" | tr ' ' '-'
-  printf "] %d%% (%d/%d files)" "$percentage" "$current" "$total"
-}
-
 # List of files and directories to delete
 targets=(
   ".postgres"
@@ -49,15 +34,11 @@ count_total_files() {
   for target in "${targets[@]}"; do
     if [[ "$target" == *"*"* ]]; then
       # Count files matching glob pattern
-      local count
-      count=$(find . -path "$target" -type f 2>/dev/null | wc -l)
-      total=$((total + count))
+      total=$((total + $(find . -path "$target" -type f 2>/dev/null | wc -l 2>/dev/null)))
     elif [ -e "$target" ] || [ -L "$target" ]; then
       if [ -d "$target" ]; then
         # Count files in directory
-        local count
-        count=$(find "$target" -type f 2>/dev/null | wc -l)
-        total=$((total + count))
+        total=$((total + $(find "$target" -type f 2>/dev/null | wc -l 2>/dev/null)))
       else
         # Single file
         total=$((total + 1))
@@ -79,7 +60,6 @@ delete_target() {
       echo "Permission denied, trying with sudo..."
       sudo rm -rf "$target"
     fi
-    progress_bar "$current_count" "$total_count"
   fi
 }
 
