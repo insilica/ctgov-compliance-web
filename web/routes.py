@@ -95,7 +95,12 @@ def show_organization_dashboard(org_ids):
 @login_required
 def show_compare_organizations_dashboard():
     org_compliance = get_org_compliance()
-    return render_template('dashboards/compare.html', org_compliance=org_compliance)
+    pagination, per_page = paginate(org_compliance)
+    return render_template('dashboards/compare.html', 
+        org_compliance=pagination.items_page,
+        pagination=pagination,
+        per_page=per_page
+    )
 
 @bp.route('/user/<int:user_id>')
 @login_required
