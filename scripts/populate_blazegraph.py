@@ -8,7 +8,7 @@ MOCK_DATA = [
         'nct_id': 'NCT00000001',
         'organization': 'Acme Corp',
         'primary_completion_date': '2023-01-01',
-        'compliance': 'on time'
+        'compliance': 'Compliant'
     },
     {
         'nct_id': 'NCT00000002',

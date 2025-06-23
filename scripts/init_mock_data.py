@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from typing import List
 import psycopg2
 from werkzeug.security import generate_password_hash
+import random
 
 # Optional: CLI for flexibility
 import argparse
@@ -111,8 +112,12 @@ def populate_user_organizations(cur, user_ids: List[int], org_ids: List[int]) ->
     print(f"  Done seeding user-organization memberships.{' ' * 30}")
 
 def populate_trials_and_compliance(cur, user_ids: List[int], org_ids: List[int], num_trials: int = NUM_TRIALS) -> None:
-    """Insert mock trials and compliance records."""
+    """Insert mock trials and compliance records with random compliance rates per org and user."""
     print(f"Seeding {num_trials} trials and compliance records...")
+    # Assign a random compliance rate to each org and user
+    org_compliance_rates = {org_id: random.uniform(0.1, 0.9) for org_id in org_ids}
+    user_compliance_rates = {user_id: random.uniform(0.1, 0.9) for user_id in user_ids}
+
     for i in range(num_trials):
         nct_id = f"NCT{i:08d}"
         org_id = org_ids[i % len(org_ids)]
@@ -136,7 +141,9 @@ def populate_trials_and_compliance(cur, user_ids: List[int], org_ids: List[int],
 
         cur.execute("SELECT 1 FROM trial_compliance WHERE trial_id = %s", (trial_id,))
         if not cur.fetchone():
-            status = "on time" if i % 3 != 0 else "late"
+            # Use the average of org and user compliance rates for this trial
+            compliance_rate = (org_compliance_rates[org_id] + user_compliance_rates[user_id]) / 2
+            status = "Compliant" if random.random() < compliance_rate else "Incompliant"
             cur.execute(
                 "INSERT INTO trial_compliance (trial_id, status) VALUES (%s, %s)",
                 (trial_id, status)

@@ -43,7 +43,8 @@ report.*
 rules.log
 
 # ignoring USWDS files for now
-/web/static
+/web/static/*
+!/web/static/style.css
 
 # ignoring personal vscode settings
-.vscode/
+.vscode
