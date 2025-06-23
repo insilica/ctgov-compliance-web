@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title>{% block title %}CTGov Compliance{% endblock %}</title>
-	<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-	<link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css" rel="stylesheet" />
-	<link href="{{ url_for('static', filename='dist/css/uswds.min.css') }}" rel="stylesheet" />
-	<style>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>
+            {% block title %}CTGov Compliance{% endblock %}
+        </title>
+        <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css"
+              rel="stylesheet" />
+        <link href="{{ url_for('static', filename='dist/css/uswds.min.css') }}"
+              rel="stylesheet" />
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+        <style>
 		:root {
 			--header-height: fit-content;
 		}
@@ -37,147 +40,143 @@
 		.content-container {
 			min-height: calc(100vh - var(--header-height));
 		}
-	</style>
-</head>
-
-<body>
-	<header class="usa-header usa-header--extended">
-		<div class="usa-nav-container">
-			<div class="usa-navbar">
-				<div class="usa-logo margin-y-0">
-					<h4 class="usa-logo__text">
-						<a class="usa-logo__text" href="/" title="CTGov Compliance">CTGov Compliance</a>
-					</h4>
-				</div>
-				<button type="button" class="usa-menu-btn">
-					Menu
-				</button>
-			</div>
-			{% if current_user.is_authenticated %}
-			<nav aria-label="Primary Navigation Menu" class="usa-nav" style="padding: 0;">
-				<div class="usa-nav__inner">
-					<button type="button" class="usa-nav__close margin-1">
-						<svg class="usa-icon" alt="Close" role="img">
-							<use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#close">
-							</use>
-						</svg>
-					</button>
-					<ul class="usa-nav__primary usa-accordion usa-list--unstyled">
-						<li class="usa-nav__primary-item">
-							<a href="{{ url_for('routes.index') }}" class="usa-nav-link">
-								<span>Advanced Search</span>
-							</a>
-						</li>
-						<li class="usa-nav__primary-item">
-							<button type="button" class="usa-accordion__button usa-nav__link usa-current"
-								aria-expanded="false" aria-controls="extended-nav-section-one">
-								<span>Organizations</span>
-							</button>
-							<ul id="extended-nav-section-one" class="usa-nav__submenu">
-								<li class="usa-nav__submenu-item">
-									<a href="{{ url_for('routes.show_compare_organizations_dashboard') }}">
-										<span>Compare Organizations</span>
-									</a>
-								</li>
-								{% if current_user.organization_ids %}
-								<li class="usa-nav__submenu-item">
-									<a
-										href="{{ url_for('routes.show_organization_dashboard', org_ids=current_user.organization_ids) }}">
-										<span>View my Organizations</span>
-									</a>
-								</li>
-								{% endif %}
-								<li class="usa-nav__submenu-item">
-									<!-- TODO: Create an org search page -->
-									<a href="">
-										<span>Search Organizations</span>
-									</a>
-								</li>
-							</ul>
-						</li>
-						<li class="usa-nav__primary-item">
-							<button type="button" class="usa-accordion__button usa-nav__link usa-current"
-								aria-expanded="false" aria-controls="extended-nav-section-two">
-								<span>Users</span>
-							</button>
-							<ul id="extended-nav-section-two" class="usa-nav__submenu">
-								<li class="usa-nav__submenu-item">
-									<!-- TODO: Create a user comparison page -->
-									<a href="">
-										<span>Compare Users</span>
-									</a>
-								</li>
-								{% if current_user.trials %}
-								<li class="usa-nav__submenu-item">
-									<a href="{{ url_for('routes.show_user_dashboard', user_id=current_user.id) }}">
-										<span>View my Trials</span>
-									</a>
-								</li>
-								{% endif %}
-								<li class="usa-nav__submenu-item">
-									<!-- TODO: Create a user search page -->
-									<a href="">
-										<span>Search Users</span>
-									</a>
-								</li>
-							</ul>
-						</li>
-					</ul>
-					<div class="usa-nav__secondary tablet:padding-0 padding-2">
-						<ul class="usa-nav__secondary-links">
-							<li class="usa-nav__secondary-item">{{ current_user.email }}
-							</li>
-							<li class="usa-nav__secondary-item">
-								<a href="{{ url_for('auth.logout') }}">
-									<span>Logout</span>
-									<i class="ri-logout-box-line margin-right-1"></i>
-								</a>
-							</li>
-						</ul>
-						<section aria-label="Search component">
-							<form class="usa-search usa-search--small " role="search">
-								<label class="usa-sr-only" for="search-field">
-									Search
-								</label>
-								<input class="usa-input" id="search-field" type="search" name="search">
-								<button class="usa-button" type="submit">
-									<svg class="usa-icon usa-search__submit-icon" alt="Search" role="img">
-										<use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#search">
-										</use>
-									</svg>
-								</button>
-							</form>
-						</section>
-					</div>
-				</div>
-			</nav>
-		</div>
-		{% endif %}
-	</header>
-	<main>
-		{% with messages = get_flashed_messages(with_categories=true) %}
-		{% if messages %}
-		<div class="grid-container">
-			{% for category, message in messages %}
-			<div class="usa-alert usa-alert--{{ category if category != 'message' else 'info' }} margin-y-2"
-				role="alert">
-				<div class="usa-alert__body">
-					<p class="usa-alert__text">{{ message|safe }}</p>
-				</div>
-			</div>
-			{% endfor %}
-		</div>
-		{% endif %}
-		{% endwith %}
-		{% block content %}{% endblock %}
-		<div class="position-fixed bottom-0 right-0 z-top padding-1">
-			<a href="#" class="usa-footer__return-to-top usa-button circle-205">
-				<i class="ri-arrow-up-double-line"></i>
-			</a>
-		</div>
-	</main>
-
-	<script src="{{url_for('static', filename='dist/js/uswds.min.js')}}"></script>
-</body>
-
+        </style>
+    </head>
+    <body>
+        <script src="{{url_for('static', filename='dist/js/uswds.min.js')}}"></script>
+        <div class="usa-overlay"></div>
+        <header class="usa-header bg-white">
+            <div class="desktop:grid-container-widescreen">
+                <div class="usa-nav-container padding-0">
+                    <div class="grid-row">
+                        <div class="grid-col-10">
+                            <div class="usa-navbar">
+                                <div class="usa-logo">
+                                    <span class="usa-logo__text padding-x-2">
+                                        <a class="usa-logo__text" href="/" title="CTGov Compliance">CTGov Compliance</a>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid-col-auto">
+                            <div class="usa-nav__secondary tablet:padding-0 padding-2">
+                                <ul class="usa-nav__secondary-links">
+                                    <li class="usa-nav__secondary-item">{{ current_user.email }}</li>
+                                    <li class="usa-nav__secondary-item">
+                                        <a href="{{ url_for('auth.logout') }}">
+                                            <span>Logout</span>
+                                            <i class="ri-logout-box-line margin-right-1"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% if current_user.is_authenticated %}
+                        <div class="grid-row">
+                            <nav aria-label="Primary Navigation Menu" class="usa-nav">
+                                <div class="usa-nav__inner">
+                                    <button type="button" class="usa-nav__close margin-1">
+                                        <svg class="usa-icon" alt="Close" role="img">
+                                            <use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#close">
+                                            </use>
+                                        </svg>
+                                    </button>
+                                    <ul class="usa-nav__primary usa-accordion usa-list--unstyled">
+                                        <li class="usa-nav__primary-item">
+                                            <a href="{{ url_for('routes.index') }}" class="usa-nav-link">
+                                                <span class="font-ui-md">Advanced Search</span>
+                                            </a>
+                                        </li>
+                                        <li class="usa-nav__primary-item">
+                                            <button type="button"
+                                                    class=" usa-accordion__button usa-nav__link"
+                                                    aria-expanded="false"
+                                                    aria-controls="extended-nav-section-one"
+                                                    title="Organizations"
+                                                    aria-label="Organizations"
+                                                    aria-controls="extended-nav-section-one">
+                                                <span class="font-ui-md">Organizations</span>
+                                            </button>
+                                            <ul id="extended-nav-section-one" class="usa-nav__submenu">
+                                                <li class="usa-nav__submenu-item">
+                                                    <a href="{{ url_for('routes.show_compare_organizations_dashboard') }}">
+                                                        <span>Compare Organizations</span>
+                                                    </a>
+                                                </li>
+                                                {% if current_user.organization_ids %}
+                                                    <li class="usa-nav__submenu-item">
+                                                        <a href="{{ url_for('routes.show_organization_dashboard', org_ids=(current_user.organization_ids|urlencode) ) }}">
+                                                            <span>View my Organizations</span>
+                                                        </a>
+                                                    </li>
+                                                {% endif %}
+                                                <li class="usa-nav__submenu-item">
+                                                    <!-- TODO: Create an org search page -->
+                                                    <a href="">
+                                                        <span>Search Organizations</span>
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </li>
+                                        <li class="usa-nav__primary-item">
+                                            <button type="button"
+                                                    class="usa-accordion__button usa-nav__link"
+                                                    aria-expanded="false"
+                                                    aria-controls="extended-nav-section-two">
+                                                <span class="font-ui-md">Users</span>
+                                            </button>
+                                            <ul id="extended-nav-section-two" class="usa-nav__submenu">
+                                                <li class="usa-nav__submenu-item">
+                                                    <!-- TODO: Create a user comparison page -->
+                                                    <a href="">
+                                                        <span>Compare Users</span>
+                                                    </a>
+                                                </li>
+                                                {% if current_user.trials %}
+                                                    <li class="usa-nav__submenu-item">
+                                                        <a href="{{ url_for('routes.show_user_dashboard', user_id=current_user.id) }}">
+                                                            <span>View my Trials</span>
+                                                        </a>
+                                                    </li>
+                                                {% endif %}
+                                                <li class="usa-nav__submenu-item">
+                                                    <!-- TODO: Create a user search page -->
+                                                    <a href="">
+                                                        <span>Search Users</span>
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </nav>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </header>
+        <main>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="grid-container">
+                        {% for category, message in messages %}
+                            <div class="usa-alert usa-alert--{{ category if category != 'message' else 'info' }} margin-y-2"
+                                 role="alert">
+                                <div class="usa-alert__body">
+                                    <p class="usa-alert__text">{{ message|safe }}</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+            <div class="position-fixed bottom-0 right-0 z-top padding-1">
+                <a href="#" class="usa-footer__return-to-top usa-button circle-205">
+                    <i class="ri-arrow-up-double-line"></i>
+                </a>
+            </div>
+        </main>
+    </body>
 </html>
