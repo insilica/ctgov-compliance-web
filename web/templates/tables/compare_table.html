@@ -1,0 +1,43 @@
+{% block content %}
+    <div class="table-container overflow-auto" style="max-width: 100%">
+        <table class="usa-table usa-table--striped usa-table--sticky-header compare-table">
+            <thead class="bg-primary-lighter text-ink">
+                <tr>
+                    <th data-sortable scope="col" role="columnheader">Sponsor</th>
+                    <th data-sortable scope="col" role="columnheader">Funding Source</th>
+                    <th data-sortable scope="col" role="columnheader">Total Trials</th>
+                    <th data-sortable scope="col" role="columnheader">Reporting Rate</th>
+                    <th data-sortable scope="col" role="columnheader">Compliant Trials</th>
+                    <th data-sortable scope="col" role="columnheader">Late Submissions</th>
+                    <th data-sortable scope="col" role="columnheader">Compliance Rate</th>
+                    <th data-sortable scope="col" role="columnheader">Wilson LCB Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for org in org_compliance %}
+                    <tr>
+                        <td scope="row">
+                            <a href="{{ url_for('routes.show_organization_dashboard', org_ids=org.id) }}"
+                               class="usa-link">{{ org.name }}</a>
+                        </td>
+                        <td scope="row"></td>
+                        <td scope="row">{{ org.total_trials }}</td>
+                        <td scope="row"></td>
+                        <td scope="row">
+                            <span class="badge badge-success"><i class="ri-check-line"></i> {{ org.on_time_count }}</span>
+                        </td>
+                        <td scope="row">
+                            <span class="badge badge-error"><i class="ri-close-line"></i> {{ org.late_count }}</span>
+                        </td>
+                        <td scope="row">
+                            {% set compliance_rate = ((org.on_time_count / org.total_trials * 100) if org.total_trials > 0 else
+                                                        0) %}
+                            <span class="badge badge-compliance">{{ compliance_rate }}%</span>
+                        </td>
+                        <td scope="row"></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock content %}

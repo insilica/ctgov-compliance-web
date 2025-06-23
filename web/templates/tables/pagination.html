@@ -1,0 +1,52 @@
+{% block content %}
+    <div class="grid-row margin-top-2">
+        <div class="grid-col-12">
+            <nav class="usa-pagination bg-base-lightest" aria-label="Pagination">
+                <ul class="usa-pagination__list">
+                    {% if pagination.has_prev %}
+                        <li class="usa-pagination__item usa-pagination__arrow">
+                            {% set prev_args = request.args.copy() %} {% do prev_args.pop('page', None) %} {% do prev_args.update({'page': pagination.prev_page}) %}
+                            {% if org_ids is defined %}
+                                {% do prev_args.update({'org_ids': org_ids}) %}
+                            {% endif %}
+                            <a href="{{ url_for(request.endpoint, **prev_args) }}"
+                               class="usa-pagination__link usa-pagination__previous-page">
+                                <span class="usa-pagination__link-text">Previous</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                    {% for p in pagination.iter_pages() %}
+                        {% if p %}
+                            {% set page_args = request.args.copy() %}
+                            {% do page_args.pop('page', None) %}
+                            {% do page_args.update({'page': p}) %}
+                            {% if org_ids is defined %}
+                                {% do page_args.update({'org_ids': org_ids}) %}
+                            {% endif %}
+                            <li class="usa-pagination__item {% if p == pagination.page %}usa-current{% endif %} bg-white">
+                                <a href="{{ url_for(request.endpoint, **page_args) }}"
+                                   class="usa-pagination__button">{{ p }}</a>
+                            </li>
+                        {% else %}
+                            <li class="usa-pagination__item usa-pagination__overflow">
+                                <span>...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if pagination.has_next %}
+                        <li class="usa-pagination__item usa-pagination__arrow">
+                            {% set next_args = request.args.copy() %} {% do next_args.pop('page', None) %} {% do next_args.update({'page': pagination.next_page}) %}
+                            {% if org_ids is defined %}
+                                {% do next_args.update({'org_ids': org_ids}) %}
+                            {% endif %}
+                            <a href="{{ url_for(request.endpoint, **next_args) }}"
+                               class="usa-pagination__link usa-pagination__next-page">
+                                <span class="usa-pagination__link-text">Next</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+{% endblock content %}
