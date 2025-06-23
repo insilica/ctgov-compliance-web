@@ -1,11 +1,16 @@
 /* Custom styles for CTGov Compliance */
 
+html,
+body {
+    background: #EFF6FB !important;
+}
+
 .login-card {
     max-width: 30rem;
 }
 
 .table-container {
-    overflow-x: hidden;
+    overflow-x: auto;
 }
 
 .metric-card {
@@ -46,14 +51,6 @@ td {
         max-width: 100px;
     }
 
-    .date-full {
-        display: none;
-    }
-
-    .date-mobile {
-        display: inline;
-    }
-
     .search-arrow {
         display: inline;
     }
@@ -61,15 +58,96 @@ td {
 
 /* Desktop date format */
 @media screen and (min-width: 40em) {
-    .date-full {
-        display: inline;
-    }
-
-    .date-mobile {
-        display: none;
-    }
-
     .search-arrow {
         display: none;
     }
+}
+
+/* Badges for compare table */
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.75em;
+    border-radius: 999px;
+    font-size: 0.95em;
+    font-weight: 600;
+    vertical-align: middle;
+    margin-right: 0.25em;
+}
+
+.badge-success {
+    background: #198a00;
+    color: #fff;
+}
+
+.badge-error {
+    background: #d83933;
+    color: #fff;
+}
+
+.badge-compliance {
+    background: #00bde3;
+    color: #fff;
+}
+
+/* Compare table header accent */
+.compare-table thead {
+    background: #e1f3f8;
+    border-bottom: 2px solid #005ea2;
+}
+
+/* Row hover effect */
+.compare-table tbody tr:hover {
+    background: #f0f6fb;
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+/* Card shadow for stats/filter */
+.shadow-2 {
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+}
+
+.bg-accent-cool-lighter {
+    background: #e1f3f8;
+}
+
+.bg-accent-warm {
+    background: #ffbc78;
+}
+
+.bg-base-lightest {
+    background: #f0f0f0;
+}
+
+.bg-primary {
+    background: #005ea2;
+}
+
+.bg-primary-dark {
+    background: #1a4480;
+}
+
+.bg-primary-lighter {
+    background: #d9e8f6;
+}
+
+.bg-success-dark {
+    background: #198a00;
+}
+
+.text-white {
+    color: #fff !important;
+}
+
+.text-ink {
+    color: #1b1b1b;
+}
+
+/* Accent border for search/filter cards */
+.border-left-accent {
+    border-left: 6px solid #00bde3;
+}
+
+.border-left-accent-dark {
+    border-left: 6px solid #005ea2;
 }
