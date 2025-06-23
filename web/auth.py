@@ -31,7 +31,7 @@ class User(UserMixin):
 
     @property
     def organization_ids(self):
-        return ''.join(str(org['id']) for org in self.organizations)
+        return ','.join(str(org['id']) for org in self.organizations)
     
     @property
     def trials(self):
