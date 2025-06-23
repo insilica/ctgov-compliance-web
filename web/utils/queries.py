@@ -20,7 +20,7 @@ def get_all_trials():
     LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
     LEFT JOIN organization o ON o.id = t.organization_id
     LEFT JOIN ctgov_user u ON u.id = t.user_id
-    ORDER BY nct_id ASC
+    ORDER BY t.title ASC
     '''
     return query(sql)
 
@@ -43,7 +43,7 @@ def get_org_trials(org_ids):
     LEFT JOIN organization o ON o.id = t.organization_id
     LEFT JOIN ctgov_user u ON u.id = t.user_id
     WHERE o.id IN %s
-    ORDER BY t.nct_id ASC
+    ORDER BY t.title ASC
     '''
     return query(sql, [org_ids])
 
@@ -65,7 +65,7 @@ def get_user_trials(user_id):
     LEFT JOIN organization o ON o.id = t.organization_id
     LEFT JOIN ctgov_user u ON u.id = t.user_id
     WHERE u.id = %s
-    ORDER BY t.nct_id ASC
+    ORDER BY t.title ASC
     '''
     return query(sql, [user_id])
 
@@ -140,9 +140,9 @@ def search_trials(params):
         status_conditions = []
         for status in compliance_status:
             if status == 'compliant':
-                status_conditions.append("tc.status = 'on time'")
+                status_conditions.append("tc.status = 'Compliant'")
             elif status == 'non-compliant':
-                status_conditions.append("tc.status = 'late'")
+                status_conditions.append("tc.status = 'Incompliant'")
             elif status == 'pending':
                 status_conditions.append("tc.status IS NULL")
         if status_conditions:
@@ -151,7 +151,7 @@ def search_trials(params):
     if conditions:
         base_sql += " AND " + " AND ".join(conditions)
     
-    base_sql += " ORDER BY t.nct_id ASC"
+    base_sql += " ORDER BY t.title ASC"
     
     return query(base_sql, values)
 
@@ -161,8 +161,8 @@ def get_org_compliance():
         o.id,
         o.name,
         COUNT(t.id) AS total_trials,
-        SUM(CASE WHEN tc.status = 'on time' THEN 1 ELSE 0 END) AS on_time_count,
-        SUM(CASE WHEN tc.status = 'late' THEN 1 ELSE 0 END) AS late_count
+        SUM(CASE WHEN tc.status = 'Compliant' THEN 1 ELSE 0 END) AS on_time_count,
+        SUM(CASE WHEN tc.status = 'Incompliant' THEN 1 ELSE 0 END) AS late_count
     FROM organization o
     LEFT JOIN trial t ON o.id = t.organization_id
     LEFT JOIN trial_compliance tc ON t.id = tc.trial_id

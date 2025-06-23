@@ -1,3 +1,4 @@
+from urllib.parse import unquote
 from flask import Blueprint, render_template, request
 from flask_login import login_required, current_user
 from .db import query
@@ -19,8 +20,8 @@ def index():
     
     # Count statuses
     status_counts = df['status'].value_counts() if not df.empty else pd.Series()
-    on_time_count = status_counts.get('on time', 0)
-    late_count = status_counts.get('late', 0)
+    on_time_count = status_counts.get('Compliant', 0)
+    late_count = status_counts.get('Incompliant', 0)
     
     return render_template('dashboards/home.html',
                          trials=pagination.items_page,
@@ -29,7 +30,7 @@ def index():
                          on_time_count=on_time_count,
                          late_count=late_count)
 
-@bp.route('/search')
+@bp.route('/home')
 @login_required
 def search():
     # Get search parameters from request
@@ -53,8 +54,8 @@ def search():
         
         # Count statuses
         status_counts = df['status'].value_counts() if not df.empty else pd.Series()
-        on_time_count = status_counts.get('on time', 0)
-        late_count = status_counts.get('late', 0)
+        on_time_count = status_counts.get('Compliant', 0)
+        late_count = status_counts.get('Incompliant', 0)
         
         return render_template('dashboards/home.html',
                             trials=pagination.items_page,
@@ -65,13 +66,14 @@ def search():
                             is_search=True)
     
     # If no search parameters, just show the search form
-    return render_template('dashboards/search.html')
+    return render_template('dashboards/home.html')
 
 @bp.route('/organization/<org_ids>')
 @login_required
 def show_organization_dashboard(org_ids):
     # Convert org_ids to a tuple of integers
-    org_list = tuple(int(id) for id in org_ids)
+    org_ids = unquote(unquote(org_ids))
+    org_list = tuple(int(id) for id in org_ids.split(',') if id)
     org_trials = get_org_trials(org_list)
     pagination, per_page = paginate(org_trials)
     
@@ -80,8 +82,8 @@ def show_organization_dashboard(org_ids):
 
     # Count statuses
     status_counts = df['status'].value_counts() if not df.empty else pd.Series()
-    on_time_count = status_counts.get('on time', 0)
-    late_count = status_counts.get('late', 0)
+    on_time_count = status_counts.get('Compliant', 0)
+    late_count = status_counts.get('Incompliant', 0)
 
     return render_template('dashboards/organization.html',
                          trials=pagination.items_page,
@@ -96,10 +98,22 @@ def show_organization_dashboard(org_ids):
 def show_compare_organizations_dashboard():
     org_compliance = get_org_compliance()
     pagination, per_page = paginate(org_compliance)
+
+    # Convert to DataFrame
+    df = pd.DataFrame(org_compliance)
+
+    # Count statuses
+    on_time_count = df['on_time_count'].sum()
+    late_count = df['late_count'].sum()
+    total_organizations = df['name'].count()
+
     return render_template('dashboards/compare.html', 
         org_compliance=pagination.items_page,
         pagination=pagination,
-        per_page=per_page
+        per_page=per_page,
+        on_time_count=on_time_count,
+        late_count=late_count,
+        total_organizations=total_organizations
     )
 
 @bp.route('/user/<int:user_id>')
@@ -115,8 +129,8 @@ def show_user_dashboard(user_id):
 
         # Count statuses
         status_counts = df['status'].value_counts() if not df.empty else pd.Series()
-        on_time_count = status_counts.get('on time', 0)
-        late_count = status_counts.get('late', 0)
+        on_time_count = status_counts.get('Compliant', 0)
+        late_count = status_counts.get('Incompliant', 0)
         return render_template('dashboards/user.html', 
                             trials=pagination.items_page,
                             pagination=pagination,
