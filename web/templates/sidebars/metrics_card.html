@@ -1,0 +1,25 @@
+{% block content %}
+    <div class="usa-card">
+        <div class="usa-card__body bg-accent-cool-lighter shadow-2 margin-bottom-2 border-left-accent-dark">
+            <h2 class="usa-heading margin-y-1 font-family-sans text-primary">Compliance Rate</h2>
+            <div class="display-flex flex-justify-between margin-bottom-1">
+                <span class="font-sans-md">Compliance Rate</span>
+                <span class="usa-tag bg-primary text-white font-sans-md margin-left-auto metric-value">
+                    {{ ((on_time_count / (on_time_count + late_count)) * 100) }}%
+                </span>
+            </div>
+            <div class="display-flex flex-justify-between margin-bottom-1">
+                <span class="font-sans-md">Compliant submissions</span>
+                <span class="usa-tag bg-success-dark text-white font-sans-md margin-left-auto">{{ on_time_count }}</span>
+            </div>
+            <div class="display-flex flex-justify-between margin-bottom-1">
+                <span class="font-sans-md">Incompliant submissions</span>
+                <span class="usa-tag bg-accent-warm text-white font-sans-md margin-left-auto">{{ late_count }}</span>
+            </div>
+            <div class="display-flex flex-justify-between">
+                <span class="font-sans-md">Total trials</span>
+                <span class="usa-tag bg-primary-lighter text-ink font-sans-md margin-left-auto">{{ on_time_count + late_count }}</span>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

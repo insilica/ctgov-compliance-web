@@ -18,8 +18,8 @@
 			<div class="grid-row display-flex">
 				<div class="grid-col-12">
 					<div class="metric-details">
-						<p>On-time submissions: {{on_time_count}}</p>
-						<p>Late submissions: {{late_count}}</p>
+						<p>Compliant submissions: {{on_time_count}}</p>
+						<p>Non-Compliant submissions: {{late_count}}</p>
 						<p>Total trials: {{on_time_count + late_count}}</p>
 					</div>
 				</div>
@@ -64,7 +64,7 @@
 						</form>
 					</div>
 				</div>
-				{% include 'dashboards/trials.html' with context %}
+				{% include 'tables/table.html' with context %}
 				{% if pagination and pagination.total_pages > 1 %}
 				<div class="grid-row margin-top-2">
 					<div class="grid-col-12">

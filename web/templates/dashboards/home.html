@@ -1,84 +1,24 @@
-{% extends 'layout.html' %} {% block title %}Dashboard - CTGov Compliance{% endblock %} {%
-block content %}
-<div class="grid-container-full">
-	<div class="grid-row grid-gap">
-		<div class="tablet:grid-col-3 padding-1">{% include 'dashboards/search.html' %}</div>
-		<div class="tablet:grid-col-9 padding-1">
-			<div class="grid-row grid-gap margin-bottom-2">
-				<div class="desktop:grid-col-fill text-left">
-					<h2 class="usa-heading margin-y-1">Clinical Trials Data</h2>
-					<span class="usa-hint">Showing {{ pagination.end_index }} of {{
-						pagination.total_entries }} entries</span>
-				</div>
-				<div class="grid-col-auto display-flex flex-row flex-justify-center flex-align-center">
-					<form method="GET" class="display-inline">
-						{% for key, value in request.args.items() %}
-						{% if key != 'per_page' and key != 'page' %}
-						<input type="hidden" name="{{ key }}" value="{{ value }}">
-						{% endif %}
-						{% endfor %}
-						<div class="grid-row">
-							<div class="grid-col-12">
-								<label class="usa-label margin-0" for="entries-per-page">Rows per page:</label>
-							</div>
-						</div>
-						<div class="grid-row">
-							<div class="grid-col-12">
-								<select class="usa-select margin-0" id="entries-per-page" name="per_page"
-									onchange="this.form.submit()">
-									<option value="10" {% if per_page==10 %}selected{% endif %}>10</option>
-									<option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
-									<option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
-									<option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
-								</select>
-								<input type="hidden" name="page" value="1">
-							</div>
-						</div>
-					</form>
-				</div>
-			</div>
-			{% include 'dashboards/trials.html' with context %}
-			{% if pagination.total_pages > 1 %}
-			<div class="grid-row margin-top-2">
-				<div class="grid-col-12">
-					<nav class="usa-pagination" aria-label="Pagination">
-						<ul class="usa-pagination__list">
-							{% if pagination.has_prev %}
-							<li class="usa-pagination__item usa-pagination__arrow">
-								{% set prev_args = request.args.copy() %} {% do prev_args.pop('page',
-								None) %} {% do prev_args.update({'page': pagination.prev_page}) %}
-								<a href="{{ url_for(request.endpoint, **prev_args) }}"
-									class="usa-pagination__link usa-pagination__previous-page">
-									<span class="usa-pagination__link-text">Previous</span>
-								</a>
-							</li>
-							{% endif %} {% for p in pagination.iter_pages() %} {% if p %} {% set
-							page_args = request.args.copy() %} {% do page_args.pop('page', None) %} {%
-							do page_args.update({'page': p}) %}
-							<li class="usa-pagination__item {% if p == pagination.page %}usa-current{% endif %}">
-								<a href="{{ url_for(request.endpoint, **page_args) }}" class="usa-pagination__button">{{
-									p }}</a>
-							</li>
-							{% else %}
-							<li class="usa-pagination__item usa-pagination__overflow">
-								<span>...</span>
-							</li>
-							{% endif %} {% endfor %} {% if pagination.has_next %}
-							<li class="usa-pagination__item usa-pagination__arrow">
-								{% set next_args = request.args.copy() %} {% do next_args.pop('page',
-								None) %} {% do next_args.update({'page': pagination.next_page}) %}
-								<a href="{{ url_for(request.endpoint, **next_args) }}"
-									class="usa-pagination__link usa-pagination__next-page">
-									<span class="usa-pagination__link-text">Next</span>
-								</a>
-							</li>
-							{% endif %}
-						</ul>
-					</nav>
-				</div>
-			</div>
-			{% endif %}
-		</div>
-	</div>
-</div>
-{% endblock %}
+{% extends "layout.html" %}
+{% block title %}
+    Dashboard - CTGov Compliance
+{% endblock title %}
+{% block content %}
+    <div class="grid-container-full">
+        <div class="grid-row grid-gap">
+            <div class="tablet:grid-col-3 padding-y-2">{% include "sidebars/search.html" %}</div>
+            <div class="tablet:grid-col-9 padding-y-2">
+                <div class="usa-card bg-base-lightest shadow-2 margin-bottom-2">
+                    <div class="usa-card__body">
+                        {% with title="Clinical Trials Data" %}
+                            {% include "tables/header.html" %}
+                        {% endwith %}
+                        {% include "tables/table.html" with context %}
+                        {% if pagination.total_pages > 1 %}
+                            {% include "tables/pagination.html" with context %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
