@@ -3,8 +3,15 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description"
+              content="CTGov Compliance - Clinical trial compliance monitoring and reporting dashboard" />
+        <meta name="keywords"
+              content="clinical trials, compliance, reporting, CTGov, FDA, research" />
+        <meta name="author" content="CTGov Compliance" />
         <title>
-            {% block title %}CTGov Compliance{% endblock %}
+            {% block title %}
+                CTGov Compliance
+            {% endblock title %}
         </title>
         <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css"
               rel="stylesheet" />
@@ -47,19 +54,21 @@
         <div class="usa-overlay"></div>
         <header class="usa-header bg-white">
             <div class="desktop:grid-container-widescreen">
-                <div class="usa-nav-container padding-0">
+                <div class="usa-nav-container padding-2">
                     <div class="grid-row">
-                        <div class="grid-col-10">
+                        <div class="grid-col-9">
                             <div class="usa-navbar">
                                 <div class="usa-logo">
                                     <span class="usa-logo__text padding-x-2">
-                                        <a class="usa-logo__text" href="/" title="CTGov Compliance">CTGov Compliance</a>
+                                        <a class="usa-logo__text"
+                                           href="{{ url_for('routes.index') }}"
+                                           title="CTGov Compliance">CTGov Compliance</a>
                                     </span>
                                 </div>
                             </div>
                         </div>
-                        <div class="grid-col-auto">
-                            <div class="usa-nav__secondary tablet:padding-0 padding-2">
+                        <div class="grid-col-3">
+                            <div class="usa-nav__secondary">
                                 <ul class="usa-nav__secondary-links">
                                     <li class="usa-nav__secondary-item">{{ current_user.email }}</li>
                                     <li class="usa-nav__secondary-item">
@@ -171,7 +180,8 @@
                     </div>
                 {% endif %}
             {% endwith %}
-            {% block content %}{% endblock %}
+            {% block content %}
+            {% endblock content %}
             <div class="position-fixed bottom-0 right-0 z-top padding-1">
                 <a href="#" class="usa-footer__return-to-top usa-button circle-205">
                     <i class="ri-arrow-up-double-line"></i>
