@@ -44,3 +44,7 @@ rules.log
 
 # ignoring personal vscode settings
 .vscode
+
+/web/static/*
+!/web/static/style.css
+!/web/static/img
