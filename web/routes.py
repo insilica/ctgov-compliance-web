@@ -38,7 +38,7 @@ def search():
         'title': request.args.get('title'),
         'nct_id': request.args.get('nct_id'),
         'organization': request.args.get('organization'),
-        'status': request.args.get('status'),
+        'user_email': request.args.get('user_email'),
         'date_type': request.args.get('date_type'),
         'date_from': request.args.get('date_from'),
         'date_to': request.args.get('date_to')
@@ -96,16 +96,29 @@ def show_organization_dashboard(org_ids):
 @bp.route('/compare')
 @login_required
 def show_compare_organizations_dashboard():
-    org_compliance = get_org_compliance()
+    def parse_arg(name):
+        val = request.args.get(name)
+        return int(val) if val and val.isdigit() else None
+    min_compliance = parse_arg('min_compliance')
+    max_compliance = parse_arg('max_compliance')
+    min_trials = parse_arg('min_trials')
+    max_trials = parse_arg('max_trials')
+
+    org_compliance = get_org_compliance(
+        min_compliance=min_compliance,
+        max_compliance=max_compliance,
+        min_trials=min_trials,
+        max_trials=max_trials
+    )
     pagination, per_page = paginate(org_compliance)
 
     # Convert to DataFrame
     df = pd.DataFrame(org_compliance)
 
     # Count statuses
-    on_time_count = df['on_time_count'].sum()
-    late_count = df['late_count'].sum()
-    total_organizations = df['name'].count()
+    on_time_count = df['on_time_count'].sum() if not df.empty else 0
+    late_count = df['late_count'].sum() if not df.empty else 0
+    total_organizations = df['name'].count() if not df.empty else 0
 
     return render_template('dashboards/compare.html', 
         org_compliance=pagination.items_page,
