@@ -9,6 +9,9 @@
                             {% if org_ids is defined %}
                                 {% do prev_args.update({'org_ids': org_ids}) %}
                             {% endif %}
+                            {% if user_id is defined %}
+                                {% do prev_args.update({'user_id': user_id}) %}
+                            {% endif %}
                             <a href="{{ url_for(request.endpoint, **prev_args) }}"
                                class="usa-pagination__link usa-pagination__previous-page">
                                 <span class="usa-pagination__link-text">Previous</span>
@@ -22,6 +25,9 @@
                             {% do page_args.update({'page': p}) %}
                             {% if org_ids is defined %}
                                 {% do page_args.update({'org_ids': org_ids}) %}
+                            {% endif %}
+                            {% if user_id is defined %}
+                                {% do page_args.update({'user_id': user_id}) %}
                             {% endif %}
                             <li class="usa-pagination__item {% if p == pagination.page %}usa-current{% endif %} bg-white">
                                 <a href="{{ url_for(request.endpoint, **page_args) }}"
@@ -38,6 +44,9 @@
                             {% set next_args = request.args.copy() %} {% do next_args.pop('page', None) %} {% do next_args.update({'page': pagination.next_page}) %}
                             {% if org_ids is defined %}
                                 {% do next_args.update({'org_ids': org_ids}) %}
+                            {% endif %}
+                            {% if user_id is defined %}
+                                {% do next_args.update({'user_id': user_id}) %}
                             {% endif %}
                             <a href="{{ url_for(request.endpoint, **next_args) }}"
                                class="usa-pagination__link usa-pagination__next-page">

@@ -48,26 +48,12 @@
                                                value="{{ request.args.get('organization', '') }}" />
                                     </div>
                                     <div class="desktop:grid-col-6">
-                                        <label class="usa-label margin-top-0" for="status">Trial Status</label>
-                                        <select class="usa-select" id="status" name="status">
-                                            <option value="">- Select -</option>
-                                            <option value="completed"
-                                                    {% if request.args.get('status')=='completed' %}selected{% endif %}>
-                                                Completed
-                                            </option>
-                                            <option value="ongoing"
-                                                    {% if request.args.get('status')=='ongoing' %}selected{% endif %}>
-                                                Ongoing
-                                            </option>
-                                            <option value="terminated"
-                                                    {% if request.args.get('status')=='terminated' %}selected{% endif %}>
-                                                Terminated
-                                            </option>
-                                            <option value="withdrawn"
-                                                    {% if request.args.get('status')=='withdrawn' %}selected{% endif %}>
-                                                Withdrawn
-                                            </option>
-                                        </select>
+                                        <label class="usa-label margin-top-0" for="user-email">User Email</label>
+                                        <input class="usa-input"
+                                               id="user-email"
+                                               name="user_email"
+                                               type="text"
+                                               value="{{ request.args.get('user_email', '') }}" />
                                     </div>
                                 </div>
                                 <!-- Date Range Fields -->
@@ -101,7 +87,6 @@
                                                        id="date-from"
                                                        name="date_from"
                                                        type="text"
-                                                       pattern="^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
                                                        value="{{ request.args.get('date_from', '') }}" />
                                             </div>
                                         </div>
@@ -114,7 +99,6 @@
                                                        id="date-to"
                                                        name="date_to"
                                                        type="text"
-                                                       pattern="^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
                                                        value="{{ request.args.get('date_to', '') }}" />
                                             </div>
                                         </div>
@@ -131,8 +115,8 @@
                                                            id="compliant"
                                                            type="checkbox"
                                                            name="compliance_status[]"
-                                                           value="Compliant"
-                                                           {% if 'Compliant' in request.args.getlist('compliance_status[]') %}checked{% endif %} />
+                                                           value="compliant"
+                                                           {% if 'compliant' in request.args.getlist('compliance_status[]') %}checked{% endif %} />
                                                     <label class="usa-checkbox__label" for="compliant">Compliant</label>
                                                 </div>
                                                 <div class="grid-col-6 usa-checkbox bg-base-lightest">
@@ -140,8 +124,8 @@
                                                            id="non-compliant"
                                                            type="checkbox"
                                                            name="compliance_status[]"
-                                                           value="Non-Compliant"
-                                                           {% if 'Non-Compliant' in request.args.getlist('compliance_status[]') %}checked{% endif %} />
+                                                           value="incompliant"
+                                                           {% if 'incompliant' in request.args.getlist('compliance_status[]') %}checked{% endif %} />
                                                     <label class="usa-checkbox__label" for="non-compliant">Noncompliant</label>
                                                 </div>
                                             </div>
