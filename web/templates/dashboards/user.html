@@ -1,113 +1,73 @@
-{% extends 'layout.html' %} {% block title %}{{user_email}} - CTGov Compliance{% endblock %}
+{% extends "layout.html" %}
+{% block title %}
+    {{ user_email }} - CTGov Compliance
+{% endblock title %}
 {% block content %}
-<div class="grid-container-full">
-	<div class="grid-row grid-gap">
-		<div class="grid-col-3 padding-2">
-			<div class="grid-row">
-				<div class="grid-col-10 display-flex flex-align-center">
-					<h1>Compliance Rate:</h1>
-				</div>
-				<div class="grid-col-2 display-flex flex-justify-end">
-					{% if on_time_count and late_count %}
-					<h1 class="metric-value float-right flex-align-self-center">
-						{{ (on_time_count / (on_time_count + late_count) * 100)|round|int }}%
-					</h1>
-					{% endif %}
-				</div>
-			</div>
-			<div class="grid-row display-flex">
-				<div class="grid-col-12">
-					<div class="metric-details">
-						<p>Compliant submissions: {{on_time_count}}</p>
-						<p>Non-Compliant submissions: {{late_count}}</p>
-						<p>Total trials: {{on_time_count + late_count}}</p>
-					</div>
-				</div>
-			</div>
-		</div>
-		<div class="grid-col-9 padding-2">
-			<section class="trials-section">
-				<div class="display-flex flex-row flex-align-center">
-					<div class="grid-col-8 text-left">
-						{% if user_email == current_user.email %}
-						<h1 class="usa-heading margin-y-1">Your Clinical Trials</h1>
-						{% else %}
-						<h1 class="usa-heading margin-y-1">{{ user_email }}'s Clinical Trials</h1>
-						{% endif %}
-						{% if pagination %}
-						<span class="usa-hint">Showing {{ pagination.start_index }} to {{ pagination.end_index }} of {{
-							pagination.total_entries }} entries</span>
-						{% endif %}
-					</div>
-					<div class="grid-col-4 display-flex">
-						<form method="GET" class="display-inline flex-fill float-right">
-							{% for key, value in request.args.items() %}
-							{% if key != 'per_page' and key != 'page' %}
-							<input type="hidden" name="{{ key }}" value="{{ value }}">
-							{% endif %}
-							{% endfor %}
-							<div class="grid-row display-flex flex-row flex-fill float-right">
-								<div class="grid-col-7 display-flex flex-align-center">
-									<label class="usa-label margin-0" for="entries-per-page">Items per page:</label>
-								</div>
-								<div class="grid-col-5 display-flex">
-									<select class="usa-select margin-y-0" id="entries-per-page" name="per_page"
-										onchange="this.form.submit()">
-										<option value="10" {% if per_page==10 %}selected{% endif %}>10</option>
-										<option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
-										<option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
-										<option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
-									</select>
-									<input type="hidden" name="page" value="1">
-								</div>
-							</div>
-						</form>
-					</div>
-				</div>
-				{% include 'tables/table.html' with context %}
-				{% if pagination and pagination.total_pages > 1 %}
-				<div class="grid-row margin-top-2">
-					<div class="grid-col-12">
-						<nav class="usa-pagination" aria-label="Pagination">
-							<ul class="usa-pagination__list">
-								{% if pagination.has_prev %}
-								<li class="usa-pagination__item usa-pagination__arrow">
-									{% set prev_args = request.args.copy() %} {% do prev_args.pop('page',
-									None) %} {% do prev_args.update({'page': pagination.prev_page}) %}
-									<a href="{{ url_for(request.endpoint, user_id=user_id, **prev_args) }}"
-										class="usa-pagination__link usa-pagination__previous-page">
-										<span class="usa-pagination__link-text">Previous</span>
-									</a>
-								</li>
-								{% endif %} {% for p in pagination.iter_pages() %} {% if p %} {% set
-								page_args = request.args.copy() %} {% do page_args.pop('page', None) %} {%
-								do page_args.update({'page': p}) %}
-								<li class="usa-pagination__item {% if p == pagination.page %}usa-current{% endif %}">
-									<a href="{{ url_for(request.endpoint, user_id=user_id, **page_args) }}"
-										class="usa-pagination__button">{{
-										p }}</a>
-								</li>
-								{% else %}
-								<li class="usa-pagination__item usa-pagination__overflow">
-									<span>...</span>
-								</li>
-								{% endif %} {% endfor %} {% if pagination.has_next %}
-								<li class="usa-pagination__item usa-pagination__arrow">
-									{% set next_args = request.args.copy() %} {% do next_args.pop('page',
-									None) %} {% do next_args.update({'page': pagination.next_page}) %}
-									<a href="{{ url_for(request.endpoint, user_id=user_id, **next_args) }}"
-										class="usa-pagination__link usa-pagination__next-page">
-										<span class="usa-pagination__link-text">Next</span>
-									</a>
-								</li>
-								{% endif %}
-							</ul>
-						</nav>
-					</div>
-				</div>
-				{% endif %}
-			</section>
-		</div>
-	</div>
-</div>
-{% endblock %}
+    <div class="grid-container-full">
+        <div class="grid-row grid-gap">
+            <div class="grid-col-3 padding-2">{% include "sidebars/metrics_card.html" %}</div>
+            <div class="grid-col-9 padding-2">
+                <div class="usa-card bg-base-lightest shadow-2 margin-bottom-2">
+                    <div class="usa-card__body">
+                        {% with title="Your Clinical Trials" %}
+                            {% include "tables/header.html" %}
+                        {% endwith %}
+                        <div id="card-view">{% include "tables/card.html" with context %}</div>
+                        <div id="table-view" class="display-none">{% include "tables/table.html" with context %}</div>
+                        {% if pagination.total_pages > 1 %}
+                            {% include "tables/pagination.html" with context %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const cardBtn = document.getElementById('toggle-card');
+        const tableBtn = document.getElementById('toggle-table');
+        const cardView = document.getElementById('card-view');
+        const tableView = document.getElementById('table-view');
+        function getQueryParam(name) {
+            const url = new URL(window.location.href);
+            return url.searchParams.get(name);
+        }
+        function setView(view) {
+            if (view === 'table') {
+                cardView.classList.add('display-none');
+                tableView.classList.remove('display-none');
+                tableBtn.classList.add('usa-button--active');
+                cardBtn.classList.remove('usa-button--active');
+            } else {
+                cardView.classList.remove('display-none');
+                tableView.classList.add('display-none');
+                cardBtn.classList.add('usa-button--active');
+                tableBtn.classList.remove('usa-button--active');
+            }
+        }
+        let initialView = getQueryParam('view') || localStorage.getItem('userDashboardView') || 'card';
+        setView(initialView);
+        cardBtn.addEventListener('click', function() {
+            setView('card');
+            localStorage.setItem('userDashboardView', 'card');
+            updatePaginationLinks('card');
+        });
+        tableBtn.addEventListener('click', function() {
+            setView('table');
+            localStorage.setItem('userDashboardView', 'table');
+            updatePaginationLinks('table');
+        });
+        if (initialView === 'card') {
+            cardBtn.classList.add('usa-button--active');
+        } else {
+            tableBtn.classList.add('usa-button--active');
+        }
+        function updatePaginationLinks(view) {
+            document.querySelectorAll('.usa-pagination__link, .usa-pagination__button').forEach(function(link) {
+                let url = new URL(link.href, window.location.origin);
+                url.searchParams.set('view', view);
+                link.href = url.toString();
+            });
+        }
+        updatePaginationLinks(initialView);
+    </script>
+{% endblock content %}

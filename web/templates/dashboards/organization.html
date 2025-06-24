@@ -12,7 +12,8 @@
                         {% with title="My Organizations' Clinical Trials" %}
                             {% include "tables/header.html" %}
                         {% endwith %}
-                        {% include "tables/table.html" with context %}
+                        <div id="card-view">{% include "tables/card.html" with context %}</div>
+                        <div id="table-view" class="display-none">{% include "tables/table.html" with context %}</div>
                         {% if pagination.total_pages > 1 %}
                             {% include "tables/pagination.html" with context %}
                         {% endif %}
@@ -21,4 +22,52 @@
             </div>
         </div>
     </div>
+    <script>
+        const cardBtn = document.getElementById('toggle-card');
+        const tableBtn = document.getElementById('toggle-table');
+        const cardView = document.getElementById('card-view');
+        const tableView = document.getElementById('table-view');
+        function getQueryParam(name) {
+            const url = new URL(window.location.href);
+            return url.searchParams.get(name);
+        }
+        function setView(view) {
+            if (view === 'table') {
+                cardView.classList.add('display-none');
+                tableView.classList.remove('display-none');
+                tableBtn.classList.add('usa-button--active');
+                cardBtn.classList.remove('usa-button--active');
+            } else {
+                cardView.classList.remove('display-none');
+                tableView.classList.add('display-none');
+                cardBtn.classList.add('usa-button--active');
+                tableBtn.classList.remove('usa-button--active');
+            }
+        }
+        let initialView = getQueryParam('view') || localStorage.getItem('orgDashboardView') || 'card';
+        setView(initialView);
+        cardBtn.addEventListener('click', function() {
+            setView('card');
+            localStorage.setItem('orgDashboardView', 'card');
+            updatePaginationLinks('card');
+        });
+        tableBtn.addEventListener('click', function() {
+            setView('table');
+            localStorage.setItem('orgDashboardView', 'table');
+            updatePaginationLinks('table');
+        });
+        if (initialView === 'card') {
+            cardBtn.classList.add('usa-button--active');
+        } else {
+            tableBtn.classList.add('usa-button--active');
+        }
+        function updatePaginationLinks(view) {
+            document.querySelectorAll('.usa-pagination__link, .usa-pagination__button').forEach(function(link) {
+                let url = new URL(link.href, window.location.origin);
+                url.searchParams.set('view', view);
+                link.href = url.toString();
+            });
+        }
+        updatePaginationLinks(initialView);
+    </script>
 {% endblock content %}
