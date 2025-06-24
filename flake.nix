@@ -30,16 +30,34 @@
             pkgs.postgresql_jdbc
             pkgs.redis
             pkgs.awscli2
+            pkgs.python310
             pkgs.python310Packages.pip
+            pkgs.python310Packages.numpy
+            pkgs.python310Packages.pandas
+            pkgs.python310Packages.psycopg2
             pkgs.gcc
             pkgs.jdk8
+            pkgs.locale
+            pkgs.glibcLocales
+            pkgs.zlib
+            pkgs.stdenv.cc.cc.lib
           ];
 
           shellHook = ''
+            # Set locale
+            export LANG="en_US.UTF-8"
+            export LC_ALL="en_US.UTF-8"
+            
+            # Set library path for system libraries
+            export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [
+              pkgs.stdenv.cc.cc.lib
+              pkgs.zlib
+            ]}:$LD_LIBRARY_PATH"
+
             if [ ! -d .venv ]; then
               uv venv
               source .venv/bin/activate
-              uv sync >/dev/null 2>&1
+              uv pip install -e .
             else 
               source .venv/bin/activate
             fi
@@ -51,6 +69,7 @@
             export FLASK_DEBUG=1
 
             WEB_DIR="$(pwd)/web"
+
 
             uv run -- flask run --host 0.0.0.0 --port 6525 --debug --extra-files "$WEB_DIR"
           '';
