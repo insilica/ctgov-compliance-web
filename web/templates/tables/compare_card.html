@@ -1,0 +1,74 @@
+{% block content %}
+    <div class="card-list grid-row grid-gap">
+        {% for org in org_compliance %}
+            <div class="usa-card bg-base-lightest shadow-2 margin-bottom-3 border-left-accent desktop:grid-col-6 card-item">
+                <div class="usa-card__body desktop:padding-3 padding-1">
+                    <div class="display-flex flex-align-center margin-bottom-2">
+                        <span class="margin-right-2 display-inline-flex flex-align-center"
+                              aria-hidden="true">
+                            <!-- Building icon for organization -->
+                            <svg class="usa-icon usa-icon--size-5"
+                                 aria-hidden="true"
+                                 focusable="false"
+                                 role="img">
+                                <use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#location_city"></use>
+                            </svg>
+                        </span>
+                        <h2 class="usa-card__heading font-sans-xl margin-y-0">
+                            <a href="{{ url_for('routes.show_organization_dashboard', org_ids=org.id) }}"
+                               class="text-primary">{{ org.name }}</a>
+                        </h2>
+                    </div>
+                    <div class="display-flex flex-wrap flex-align-center margin-bottom-2">
+                        {% set compliance_rate = ((org.on_time_count / org.total_trials * 100) if org.total_trials > 0 else 0) %}
+                        {% if compliance_rate >= 80 %}
+                            <span class="badge badge-success margin-right-2 font-sans-md">{{ compliance_rate }}% Compliant</span>
+                        {% elif compliance_rate >= 60 %}
+                            <span class="badge badge-warning margin-right-2 font-sans-md">{{ compliance_rate }}% Compliant</span>
+                        {% else %}
+                            <span class="badge badge-error margin-right-2 font-sans-md">{{ compliance_rate }}% Compliant</span>
+                        {% endif %}
+                        <span class="usa-tag bg-primary-lighter text-ink font-sans-md margin-right-2">Total: {{ org.total_trials }}</span>
+                        <span class="usa-tag bg-accent-warm text-white font-sans-md">Funding: {{ org.funding_source or 'N/A' }}</span>
+                    </div>
+                    <div class="display-flex flex-column flex-wrap flex-align-start font-sans-md text-ink margin-bottom-2">
+                        <span class="display-inline-flex flex-align-center margin-right-3">
+                            <svg class="usa-icon usa-icon--size-3"
+                                 aria-hidden="true"
+                                 focusable="false"
+                                 role="img">
+                                <use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#check_circle"></use>
+                            </svg>
+                            <span class="desktop:font-sans-lg margin-right-1"><strong>Compliant:</strong></span>
+                            <span class="desktop:font-sans-lg badge badge-success"><i class="ri-check-line"></i> {{ org.on_time_count }}</span>
+                        </span>
+                        <span class="display-inline-flex flex-align-center margin-right-3">
+                            <svg class="usa-icon usa-icon--size-3"
+                                 aria-hidden="true"
+                                 focusable="false"
+                                 role="img">
+                                <use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#warning"></use>
+                            </svg>
+                            <span class="desktop:font-sans-lg margin-right-1"><strong>Late:</strong></span>
+                            <span class="desktop:font-sans-lg badge badge-error"><i class="ri-close-line"></i> {{ org.late_count }}</span>
+                        </span>
+                        <span class="display-inline-flex flex-align-center">
+                            <svg class="usa-icon usa-icon--size-3"
+                                 aria-hidden="true"
+                                 focusable="false"
+                                 role="img">
+                                <use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#trending_up"></use>
+                            </svg>
+                            <span class="desktop:font-sans-lg margin-right-1"><strong>Wilson LCB:</strong></span>
+                            <span class="desktop:font-sans-lg">{{ org.wilson_lcb or 'N/A' }}</span>
+                        </span>
+                    </div>
+                    <div class="display-flex flex-wrap flex-align-center flex-justify-end">
+                        <span class="margin-right-3"><strong>Reporting Rate:</strong> {{ org.reporting_rate or 'N/A' }}</span>
+                        <span><strong>Compliance Rate:</strong> <span class="badge badge-compliance">{{ compliance_rate }}%</span></span>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock content %}

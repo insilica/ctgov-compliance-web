@@ -1,0 +1,63 @@
+{% block content %}
+    <div class="card-list grid-row grid-gap">
+        {% for trial in trials %}
+            <div class="usa-card bg-base-lightest shadow-2 margin-bottom-3 border-left-accent desktop:grid-col-6 card-item">
+                <div class="usa-card__body desktop:padding-3 padding-1">
+                    <div class="display-flex flex-align-center margin-bottom-2">
+                        <span class="margin-right-2 display-inline-flex flex-align-center" aria-hidden="true">
+                            <!-- Hospital icon -->
+                            <svg class="usa-icon usa-icon--size-5" aria-hidden="true" focusable="false" role="img">
+                                <use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#medical_services"></use>
+                            </svg>
+                        </span>
+                        <h2 class="usa-card__heading font-sans-xl margin-y-0">
+                            <a href="https://clinicaltrials.gov/study/{{ trial.nct_id }}"
+                               class="text-primary">{{ trial.title }}</a>
+                        </h2>
+                    </div>
+                    <div class="display-flex flex-wrap flex-align-center margin-bottom-2">
+                        {% if trial.status|lower == 'compliant' %}
+                            <span class="badge badge-success margin-right-2 font-sans-md">{{ trial.status }}</span>
+                        {% endif %}
+                        {% if trial.status|lower == 'incompliant' or trial.status|lower == 'not compliant' %}
+                        <span class="badge badge-error margin-right-2 font-sans-md">{{ trial.status }}</span>
+                        {% endif %}
+                        <span class="usa-tag bg-primary-lighter text-ink font-sans-md margin-right-2">Phase: {{ trial.phase or 'N/A' }}</span>
+                        <span class="usa-tag bg-accent-warm text-white font-sans-md">Priority: {{ trial.priority or 'Normal' }}</span>
+                    </div>
+                    <div class="display-flex flex-column flex-wrap flex-align-start font-sans-md text-ink margin-bottom-2">
+                        <span class="display-inline-flex flex-align-center margin-right-3">
+                            <svg class="usa-icon usa-icon--size-3" aria-hidden="true" focusable="false" role="img">
+                                <use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#identification"></use>
+                            </svg>
+                            <span class="desktop:font-sans-lg margin-right-1"><strong>NCT ID:</strong></span>
+                            <span class="desktop:font-sans-lg">{{ trial.nct_id }}</span>
+                        </span>
+                        <span class="display-inline-flex flex-align-center margin-right-3">
+                            <svg class="usa-icon usa-icon--size-3" aria-hidden="true" focusable="false" role="img">
+                                <use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#location_city"></use>
+                            </svg>
+                            <span class="desktop:font-sans-lg margin-right-1"><strong>Org:</strong></span>
+                            <span class="desktop:font-sans-lg"><a href="{{ url_for('routes.show_organization_dashboard', org_ids=trial.id) }}"
+    class="text-primary-dark">{{ trial.name }}</a></span>
+                        </span>
+                        <span class="display-inline-flex flex-align-center">
+                            <!-- Account icon for user -->
+                            <svg class="usa-icon usa-icon--size-3" aria-hidden="true" focusable="false" role="img">
+                                <use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#account_circle"></use>
+                            </svg>
+                            <span class="desktop:font-sans-lg margin-right-1"><strong>User:</strong></span>
+                            <span class="desktop:font-sans-lg"><a href="{{ url_for('routes.show_user_dashboard', user_id=trial.user_id) }}"
+    class="text-primary-dark">{{ trial.email }}</a></span>
+                        </span>
+                    </div>
+                    <div class="display-flex flex-wrap flex-align-center flex-justify-end">
+                        <span class="margin-right-3"><strong>Start:</strong> <span class="date-mobile">{{ trial.start_date.strftime("%m/%d/%y") }}</span></span>
+                        <span class="margin-right-3"><strong>End:</strong> <span class="date-mobile">{{ trial.completion_date.strftime("%m/%d/%y") }}</span></span>
+                        <span><strong>Due:</strong> <span class="date-mobile">{{ trial.reporting_due_date.strftime("%m/%d/%y") }}</span></span>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock content %}
