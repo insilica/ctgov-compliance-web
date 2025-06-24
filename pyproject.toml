@@ -26,6 +26,7 @@ dependencies = [
     "flask==3.1.1",
     "flask-login==0.6.3",
     "flask-socketio==5.5.1",
+    "flask-sqlalchemy>=3.1.1",
     "flask-wtf==1.2.2",
     "gevent==25.5.1",
     "gevent-websocket==0.10.1",
@@ -77,3 +78,10 @@ dependencies = [
     "zope-event==5.0",
     "zope-interface==7.2",
 ]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["web"]
