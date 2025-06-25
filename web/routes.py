@@ -3,17 +3,14 @@ from flask import Blueprint, render_template, request
 from flask_login import login_required, current_user
 from .db import query
 from .utils.pagination import paginate
-import pandas as pd
 from datetime import datetime
 from .utils.queries import get_all_trials, get_org_trials, get_org_compliance, get_user_trials, search_trials
 
 bp = Blueprint('routes', __name__)
 
-@bp.route('/')
-@login_required
-def index():
-    trials = get_all_trials()
-    pagination, per_page = paginate(trials)
+def compliance_counts(trials):
+    # Defer pandas import to function level
+    import pandas as pd
     
     # Convert to DataFrame for status counts
     df = pd.DataFrame(trials)
@@ -22,6 +19,16 @@ def index():
     status_counts = df['status'].value_counts() if not df.empty else pd.Series()
     on_time_count = status_counts.get('Compliant', 0)
     late_count = status_counts.get('Incompliant', 0)
+
+    return on_time_count, late_count
+
+@bp.route('/')
+@login_required
+def index():
+    trials = get_all_trials()
+    pagination, per_page = paginate(trials)
+    
+    on_time_count, late_count = compliance_counts(trials)
     
     return render_template('dashboards/home.html',
                          trials=pagination.items_page,
@@ -49,13 +56,7 @@ def search():
         search_results = search_trials(search_params)
         pagination, per_page = paginate(search_results)
         
-        # Convert to DataFrame for status counts
-        df = pd.DataFrame(search_results)
-        
-        # Count statuses
-        status_counts = df['status'].value_counts() if not df.empty else pd.Series()
-        on_time_count = status_counts.get('Compliant', 0)
-        late_count = status_counts.get('Incompliant', 0)
+        on_time_count, late_count = compliance_counts(search_results)
         
         return render_template('dashboards/home.html',
                             trials=pagination.items_page,
@@ -77,13 +78,7 @@ def show_organization_dashboard(org_ids):
     org_trials = get_org_trials(org_list)
     pagination, per_page = paginate(org_trials)
     
-    # Convert to DataFrame
-    df = pd.DataFrame(org_trials)
-
-    # Count statuses
-    status_counts = df['status'].value_counts() if not df.empty else pd.Series()
-    on_time_count = status_counts.get('Compliant', 0)
-    late_count = status_counts.get('Incompliant', 0)
+    on_time_count, late_count = compliance_counts(org_trials)
 
     return render_template('dashboards/organization.html',
                          trials=pagination.items_page,
@@ -112,13 +107,8 @@ def show_compare_organizations_dashboard():
     )
     pagination, per_page = paginate(org_compliance)
 
-    # Convert to DataFrame
-    df = pd.DataFrame(org_compliance)
-
-    # Count statuses
-    on_time_count = df['on_time_count'].sum() if not df.empty else 0
-    late_count = df['late_count'].sum() if not df.empty else 0
-    total_organizations = df['name'].count() if not df.empty else 0
+    on_time_count, late_count = compliance_counts(org_compliance)
+    total_organizations = len(org_compliance)
 
     return render_template('dashboards/compare.html', 
         org_compliance=pagination.items_page,
@@ -137,13 +127,8 @@ def show_user_dashboard(user_id):
         user_email = user_trials[0]['email']
         pagination, per_page = paginate(user_trials)
 
-        # Convert to DataFrame
-        df = pd.DataFrame(user_trials)
+        on_time_count, late_count = compliance_counts(user_trials)
 
-        # Count statuses
-        status_counts = df['status'].value_counts() if not df.empty else pd.Series()
-        on_time_count = status_counts.get('Compliant', 0)
-        late_count = status_counts.get('Incompliant', 0)
         return render_template('dashboards/user.html', 
                             trials=pagination.items_page,
                             pagination=pagination,

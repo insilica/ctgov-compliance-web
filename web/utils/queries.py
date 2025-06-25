@@ -59,6 +59,7 @@ def get_user_trials(user_id):
         t.completion_date,
         t.reporting_due_date,
         tc.last_checked,
+        t.user_id,
         o.id
     FROM trial t
     LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
@@ -111,6 +112,10 @@ def search_trials(params):
         conditions.append("t.status = %s")
         values.append(params['status'])
     
+    if params.get('user_email'):
+        conditions.append("u.email ILIKE %s")
+        values.append(f"%{params['user_email']}%")
+    
     # Handle date range
     date_type = params.get('date_type', 'completion')
     date_from = params.get('date_from')
@@ -141,7 +146,7 @@ def search_trials(params):
         for status in compliance_status:
             if status == 'compliant':
                 status_conditions.append("tc.status = 'Compliant'")
-            elif status == 'non-compliant':
+            elif status == 'incompliant':
                 status_conditions.append("tc.status = 'Incompliant'")
             elif status == 'pending':
                 status_conditions.append("tc.status IS NULL")
@@ -155,7 +160,7 @@ def search_trials(params):
     
     return query(base_sql, values)
 
-def get_org_compliance():
+def get_org_compliance(min_compliance=None, max_compliance=None, min_trials=None, max_trials=None):
     sql = '''
     SELECT 
         o.id,
@@ -167,6 +172,23 @@ def get_org_compliance():
     LEFT JOIN trial t ON o.id = t.organization_id
     LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
     GROUP BY o.id, o.name
-    ORDER BY o.name ASC
     '''
-    return query(sql)
+    having_clauses = []
+    params = []
+    # Compliance rate is calculated as (on_time_count / total_trials) * 100
+    if min_compliance is not None:
+        having_clauses.append('(SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) >= %s')
+        params.append(min_compliance)
+    if max_compliance is not None:
+        having_clauses.append('(SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) <= %s')
+        params.append(max_compliance)
+    if min_trials is not None:
+        having_clauses.append('COUNT(t.id) >= %s')
+        params.append(min_trials)
+    if max_trials is not None:
+        having_clauses.append('COUNT(t.id) <= %s')
+        params.append(max_trials)
+    if having_clauses:
+        sql += ' HAVING ' + ' AND '.join(having_clauses)
+    sql += '\nORDER BY o.name ASC'
+    return query(sql, params)
