@@ -30,12 +30,6 @@
             pkgs.postgresql_jdbc
             pkgs.redis
             pkgs.awscli2
-            pkgs.python310
-            pkgs.python310Packages.pip
-            pkgs.python310Packages.numpy
-            pkgs.python310Packages.pandas
-            pkgs.python310Packages.psycopg2
-            pkgs.gcc
             pkgs.jdk8
             pkgs.locale
             pkgs.glibcLocales
@@ -62,6 +56,8 @@
               source .venv/bin/activate
             fi
 
+            uv sync
+
             source scripts/flake/shellhook.sh
 
             export FLASK_APP=web.app
@@ -69,9 +65,6 @@
             export FLASK_DEBUG=1
 
             WEB_DIR="$(pwd)/web"
-
-
-            uv run -- flask run --host 0.0.0.0 --port 6525 --debug --extra-files "$WEB_DIR"
           '';
         };
 
