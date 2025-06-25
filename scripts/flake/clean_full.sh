@@ -123,6 +123,10 @@ for target in "${targets[@]}"; do
   fi
 done
 
+# Clean Nix store
+clean_nix_references
+
+
 echo -e "\n\nCleaning up processes..."
 
 # Find and kill Postgres listening on port 5464
@@ -174,7 +178,6 @@ else
   echo "No Redis server processes found"
 fi
 
-# Clean Nix store
-clean_nix_references
+
 
 echo -e "\nCleanup complete. You can now run 'nix develop' for a fresh environment."
