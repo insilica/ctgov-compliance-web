@@ -107,7 +107,8 @@ def show_compare_organizations_dashboard():
     )
     pagination, per_page = paginate(org_compliance)
 
-    on_time_count, late_count = compliance_counts(org_compliance)
+    on_time_count = sum(org.get('on_time_count', 0) for org in org_compliance)
+    late_count = sum(org.get('late_count', 0) for org in org_compliance)
     total_organizations = len(org_compliance)
 
     return render_template('dashboards/compare.html', 
