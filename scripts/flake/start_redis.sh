@@ -2,7 +2,7 @@
 
 if ! pgrep redis-server > /dev/null; then
   echo "Starting Redis server..."
-  redis-server --daemonize yes
+  redis-server --daemonize yes > /dev/null
 else
   echo "Redis is already running."
 fi
