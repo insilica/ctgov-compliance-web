@@ -12,7 +12,9 @@ def test_create_app():
     app = create_app()
     
     # Check app configuration
-    assert app.config['SECRET_KEY'] == 'dev'  # Default for testing
+    # In CI environment, SECRET_KEY is set via environment variable
+    expected_secret_key = os.environ.get('SECRET_KEY', 'dev')
+    assert app.config['SECRET_KEY'] == expected_secret_key
     
     # Check Jinja2 extensions
     assert 'jinja2.ext.ExprStmtExtension' in app.jinja_env.extensions
