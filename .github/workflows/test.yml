@@ -2,9 +2,9 @@ name: Run Compliance Tests
 
 on:
   push:
-    branches: [code-refining]
+    branches: [main]
   pull_request:
-    branches: [code-refining]
+    branches: [main]
 
 jobs:
   test:
