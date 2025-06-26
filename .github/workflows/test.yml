@@ -72,20 +72,22 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           echo "Running tests with Nix in CI environment..."
+          
+          # Wait for PostgreSQL service to be ready
+          echo 'Waiting for PostgreSQL service to be ready...'
+          timeout 60s bash -c '
+            until pg_isready -h localhost -p 5464 -U postgres; do
+              echo "Waiting for PostgreSQL..."
+              sleep 2
+            done
+          '
+          
+          # Verify database connection
+          echo 'Testing database connection...'
+          PGPASSWORD=devpassword psql -h localhost -p 5464 -U postgres -d ctgov-web -c 'SELECT version();'
+          
+          # Use nix develop to get dependencies and run migrations + tests
           nix develop --command bash -c "
-            # Wait for PostgreSQL service to be ready
-            echo 'Waiting for PostgreSQL service to be ready...'
-            timeout 60s bash -c '
-              until pg_isready -h localhost -p 5464 -U postgres; do
-                echo \"Waiting for PostgreSQL...\"
-                sleep 2
-              done
-            '
-            
-            # Verify database connection
-            echo 'Testing database connection...'
-            psql -h localhost -p 5464 -U postgres -d ctgov-web -c 'SELECT version();'
-            
             # Run Flyway migrations to set up database schema
             echo 'Running Flyway migrations...'
             flyway \\
