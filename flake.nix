@@ -51,7 +51,6 @@
             if [ ! -d .venv ]; then
               uv venv
               source .venv/bin/activate
-              uv pip install -e .
             else 
               source .venv/bin/activate
             fi
