@@ -121,7 +121,7 @@ for target in "${targets[@]}"; do
 done
 
 # Clean Nix store
-clean_nix_references
+clean_nix_references >/dev/null 2>&1
 
 echo -e "\n\nCleaning up processes..."
 

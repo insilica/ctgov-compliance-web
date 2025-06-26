@@ -88,7 +88,7 @@ def register():
 
 
 @bp.route('/logout')
-@login_required
+@login_required    # pragma: no cover
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))

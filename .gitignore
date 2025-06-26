@@ -41,6 +41,7 @@ blazegraph.*
 /ctgov_compliance_web.egg-info
 report.*
 rules.log
+uv.lock
 
 # ignoring personal vscode settings
 .vscode
