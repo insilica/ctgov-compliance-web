@@ -42,22 +42,6 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v24
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .
-          pip install pytest psycopg2-binary
-          
-      - name: Install Flyway
-        run: |
-          wget -qO- https://download.red-gate.com/maven/release/org/flywaydb/flyway-commandline/10.10.0/flyway-commandline-10.10.0-linux-x64.tar.gz | tar -xzf - -C /tmp
-          sudo ln -s /tmp/flyway-10.10.0/flyway /usr/local/bin/flyway
-
       - name: Setup environment and run tests
         env:
           # CI flag to prevent PostgreSQL setup conflicts
@@ -87,31 +71,32 @@ jobs:
           # Python path
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          echo "Running tests in CI environment..."
-          
-          # Wait for PostgreSQL service to be ready
-          echo 'Waiting for PostgreSQL service to be ready...'
-          timeout 60s bash -c '
-            until pg_isready -h localhost -p 5464 -U postgres; do
-              echo "Waiting for PostgreSQL..."
-              sleep 2
-            done
-          '
-          
-          # Verify database connection
-          echo 'Testing database connection...'
-          psql -h localhost -p 5464 -U postgres -d ctgov-web -c 'SELECT version();'
-          
-          # Run Flyway migrations to set up database schema
-          echo 'Running Flyway migrations...'
-          flyway \
-            -url='jdbc:postgresql://localhost:5464/ctgov-web' \
-            -user='postgres' \
-            -password='devpassword' \
-            -locations='filesystem:./.flyway/sql' \
-            migrate
-          
-          # Run tests with verbose output
-          echo 'Running tests...'
-          python -m pytest tests/ -v --tb=short
+          echo "Running tests with Nix in CI environment..."
+          nix develop --command bash -c "
+            # Wait for PostgreSQL service to be ready
+            echo 'Waiting for PostgreSQL service to be ready...'
+            timeout 60s bash -c '
+              until pg_isready -h localhost -p 5464 -U postgres; do
+                echo \"Waiting for PostgreSQL...\"
+                sleep 2
+              done
+            '
+            
+            # Verify database connection
+            echo 'Testing database connection...'
+            psql -h localhost -p 5464 -U postgres -d ctgov-web -c 'SELECT version();'
+            
+            # Run Flyway migrations to set up database schema
+            echo 'Running Flyway migrations...'
+            flyway \\
+              -url='jdbc:postgresql://localhost:5464/ctgov-web' \\
+              -user='postgres' \\
+              -password='devpassword' \\
+              -locations='filesystem:./.flyway/sql' \\
+              migrate
+            
+            # Run tests with verbose output
+            echo 'Running tests...'
+            python -m pytest tests/ -v --tb=short
+          "
           
