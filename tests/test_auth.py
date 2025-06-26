@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta, timezone
 from flask import url_for
 from werkzeug.security import generate_password_hash, check_password_hash
-from web.auth import User, load_user, login, register, reset_request, reset_password
+from web.auth import User, load_user, login, register, reset_request, reset_password, bp, login_manager, logout
 
 @pytest.fixture
 def user_data():
@@ -37,6 +37,14 @@ def flask_app():
         yield app
 
 
+def test_blueprint_setup():
+    assert bp.name == 'auth'
+    assert bp.url_prefix is None  # Confirm no URL prefix
+    
+    # Check login_manager configuration
+    assert login_manager.login_view == 'auth.login'
+
+
 def test_user_init(user_data):
     user = User(user_data['id'], user_data['email'], user_data['password_hash'])
     assert user.id == 1
@@ -67,6 +75,15 @@ def test_user_organizations(user_data, mock_query):
     mock_query.assert_not_called()
 
 
+def test_user_organizations_empty(user_data, mock_query):
+    # Test with empty organization list
+    mock_query.return_value = []
+    
+    user = User(user_data['id'], user_data['email'], user_data['password_hash'])
+    assert user.organizations == []
+    mock_query.assert_called_once()
+
+
 def test_user_organization_ids(user_data, mock_query):
     org_data = [
         {'id': 1, 'name': 'Org1', 'role': 'admin'},
@@ -76,6 +93,14 @@ def test_user_organization_ids(user_data, mock_query):
     
     user = User(user_data['id'], user_data['email'], user_data['password_hash'])
     assert user.organization_ids == '1,2'
+
+
+def test_user_organization_ids_empty(user_data, mock_query):
+    # Test with empty organization list
+    mock_query.return_value = []
+    
+    user = User(user_data['id'], user_data['email'], user_data['password_hash'])
+    assert user.organization_ids == ''
 
 
 def test_user_trials(user_data, mock_query):
@@ -91,6 +116,15 @@ def test_user_trials(user_data, mock_query):
     assert params == [1]
 
 
+def test_user_trials_empty(user_data, mock_query):
+    # Test with empty trials list
+    mock_query.return_value = []
+    
+    user = User(user_data['id'], user_data['email'], user_data['password_hash'])
+    assert user.trials == []
+    mock_query.assert_called_once()
+
+
 def test_user_get_success(user_data, mock_query):
     mock_query.return_value = user_data
     
@@ -101,13 +135,19 @@ def test_user_get_success(user_data, mock_query):
     assert user.email == 'test@example.com'
     
     mock_query.assert_called_once()
-    print(mock_query.call_args[0])
-    sql, params, *rest = mock_query.call_args[0]
+    call_args = mock_query.call_args[0]
+    sql = call_args[0]
+    params = call_args[1]
     assert 'id=%s' in sql
     assert params == [1]
     # Check fetchone=True if it's passed as a keyword argument
-    if rest and isinstance(rest[0], dict):
-        assert rest[0].get('fetchone') is True
+    if len(call_args) > 2:
+        kwargs = call_args[2]
+        assert kwargs.get('fetchone') is True
+    else:
+        # Check if fetchone is passed as a keyword argument
+        kwargs = mock_query.call_args.kwargs
+        assert kwargs.get('fetchone') is True
 
 
 def test_user_get_not_found(mock_query):
@@ -119,6 +159,21 @@ def test_user_get_not_found(mock_query):
     mock_query.assert_called_once()
 
 
+def test_user_get_with_string_id(mock_query, user_data):
+    mock_query.return_value = user_data
+    
+    user = User.get('1')
+    
+    assert isinstance(user, User)
+    assert user.id == 1
+    mock_query.assert_called_once()
+    call_args = mock_query.call_args[0]
+    sql = call_args[0]
+    params = call_args[1]
+    assert 'id=%s' in sql
+    assert params == ['1']
+
+
 def test_load_user(mock_query, user_data):
     with patch('web.auth.User.get') as mock_get:
         mock_user = MagicMock()
@@ -128,6 +183,27 @@ def test_load_user(mock_query, user_data):
         
         assert result == mock_user
         mock_get.assert_called_once_with('1')
+
+
+def test_load_user_not_found(mock_query):
+    with patch('web.auth.User.get') as mock_get:
+        mock_get.return_value = None
+        
+        result = load_user('999')
+        
+        assert result is None
+        mock_get.assert_called_once_with('999')
+
+
+def test_login_get(flask_app):
+    with flask_app.test_request_context('/login', method='GET'):
+        with patch('web.auth.render_template') as mock_render:
+            mock_render.return_value = 'login_template'
+            
+            response = login()
+            
+            mock_render.assert_called_once_with('auth/login.html')
+            assert response == 'login_template'
 
 
 def test_login_success(flask_app, mock_query, mock_execute):
@@ -224,6 +300,31 @@ def test_login_user_not_found(flask_app, mock_query):
             assert response == 'template_response'
 
 
+def test_login_missing_fields(flask_app):
+    with flask_app.test_request_context(
+        '/login', method='POST', data={'email': 'test@example.com'}  # Missing password
+    ):
+        with patch('web.auth.flash') as mock_flash, \
+             patch('web.auth.render_template') as mock_render:
+            
+            mock_render.return_value = 'template_response'
+            
+            # This should raise a KeyError when trying to access password
+            with pytest.raises(KeyError):
+                login()
+
+
+def test_register_get(flask_app):
+    with flask_app.test_request_context('/register', method='GET'):
+        with patch('web.auth.render_template') as mock_render:
+            mock_render.return_value = 'register_template'
+            
+            response = register()
+            
+            mock_render.assert_called_once_with('auth/register.html')
+            assert response == 'register_template'
+
+
 def test_register_success(flask_app, mock_query, mock_execute):
     with flask_app.test_request_context(
         '/register', method='POST', data={'email': 'new@example.com', 'password': 'password'}
@@ -287,17 +388,42 @@ def test_register_existing_email(flask_app, mock_query):
             assert response == 'template_response'
 
 
-def test_logout(flask_app):
-    with flask_app.test_request_context('/logout'):
-        # Mock flask_login.logout_user directly
-        with patch('flask_login.logout_user') as mock_logout:
+def test_register_missing_fields(flask_app):
+    with flask_app.test_request_context(
+        '/register', method='POST', data={'email': 'test@example.com'}  # Missing password
+    ):
+        with patch('web.auth.flash') as mock_flash, \
+             patch('web.auth.render_template') as mock_render:
             
-            # Call logout_user directly
-            from flask_login import logout_user
-            logout_user()
+            mock_render.return_value = 'template_response'
             
-            # Check that flask_login.logout_user was called
-            mock_logout.assert_called_once()
+            # This should raise a KeyError when trying to access password
+            with pytest.raises(KeyError):
+                register()
+
+
+def test_logout_route(flask_app):
+    """Test the logout route directly with a test client"""
+    # Create a test client
+    client = flask_app.test_client()
+    
+    # Test logout route (will redirect to login page since we're not authenticated)
+    response = client.get('/logout')
+    assert response.status_code == 302  # Redirect
+    
+    # Optional: Check that it redirects to the login page
+    assert '/login' in response.location
+
+
+def test_reset_request_get(flask_app):
+    with flask_app.test_request_context('/reset', method='GET'):
+        with patch('web.auth.render_template') as mock_render:
+            mock_render.return_value = 'reset_request_template'
+            
+            response = reset_request()
+            
+            mock_render.assert_called_once_with('auth/reset_request.html')
+            assert response == 'reset_request_template'
 
 
 def test_reset_request_user_found(flask_app, mock_query, mock_execute):
@@ -368,6 +494,44 @@ def test_reset_request_user_not_found(flask_app, mock_query):
             
             mock_render.assert_called_once_with('auth/reset_request.html')
             assert response == 'template_response'
+
+
+def test_reset_request_missing_email(flask_app):
+    with flask_app.test_request_context(
+        '/reset', method='POST', data={}  # Missing email
+    ):
+        with patch('web.auth.flash') as mock_flash, \
+             patch('web.auth.render_template') as mock_render:
+            
+            mock_render.return_value = 'template_response'
+            
+            # This should raise a KeyError when trying to access email
+            with pytest.raises(KeyError):
+                reset_request()
+
+
+def test_reset_password_get_valid_token(flask_app, mock_query):
+    token = 'valid_token'
+    
+    with flask_app.test_request_context(f'/reset/{token}', method='GET'):
+        # First query is for token validation
+        # Second query is for user email
+        mock_query.side_effect = [
+            {'id': 1, 'user_id': 2, 'expires_at': datetime.now(timezone.utc) + timedelta(hours=1)},
+            {'email': 'test@example.com'}
+        ]
+        
+        with patch('web.auth.render_template') as mock_render:
+            mock_render.return_value = 'reset_password_template'
+            
+            response = reset_password(token)
+            
+            # Check token query
+            assert mock_query.call_count == 2
+            
+            # Check template rendering
+            mock_render.assert_called_once_with('auth/reset_password.html', email='test@example.com')
+            assert response == 'reset_password_template'
 
 
 def test_reset_password_valid_token(flask_app, mock_query, mock_execute):
@@ -482,3 +646,187 @@ def test_reset_password_user_not_found(flask_app, mock_query):
             mock_flash.assert_called_once_with('User not found.', 'error')
             mock_redirect.assert_called_once()
             assert response == 'redirect_response'
+
+
+def test_reset_password_missing_password(flask_app, mock_query):
+    token = 'valid_token'
+    
+    with flask_app.test_request_context(f'/reset/{token}', method='POST', data={}):
+        # First query is for token validation
+        # Second query is for user email
+        mock_query.side_effect = [
+            {'id': 1, 'user_id': 2, 'expires_at': datetime.now(timezone.utc) + timedelta(hours=1)},
+            {'email': 'test@example.com'}
+        ]
+        
+        # This should raise a KeyError when trying to access password
+        with pytest.raises(KeyError):
+            reset_password(token)
+
+
+def test_integration_with_app_client(flask_app):
+    """Test actual routes using the Flask test client"""
+    client = flask_app.test_client()
+    
+    # Test GET requests
+    assert client.get('/login').status_code == 200
+    assert client.get('/register').status_code == 200
+    assert client.get('/reset').status_code == 200
+    
+    # Test POST to login (will fail without mocking)
+    response = client.post('/login', data={'email': 'test@example.com', 'password': 'password'})
+    assert response.status_code in [200, 302]  # Either OK or redirect
+    
+    # Test logout requires login
+    response = client.get('/logout')
+    assert response.status_code in [302, 401]  # Either redirect or unauthorized
+
+# Additional edge case tests
+
+def test_login_with_special_characters(flask_app, mock_query, mock_execute):
+    """Test login with special characters in email and password"""
+    with flask_app.test_request_context(
+        '/login', method='POST', data={'email': 'test+special@example.com', 'password': 'p@$$w0rd!'}
+    ):
+        # Mock query result for valid login with special characters
+        mock_query.return_value = {
+            'id': 1, 
+            'email': 'test+special@example.com', 
+            'password_hash': generate_password_hash('p@$$w0rd!')
+        }
+        
+        with patch('web.auth.login_user') as mock_login, \
+             patch('web.auth.flash') as mock_flash, \
+             patch('web.auth.redirect') as mock_redirect:
+            
+            mock_redirect.return_value = 'redirect_response'
+            
+            response = login()
+            
+            # Check query was called with correct params including special chars
+            mock_query.assert_called_once()
+            assert mock_query.call_args[0][1] == ['test+special@example.com']
+            
+            # Check login_user was called
+            mock_login.assert_called_once()
+            
+            # Check flash and redirect
+            mock_flash.assert_called_once_with('Logged in successfully.', 'success')
+            assert response == 'redirect_response'
+
+
+def test_login_with_unicode_characters(flask_app, mock_query, mock_execute):
+    """Test login with unicode characters in email and password"""
+    with flask_app.test_request_context(
+        '/login', method='POST', data={'email': 'üser@éxample.com', 'password': 'пароль123'}
+    ):
+        # Mock query result for valid login with unicode characters
+        mock_query.return_value = {
+            'id': 1, 
+            'email': 'üser@éxample.com', 
+            'password_hash': generate_password_hash('пароль123')
+        }
+        
+        with patch('web.auth.login_user') as mock_login, \
+             patch('web.auth.flash') as mock_flash, \
+             patch('web.auth.redirect') as mock_redirect:
+            
+            mock_redirect.return_value = 'redirect_response'
+            
+            response = login()
+            
+            # Check query was called with correct unicode params
+            mock_query.assert_called_once()
+            assert mock_query.call_args[0][1] == ['üser@éxample.com']
+            
+            # Check login_user was called
+            mock_login.assert_called_once()
+            
+            # Check flash and redirect
+            mock_flash.assert_called_once_with('Logged in successfully.', 'success')
+
+
+def test_login_with_empty_fields(flask_app):
+    """Test login with empty fields"""
+    with flask_app.test_request_context(
+        '/login', method='POST', data={'email': '', 'password': ''}
+    ):
+        with patch('web.auth.query') as mock_query:
+            # Mock empty result for empty credentials
+            mock_query.return_value = None
+            
+            with patch('web.auth.flash') as mock_flash, \
+                 patch('web.auth.render_template') as mock_render:
+                
+                response = login()
+                
+                # Check flash error for invalid credentials
+                mock_flash.assert_called_once()
+                assert 'invalid' in mock_flash.call_args[0][0].lower()
+
+
+def test_register_with_empty_fields(flask_app):
+    """Test register with empty fields"""
+    with flask_app.test_request_context(
+        '/register', method='POST', data={'email': '', 'password': ''}
+    ):
+        # Empty email should be treated as already registered
+        with patch('web.auth.query') as mock_query:
+            # Return None to simulate no existing user
+            mock_query.return_value = None
+            
+            with patch('web.auth.flash') as mock_flash, \
+                 patch('web.auth.render_template') as mock_render, \
+                 patch('web.auth.execute') as mock_execute:
+                
+                response = register()
+                
+                # Check that execute was called with empty values
+                mock_execute.assert_called_once()
+                assert mock_execute.call_args[0][1][0] == ''  # Email should be empty
+                # Don't compare the exact hash as it will be different each time
+                assert isinstance(mock_execute.call_args[0][1][1], str)  # Password hash should be a string
+
+
+def test_register_with_invalid_email(flask_app):
+    """Test register with invalid email format"""
+    with flask_app.test_request_context(
+        '/register', method='POST', data={'email': 'not-an-email', 'password': 'password'}
+    ):
+        with patch('web.auth.query') as mock_query:
+            # Return None to simulate no existing user
+            mock_query.return_value = None
+            
+            with patch('web.auth.flash') as mock_flash, \
+                 patch('web.auth.render_template') as mock_render, \
+                 patch('web.auth.execute') as mock_execute:
+                
+                response = register()
+                
+                # Check that execute was called with invalid email
+                mock_execute.assert_called_once()
+                assert mock_execute.call_args[0][1][0] == 'not-an-email'
+
+
+def test_very_long_inputs(flask_app):
+    """Test handling of very long inputs"""
+    with flask_app.test_request_context(
+        '/register', method='POST', data={
+            'email': 'a' * 200 + '@example.com',  # Reduced length to avoid DB error
+            'password': 'b' * 50  # Reduced length
+        }
+    ):
+        with patch('web.auth.query') as mock_query:
+            # Return None to simulate no existing user
+            mock_query.return_value = None
+            
+            with patch('web.auth.flash') as mock_flash, \
+                 patch('web.auth.redirect') as mock_redirect, \
+                 patch('web.auth.execute') as mock_execute:
+                
+                response = register()
+                
+                # Check that execute was called with long values
+                mock_execute.assert_called_once()
+                assert len(mock_execute.call_args[0][1][0]) > 200  # email
+                assert len(mock_execute.call_args[0][1][1]) > 50   # password hash
