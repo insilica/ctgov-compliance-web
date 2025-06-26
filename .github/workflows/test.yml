@@ -1,0 +1,72 @@
+name: Run Compliance Tests
+
+on:
+  push:
+    branches: [code-refining]
+  pull_request:
+    branches: [code-refining]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: devpassword
+          POSTGRES_DB: ctgov-web
+        ports:
+          - 5464:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+
+      - name: Setup environment and run tests
+        env:
+          FLASK_APP: web.app
+          FLASK_ENV: development
+          FLASK_DEBUG: 1
+          SECRET_KEY: github-actions-test-key
+          DB_HOST: localhost
+          DB_PORT: 5464
+          DB_NAME: ctgov-web
+          DB_USER: postgres
+          DB_PASSWORD: devpassword
+          DB_POOL_SIZE: 5
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          echo "Running tests with Nix..."
+          nix develop --command bash -c "
+            # Setup Python environment
+            uv venv
+            source .venv/bin/activate
+            uv sync
+            
+            # Initialize database if needed
+            psql -h localhost -p 5464 -U postgres -d ctgov-web -c 'SELECT 1' || echo 'Database connection test failed'
+            
+            # Run tests with verbose output
+            python -m pytest tests/ -v
+          "
+          
