@@ -102,3 +102,9 @@ jobs:
             python -m pytest tests/ -v --tb=short
           "
           
+      - name: Upload Flyway Report on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flyway-report
+          path: ${{ github.workspace }}/report.html
