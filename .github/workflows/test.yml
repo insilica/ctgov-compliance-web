@@ -44,29 +44,67 @@ jobs:
 
       - name: Setup environment and run tests
         env:
+          # CI flag to prevent PostgreSQL setup conflicts
+          CI: true
+          SKIP_POSTGRES_SETUP: true
+          SKIP_REDIS_SETUP: true
+          SKIP_BLAZEGRAPH_SETUP: true
+          SKIP_AWS_SECRET_LOADING: true
+          # Flask configuration
           FLASK_APP: web.app
           FLASK_ENV: development
           FLASK_DEBUG: 1
           SECRET_KEY: github-actions-test-key
+          # Database configuration (use the service)
           DB_HOST: localhost
           DB_PORT: 5464
           DB_NAME: ctgov-web
           DB_USER: postgres
           DB_PASSWORD: devpassword
           DB_POOL_SIZE: 5
+          # PostgreSQL environment variables
+          PGUSER: postgres
+          PGPASSWORD: devpassword
+          PGHOST: localhost
+          PGPORT: 5464
+          PGDATABASE: ctgov-web
+          # Python path
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          echo "Running tests with Nix..."
+          echo "Running tests with Nix in CI environment..."
           nix develop --command bash -c "
             # Setup Python environment
+            echo 'Setting up Python environment...'
             uv venv
             source .venv/bin/activate
             uv sync
             
-            # Initialize database if needed
-            psql -h localhost -p 5464 -U postgres -d ctgov-web -c 'SELECT 1' || echo 'Database connection test failed'
+            # Wait for PostgreSQL service to be ready
+            echo 'Waiting for PostgreSQL service to be ready...'
+            for i in {1..30}; do
+              if psql -h localhost -p 5464 -U postgres -d ctgov-web -c 'SELECT 1' > /dev/null 2>&1; then
+                echo 'PostgreSQL service is ready!'
+                break
+              fi
+              echo 'Waiting for PostgreSQL... (attempt \$i/30)'
+              sleep 2
+            done
+            
+            # Verify database connection
+            echo 'Testing database connection...'
+            psql -h localhost -p 5464 -U postgres -d ctgov-web -c 'SELECT version();'
+            
+            # Run Flyway migrations to set up database schema
+            echo 'Running Flyway migrations...'
+            flyway \
+              -url='jdbc:postgresql://localhost:5464/ctgov-web' \
+              -user='postgres' \
+              -password='devpassword' \
+              -locations='filesystem:./.flyway/sql' \
+              migrate
             
             # Run tests with verbose output
-            python -m pytest tests/ -v
+            echo 'Running tests...'
+            python -m pytest tests/ -v --tb=short
           "
           
