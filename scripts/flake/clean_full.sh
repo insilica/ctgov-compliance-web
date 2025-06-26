@@ -54,13 +54,13 @@ count_total_files() {
     if [[ "$target" == *"*"* ]]; then
       # Count files matching glob pattern
       local count
-      count=$(find . -path "$target" -type f 2>/dev/null | wc -l)
+      count=$(find . -path "$target" -type f | wc -l)
       total=$((total + count))
     elif [ -e "$target" ] || [ -L "$target" ]; then
       if [ -d "$target" ]; then
         # Count files in directory
         local count
-        count=$(find "$target" -type f 2>/dev/null | wc -l)
+        count=$(find "$target" -type f | wc -l)
         total=$((total + count))
       else
         # Single file
@@ -79,10 +79,7 @@ delete_target() {
   
   if [ -e "$target" ] || [ -L "$target" ]; then  # Added -L to check for symlinks
     echo -e "\nDeleting: $target"
-    if ! rm -rf "$target" 2>/dev/null; then
-      echo "Permission denied, trying with sudo..."
-      sudo rm -rf "$target"
-    fi
+    rm -rf "$target"
     progress_bar "$current_count" "$total_count"
   fi
 }
@@ -93,11 +90,11 @@ clean_nix_references() {
   if command -v nix &> /dev/null; then
     # Only clean up the current profile's generations
     if [ -n "$NIX_PROFILE" ]; then
-      nix-env --profile "$NIX_PROFILE" --delete-generations old &>/dev/null || true
+      nix-env --profile "$NIX_PROFILE" --delete-generations old
     fi
     
     # Clean up only the user's profile
-    nix-collect-garbage --delete-old &>/dev/null || true
+    nix-collect-garbage --delete-old
   fi
 }
 
@@ -114,7 +111,7 @@ for target in "${targets[@]}"; do
     while IFS= read -r -d '' file; do
       current_file=$((current_file + 1))
       delete_target "$file" "$current_file" "$total_files"
-    done < <(find . -path "$target" -print0 2>/dev/null)
+    done < <(find . -path "$target" -print0)
   else
     if [ -e "$target" ] || [ -L "$target" ]; then
       current_file=$((current_file + 1))
@@ -126,58 +123,79 @@ done
 # Clean Nix store
 clean_nix_references
 
-
 echo -e "\n\nCleaning up processes..."
 
-# Find and kill Postgres listening on port 5464
-PIDS=$(lsof -t -i :5464 -sTCP:LISTEN -a -c postgres)
-PROCESS=$(lsof -i :5464 -sTCP:LISTEN -a -c postgres | head -n 2)
-if [ -n "$PIDS" ]; then
-  echo "Killing Postgres processes on port 5464 with PID $PIDS: "
-  echo "$PROCESS"
-  kill $PIDS
-  for pid in $PIDS; do
-    while kill -0 $pid 2>/dev/null; do
-      echo "Waiting for Postgres process $pid to terminate..."
-      sleep 1
-    done
-  done
+# Check if lsof is available
+if ! command -v lsof >/dev/null 2>&1; then
+  echo "Warning: lsof not found, skipping process cleanup"
 else
-  echo "No Postgres processes found on port 5464"
-fi
+  # Find and kill Postgres listening on port 5464
+  echo "Checking for Postgres processes on port 5464..."
+  PIDS=$(lsof -t -i :5464 -sTCP:LISTEN -a -c postgres 2>/dev/null || true)
+  if [ -n "$PIDS" ]; then
+    PROCESS=$(lsof -i :5464 -sTCP:LISTEN -a -c postgres | head -n 2)
+    echo "Killing Postgres processes on port 5464 with PID $PIDS: "
+    echo "$PROCESS"
+    if kill $PIDS 2>/dev/null; then
+      for pid in $PIDS; do
+        while kill -0 $pid 2>/dev/null; do
+          echo "Waiting for Postgres process $pid to terminate..."
+          sleep 1
+        done
+      done
+      echo "Postgres processes terminated successfully"
+    else
+      echo "Failed to kill Postgres processes"
+    fi
+  else
+    echo "No Postgres processes found on port 5464"
+  fi
 
-# Find and kill Java process listening on port 9999
-JAVA_PIDS=$(lsof -t -i :9999 -sTCP:LISTEN -a -c java)
-JAVA_PROCESS=$(lsof -i :9999 -sTCP:LISTEN -a -c java | head -n 2)
-if [ -n "$JAVA_PIDS" ]; then
-  echo "Killing Java processes on port 9999 with PID $JAVA_PIDS:"
-  echo -e "Full entry info:\n$JAVA_PROCESS"
-  kill $JAVA_PIDS
-  for pid in $JAVA_PIDS; do
-    while kill -0 $pid 2>/dev/null; do
-      echo "Waiting for Java process $pid to terminate..."
-      sleep 1
-    done
-  done
-else
-  echo "No Java processes found on port 9999"
+  # Find and kill Java process listening on port 9999
+  echo "Checking for Java processes on port 9999..."
+  JAVA_PIDS=$(lsof -t -i :9999 -sTCP:LISTEN -a -c java 2>/dev/null || true)
+  if [ -n "$JAVA_PIDS" ]; then
+    JAVA_PROCESS=$(lsof -i :9999 -sTCP:LISTEN -a -c java | head -n 2)
+    echo "Killing Java processes on port 9999 with PID $JAVA_PIDS:"
+    echo -e "Full entry info:\n$JAVA_PROCESS"
+    if kill $JAVA_PIDS 2>/dev/null; then
+      for pid in $JAVA_PIDS; do
+        while kill -0 $pid 2>/dev/null; do
+          echo "Waiting for Java process $pid to terminate..."
+          sleep 1
+        done
+      done
+      echo "Java processes terminated successfully"
+    else
+      echo "Failed to kill Java processes"
+    fi
+  else
+    echo "No Java processes found on port 9999"
+  fi
 fi
 
 # Find and kill Redis server if running
-REDIS_PIDS=$(pgrep redis-server)
-if [ -n "$REDIS_PIDS" ]; then
-  echo "Killing Redis server processes with PID $REDIS_PIDS"
-  kill $REDIS_PIDS
-  for pid in $REDIS_PIDS; do
-    while kill -0 $pid 2>/dev/null; do
-      echo "Waiting for Redis process $pid to terminate..."
-      sleep 1
-    done
-  done
+echo "Checking for Redis server processes..."
+if command -v pgrep >/dev/null 2>&1; then
+  REDIS_PIDS=$(pgrep redis-server 2>/dev/null || true)
+  if [ -n "$REDIS_PIDS" ]; then
+    echo "Killing Redis server processes with PID $REDIS_PIDS"
+    if kill $REDIS_PIDS 2>/dev/null; then
+      for pid in $REDIS_PIDS; do
+        while kill -0 $pid 2>/dev/null; do
+          echo "Waiting for Redis process $pid to terminate..."
+          sleep 1
+        done
+      done
+      echo "Redis processes terminated successfully"
+    else
+      echo "Failed to kill Redis processes"
+    fi
+  else
+    echo "No Redis server processes found"
+  fi
 else
-  echo "No Redis server processes found"
+  echo "Warning: pgrep not found, skipping Redis cleanup"
 fi
-
-
 
 echo -e "\nCleanup complete. You can now run 'nix develop' for a fresh environment."
