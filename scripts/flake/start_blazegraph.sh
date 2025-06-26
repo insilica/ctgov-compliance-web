@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Blazegraph is not used by the application - stubbed out
+echo "Blazegraph startup skipped (not used by application)"
+exit 0
+
 # Starts a local Blazegraph instance from a jar if not already running.
 # If the jar is missing it will be downloaded automatically.
 # Blazegraph will listen on port 9999 by default.
