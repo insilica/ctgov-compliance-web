@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required    # pragma: no cover, current_user
 from .utils.route_helpers import (
     process_index_request,
@@ -10,6 +10,10 @@ from .utils.route_helpers import (
 )
 
 bp = Blueprint('routes', __name__)
+
+@bp.route('/health')
+def health():
+    return jsonify({'status': 'ok'}), 200
 
 @bp.route('/')
 @login_required    # pragma: no cover

@@ -1463,5 +1463,16 @@ def test_user_dashboard_with_mixed_status_trials():
         assert call_args['late_count'] == 1
 
 
+def test_health_endpoint(client):
+    """Test the health check endpoint"""
+    response = client.get('/health')
+
+    assert response.status_code == 200
+    assert response.headers['Content-Type'] == 'application/json'
+
+    data = response.get_json()
+    assert data == {'status': 'ok'}
+
+
 # The comprehensive edge case tests above provide excellent coverage for all route logic
 # without needing to deal with Flask context issues that arise from calling route functions directly
