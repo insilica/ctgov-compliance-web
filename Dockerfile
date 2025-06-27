@@ -33,5 +33,8 @@ ENV PYTHONUNBUFFERED=1
 # Expose the application port
 EXPOSE 6525
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:6525/health || exit 1
+
 # Run the application with gunicorn
 CMD ["uv", "run", "gunicorn", "--bind", "0.0.0.0:6525", "--workers", "4", "--timeout", "120", "web.app:app"]
