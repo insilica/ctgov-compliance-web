@@ -6,7 +6,6 @@ on:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  REGION: ${{ secrets.GCP_REGION }}
 
 jobs:
   cleanup-preview:
@@ -33,7 +32,7 @@ jobs:
 
           # Delete the Cloud Run service
           gcloud run services delete ${SERVICE_NAME} \
-            --region="${{ env.REGION }}" \
+            --region="${{ secrets.GCP_REGION }}" \
             --quiet || true
 
       - name: Comment PR
