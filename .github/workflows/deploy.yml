@@ -183,8 +183,6 @@ jobs:
             --region=${{ secrets.GCP_REGION }} \
             --format='value(metadata.annotations."run.googleapis.com/cloudsql-instances")')
 
-          echo "Cloud SQL instance connection: $INSTANCE_CONNECTION"
-
           if [ -z "$INSTANCE_CONNECTION" ]; then
             echo "Error: Could not retrieve Cloud SQL instance connection name"
             exit 1
