@@ -183,6 +183,14 @@ jobs:
             --region=${{ secrets.GCP_REGION }} \
             --format='value(metadata.annotations."run.googleapis.com/cloudsql-instances")')
 
+          # Clean up existing job if it exists (for workflow re-runs)
+          if gcloud run jobs describe migrate-db-${{ github.run_number }} --region=${{ secrets.GCP_REGION }} &>/dev/null; then
+            echo "Cleaning up existing migration job..."
+            gcloud run jobs delete migrate-db-${{ github.run_number }} \
+              --region=${{ secrets.GCP_REGION }} \
+              --quiet
+          fi
+
           # Run migration container as a Cloud Run job
           gcloud run jobs create migrate-db-${{ github.run_number }} \
             --image=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/ctgov-compliance-web-migration:main \
