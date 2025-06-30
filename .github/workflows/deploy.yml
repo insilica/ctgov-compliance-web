@@ -183,6 +183,13 @@ jobs:
             --region=${{ secrets.GCP_REGION }} \
             --format='value(metadata.annotations."run.googleapis.com/cloudsql-instances")')
 
+          echo "Cloud SQL instance connection: $INSTANCE_CONNECTION"
+
+          if [ -z "$INSTANCE_CONNECTION" ]; then
+            echo "Error: Could not retrieve Cloud SQL instance connection name"
+            exit 1
+          fi
+
           # Clean up existing job if it exists (for workflow re-runs)
           if gcloud run jobs describe migrate-db-${{ github.run_number }} --region=${{ secrets.GCP_REGION }} &>/dev/null; then
             echo "Cleaning up existing migration job..."
