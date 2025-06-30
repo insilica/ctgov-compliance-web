@@ -1,4 +1,4 @@
-name: Build and Push to GAR
+name: Build, Migrate and Deploy
 
 on:
   push:
@@ -56,6 +56,18 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: Build and Push Migration Container
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.migration
+          push: true
+          tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/ctgov-compliance-web-migration:main
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
@@ -142,8 +154,58 @@ jobs:
               });
             }
 
-  deploy-dev:
+  run-migrations:
     needs: build-push
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      id-token: write
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Run Database Migrations
+        run: |
+          # Get Cloud SQL connection details from Cloud Run service
+          SERVICE_NAME="${{ secrets.GCP_CLOUDRUN_SERVICE_NAME }}"
+
+          # Get the Cloud SQL instance connection name
+          INSTANCE_CONNECTION=$(gcloud run services describe ${SERVICE_NAME} \
+            --region=${{ secrets.GCP_REGION }} \
+            --format='value(metadata.annotations.run.googleapis.com/cloudsql-instances)')
+
+          # Run migration container as a Cloud Run job
+          gcloud run jobs create migrate-db-${{ github.run_number }} \
+            --image=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/ctgov-compliance-web-migration:main \
+            --region=${{ secrets.GCP_REGION }} \
+            --set-cloudsql-instances=${INSTANCE_CONNECTION} \
+            --set-env-vars="DB_HOST=/cloudsql/${INSTANCE_CONNECTION},DB_PORT=5432,DB_NAME=${{ secrets.GCP_DB_NAME }},DB_USER=${{ secrets.GCP_DB_USER }}" \
+            --set-secrets="DB_PASSWORD=${{ secrets.GCP_DB_PASSWORD_SECRET }}:latest" \
+            --max-retries=0 \
+            --parallelism=1 \
+            --task-timeout=10m
+
+          # Execute the job and wait for completion
+          gcloud run jobs execute migrate-db-${{ github.run_number }} \
+            --region=${{ secrets.GCP_REGION }} \
+            --wait
+
+          # Clean up the job
+          gcloud run jobs delete migrate-db-${{ github.run_number }} \
+            --region=${{ secrets.GCP_REGION }} \
+            --quiet
+
+  deploy-dev:
+    needs: run-migrations
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       contents: read
@@ -165,7 +227,7 @@ jobs:
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: gcp-ctgov-dev-ctgov-compliance-web
+          service: ${{ secrets.GCP_CLOUDRUN_SERVICE_NAME }}
           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/ctgov-compliance-web:main
           region: ${{ secrets.GCP_REGION }}
 
