@@ -197,7 +197,7 @@ jobs:
             --region=${{ secrets.GCP_REGION }} \
             --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }} \
             --set-cloudsql-instances=${INSTANCE_CONNECTION} \
-            --set-env-vars="DB_HOST=/cloudsql/${INSTANCE_CONNECTION},DB_PORT=5432,DB_NAME=${{ secrets.GCP_DB_NAME }},DB_USER=${{ secrets.GCP_DB_USER }}" \
+            --set-env-vars="DB_HOST=/cloudsql/${INSTANCE_CONNECTION},DB_PORT=5432,DB_NAME=${{ secrets.GCP_DB_NAME }},DB_USER=${{ secrets.GCP_DB_USER }},CLOUD_SQL_INSTANCE=${INSTANCE_CONNECTION}" \
             --set-secrets="DB_PASSWORD=${{ secrets.GCP_DB_PASSWORD_SECRET }}:latest" \
             --max-retries=0 \
             --parallelism=1 \
