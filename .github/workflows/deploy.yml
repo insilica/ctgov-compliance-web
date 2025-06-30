@@ -187,6 +187,7 @@ jobs:
           gcloud run jobs create migrate-db-${{ github.run_number }} \
             --image=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/ctgov-compliance-web-migration:main \
             --region=${{ secrets.GCP_REGION }} \
+            --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }} \
             --set-cloudsql-instances=${INSTANCE_CONNECTION} \
             --set-env-vars="DB_HOST=/cloudsql/${INSTANCE_CONNECTION},DB_PORT=5432,DB_NAME=${{ secrets.GCP_DB_NAME }},DB_USER=${{ secrets.GCP_DB_USER }}" \
             --set-secrets="DB_PASSWORD=${{ secrets.GCP_DB_PASSWORD_SECRET }}:latest" \
