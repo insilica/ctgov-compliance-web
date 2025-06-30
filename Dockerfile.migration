@@ -1,18 +1,18 @@
 # Dockerfile for Flyway migrations
+# Multi-stage build: Maven stage to download dependencies
+FROM maven:3.9-eclipse-temurin-17 AS dependencies
+
+# Copy pom.xml for dependencies
+COPY maint/gcp/cloud-sql/pom.xml /tmp/pom.xml
+
+# Download all dependencies
+RUN cd /tmp && mvn dependency:copy-dependencies -f pom.xml -DoutputDirectory=/tmp/libs
+
+# Final stage: Flyway with dependencies
 FROM flyway/flyway:10.8.1
 
-# Cloud SQL connector versions
-ARG POSTGRES_SOCKET_FACTORY_VERSION=1.25.1
-ARG JDBC_SOCKET_FACTORY_CORE_VERSION=1.25.1
-
-# Add Cloud SQL connectors
-# Maven dependencies:
-# - com.google.cloud.sql:postgres-socket-factory:${POSTGRES_SOCKET_FACTORY_VERSION}
-# - com.google.cloud.sql:jdbc-socket-factory-core:${JDBC_SOCKET_FACTORY_CORE_VERSION}
-RUN curl -o /flyway/drivers/postgres-socket-factory-${POSTGRES_SOCKET_FACTORY_VERSION}.jar \
-    https://repo1.maven.org/maven2/com/google/cloud/sql/postgres-socket-factory/${POSTGRES_SOCKET_FACTORY_VERSION}/postgres-socket-factory-${POSTGRES_SOCKET_FACTORY_VERSION}.jar \
-    && curl -o /flyway/drivers/jdbc-socket-factory-core-${JDBC_SOCKET_FACTORY_CORE_VERSION}.jar \
-    https://repo1.maven.org/maven2/com/google/cloud/sql/jdbc-socket-factory-core/${JDBC_SOCKET_FACTORY_CORE_VERSION}/jdbc-socket-factory-core-${JDBC_SOCKET_FACTORY_CORE_VERSION}.jar
+# Copy Cloud SQL dependencies
+COPY --from=dependencies /tmp/libs/*.jar /flyway/drivers/
 
 # Copy migration files
 COPY .flyway/sql /flyway/sql
