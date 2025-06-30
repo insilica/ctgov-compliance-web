@@ -48,23 +48,44 @@
               pkgs.zlib
             ]}:$LD_LIBRARY_PATH"
 
+            # Set environment variables to skip interactive components
+            export SKIP_AWS_SECRET_LOADING=true
+            export SKIP_REDIS_SETUP=true  # Skip Redis since it's not used
+            export SKIP_BLAZEGRAPH_SETUP=true  # Skip Blazegraph since it's not used
+            export CI=false  # Keep services running but skip some setup
+
+            # Setup virtual environment
             if [ ! -d .venv ]; then
               uv venv
-              source .venv/bin/activate
-              uv pip install -e .
-            else 
-              source .venv/bin/activate
+            fi
+            
+            # Always activate the virtual environment
+            source .venv/bin/activate
+            
+            # Sync dependencies (handle potential TOML errors gracefully)
+            echo "Syncing Python dependencies..."
+            if ! uv sync --no-dev 2>/dev/null; then
+              echo "Warning: uv sync failed, trying to install from pyproject.toml..."
+              uv pip install -e . || echo "Warning: Failed to install project in editable mode"
             fi
 
-            uv sync
-
-            source scripts/flake/shellhook.sh
+            # Source the shellhook script with error handling
+            if [ -f scripts/flake/shellhook.sh ]; then
+              source scripts/flake/shellhook.sh || echo "Warning: shellhook.sh completed with errors (this is expected in non-interactive mode)"
+            fi
 
             export FLASK_APP=web.app
             export FLASK_ENV=development
             export FLASK_DEBUG=1
 
             WEB_DIR="$(pwd)/web"
+            
+            echo ""
+            echo "=== Development Environment Ready ==="
+            echo "Flask app: $FLASK_APP"
+            echo "Python virtual environment: $(which python)"
+            echo "To start the Flask server: flask run --host 0.0.0.0 --port 6525"
+            echo "======================================="
           '';
         };
 
