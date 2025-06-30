@@ -1,0 +1,15 @@
+# Dockerfile for Flyway migrations
+FROM flyway/flyway:10.8.1
+
+# Copy migration files
+COPY .flyway/sql /flyway/sql
+
+# Set default Flyway configuration
+ENV FLYWAY_LOCATIONS=filesystem:/flyway/sql
+ENV FLYWAY_DEFAULT_SCHEMA=public
+
+# Create entrypoint script
+COPY scripts/docker/run-migration.sh /flyway/run-migration.sh
+RUN chmod +x /flyway/run-migration.sh
+
+ENTRYPOINT ["/flyway/run-migration.sh"]
