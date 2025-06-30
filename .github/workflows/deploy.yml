@@ -181,7 +181,7 @@ jobs:
           # Get the Cloud SQL instance connection name
           INSTANCE_CONNECTION=$(gcloud run services describe ${SERVICE_NAME} \
             --region=${{ secrets.GCP_REGION }} \
-            --format='value(metadata.annotations.run.googleapis.com/cloudsql-instances)')
+            --format='value(metadata.annotations."run.googleapis.com/cloudsql-instances")')
 
           # Run migration container as a Cloud Run job
           gcloud run jobs create migrate-db-${{ github.run_number }} \
