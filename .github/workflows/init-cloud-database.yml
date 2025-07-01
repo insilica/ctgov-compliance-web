@@ -104,9 +104,9 @@ jobs:
           fi
 
           # Prepare command arguments
-          INIT_ARGS="--orgs ${{ github.event.inputs.organizations }} --users ${{ github.event.inputs.users }} --trials ${{ github.event.inputs.trials }} --skip-blazegraph"
+          INIT_ARGS="--orgs,${{ github.event.inputs.organizations }},--users,${{ github.event.inputs.users }},--trials,${{ github.event.inputs.trials }},--skip-blazegraph"
           if [ "${{ github.event.inputs.force }}" = "true" ]; then
-            INIT_ARGS="$INIT_ARGS --force"
+            INIT_ARGS="$INIT_ARGS,--force"
           fi
 
           # Create and run the data initialization job
