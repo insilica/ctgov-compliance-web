@@ -181,9 +181,7 @@ jobs:
           # Get the Cloud SQL instance connection name
           INSTANCE_CONNECTION=$(gcloud run services describe ${SERVICE_NAME} \
             --region=${{ secrets.GCP_REGION }} \
-            --format='value(metadata.annotations."run.googleapis.com/cloudsql-instances")')
-
-          echo "Cloud SQL instance connection: $INSTANCE_CONNECTION"
+            --format='value(spec.template.metadata.annotations."run.googleapis.com/cloudsql-instances")')
 
           if [ -z "$INSTANCE_CONNECTION" ]; then
             echo "Error: Could not retrieve Cloud SQL instance connection name"

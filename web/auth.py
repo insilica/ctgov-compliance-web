@@ -44,6 +44,13 @@ class User(UserMixin):
             return User(row['id'], row['email'], row['password_hash'])
         return None
 
+    @staticmethod
+    def get_by_email(email):
+        row = query('SELECT id, email, password_hash FROM ctgov_user WHERE email=%s', [email], fetchone=True)
+        if row:
+            return User(row['id'], row['email'], row['password_hash'])
+        return None
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.get(user_id)

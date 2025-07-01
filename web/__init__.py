@@ -1,6 +1,7 @@
 import os
-from flask import Flask
+from flask import Flask, request, g
 from flask_wtf import CSRFProtect
+from flask_login import current_user, login_user
 from .auth import bp as auth_bp, login_manager
 from .routes import bp as routes_bp
 
@@ -12,6 +13,7 @@ def create_app(test_config=None):
     
     # Load default configuration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev')
+    app.config['ENVIRONMENT'] = os.environ.get('ENVIRONMENT', 'production')
     
     # Override with test config if provided
     if test_config is not None:
@@ -44,7 +46,7 @@ def create_app(test_config=None):
         # Auto-login as default test user
         try:
             from .auth import User
-            user = User.get_by_email('admin@ctgov-preview.com')
+            user = User.get_by_email('user1@example.com')
             if user:
                 login_user(user)
                 app.logger.info(f"Auto-authenticated user: {user.email} (dev environment)")
