@@ -37,4 +37,5 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
     CMD python -c "import sys; sys.exit(0)"
 
 # Run the data initialization script
-CMD ["uv", "run", "python", "scripts/init_cloud_data.py", "--orgs", "1000", "--users", "100", "--trials", "10000", "--skip-blazegraph"] 
+# Arguments will be passed via environment variables when used in Cloud Run
+CMD ["uv", "run", "python", "scripts/init_cloud_data.py"] 
