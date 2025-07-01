@@ -26,4 +26,30 @@ def create_app(test_config=None):
     app.register_blueprint(auth_bp)
     app.register_blueprint(routes_bp)
 
+    # Auto-authentication for development and preview environments
+    @app.before_request
+    def auto_authenticate_dev_user():
+        # Only auto-authenticate in dev and preview environments
+        if app.config.get('ENVIRONMENT') not in ['dev', 'preview']:
+            return
+        
+        # Skip auto-auth for auth routes and health check
+        if request.endpoint in ['auth.login', 'auth.register', 'auth.logout', 'auth.reset_request', 'auth.reset_password', 'routes.health']:
+            return
+            
+        # Skip if user is already authenticated
+        if current_user.is_authenticated:
+            return
+            
+        # Auto-login as default test user
+        try:
+            from .auth import User
+            user = User.get_by_email('admin@ctgov-preview.com')
+            if user:
+                login_user(user)
+                app.logger.info(f"Auto-authenticated user: {user.email} (dev environment)")
+        except Exception as e:
+            # If auto-authentication fails, let normal auth flow handle it
+            app.logger.warning(f"Auto-authentication failed: {e}")
+
     return app
