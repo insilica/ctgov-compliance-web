@@ -68,6 +68,24 @@ development server:
 flask run --host 0.0.0.0 --port 6525
 ```
 
+#### Development Auto-Authentication
+
+For development convenience, you can enable automatic user authentication:
+
+```bash
+# For local development
+export ENVIRONMENT=dev
+flask run --host 0.0.0.0 --port 6525
+
+# For preview deployments (single PR testing)
+export ENVIRONMENT=preview
+flask run --host 0.0.0.0 --port 6525
+```
+
+When `ENVIRONMENT=dev` or `ENVIRONMENT=preview` is set, you'll be automatically logged in as `user1@example.com` when visiting any protected route. This eliminates the need for manual login during development and testing.
+
+**Environment Flow**: `preview` (single PR) → `dev` (main branch) → `prod` (tagged release)
+
 ### Account Management
 
 You can create an account directly in the application and reset your password when needed.
