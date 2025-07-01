@@ -11,17 +11,17 @@ on:
       organizations:
         description: 'Number of organizations to create'
         required: false
-        default: '1000'
+        default: '100'
         type: string
       users:
         description: 'Number of users to create'
         required: false
-        default: '100'
+        default: '10'
         type: string
       trials:
         description: 'Number of trials to create'
         required: false
-        default: '10000'
+        default: '1000'
         type: string
 
 env:
