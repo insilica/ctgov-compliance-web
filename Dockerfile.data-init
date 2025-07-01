@@ -1,0 +1,40 @@
+# Dockerfile for Cloud Database Data Initialization Job
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv package manager
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
+# Copy dependency files first for better caching
+COPY pyproject.toml uv.lock ./
+
+# Copy application code (needed for database connection and data model)
+COPY web/ ./web/
+COPY scripts/ ./scripts/
+
+# Install Python dependencies using uv
+RUN uv sync --frozen --no-dev
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+
+# Make the script executable
+RUN chmod +x scripts/init_cloud_data.py
+
+# Health check for the container
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)"
+
+# Run the data initialization script
+CMD ["uv", "run", "python", "scripts/init_cloud_data.py", "--orgs", "1000", "--users", "100", "--trials", "10000", "--skip-blazegraph"] 

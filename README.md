@@ -92,3 +92,30 @@ You can create an account directly in the application and reset your password wh
 
 1. Visit `/register` to sign up for a new account.
 2. Use `/reset` to generate a password reset link.
+
+## Cloud Database Setup
+
+This application supports both local development databases and Google Cloud SQL for production deployments.
+
+### Quick Start for Cloud
+
+1. **Set up Cloud SQL instance** and configure GitHub secrets
+2. **Deploy application** using existing GitHub Actions
+3. **Initialize database** with mock data using the "Initialize Cloud Database" GitHub Action
+4. **Verify setup** by accessing your Cloud Run service
+
+For detailed setup instructions, see [Cloud Database Setup Guide](docs/CLOUD_DATABASE_SETUP.md).
+
+### Key Features
+
+- **Automatic connection handling** (local vs Cloud SQL)
+- **One-time data population** with safety mechanisms
+- **GitHub Actions integration** for automated deployment
+- **Population status tracking** to prevent duplicate data
+- **Force repopulation** when needed for testing
+
+### Scripts
+
+- `scripts/init_cloud_data.py` - Safely populate cloud database with mock data
+- `scripts/check_db_status.py` - Check database population status
+- Use GitHub Actions workflow "Initialize Cloud Database" for automated setup
