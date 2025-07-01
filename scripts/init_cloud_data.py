@@ -51,7 +51,7 @@ def get_direct_conn():
         # TCP connection for local or other remote databases
         return psycopg2.connect(
             host=db_host,
-            port=int(os.environ.get('DB_PORT', '5464')),
+            port=os.environ.get('DB_PORT', '5464'),
             dbname=os.environ.get('DB_NAME', 'ctgov-web'),
             user=os.environ.get('DB_USER', 'postgres'),
             password=os.environ.get('DB_PASSWORD', 'devpassword'),

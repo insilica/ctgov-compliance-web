@@ -33,9 +33,15 @@ def _get_pool():
                 'password': os.environ.get('DB_PASSWORD', 'devpassword'),
             }
         
+        # Handle DB_POOL_SIZE safely - it must be an integer for SimpleConnectionPool
+        try:
+            pool_size = int(os.environ.get('DB_POOL_SIZE', '5'))
+        except (ValueError, TypeError):
+            pool_size = 5  # Default fallback
+        
         _POOL = pool.SimpleConnectionPool(
             1,
-            int(os.environ.get('DB_POOL_SIZE', 5)),
+            pool_size,
             **connection_kwargs
         )
     return _POOL
