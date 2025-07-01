@@ -76,15 +76,19 @@ def test_get_pool_already_initialized():
 
 
 def test_get_pool_invalid_pool_size():
-    """Test that _get_pool raises ValueError with invalid DB_POOL_SIZE."""
+    """Test that _get_pool gracefully handles invalid DB_POOL_SIZE by using default."""
     with patch('web.db.pool.SimpleConnectionPool') as mock_pool_init, \
          patch.dict(os.environ, {'DB_POOL_SIZE': 'invalid'}), \
          patch('web.db._POOL', None):
         
-        # The current implementation doesn't handle invalid values,
-        # so we expect a ValueError
-        with pytest.raises(ValueError, match="invalid literal for int()"):
-            _get_pool()
+        mock_pool_init.return_value = 'test_pool'
+        result = _get_pool()
+        
+        # Should create pool successfully with default pool size of 5
+        assert result == 'test_pool'
+        args, _ = mock_pool_init.call_args
+        assert args[0] == 1  # minconn
+        assert args[1] == 5  # maxconn (default fallback)
 
 
 def test_get_pool_initialization_error():
