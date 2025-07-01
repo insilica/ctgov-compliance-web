@@ -112,7 +112,7 @@ jobs:
           # Create and run the data initialization job
           echo "Creating Cloud Run job for database initialization..."
           gcloud run jobs create $JOB_NAME \
-            --image=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/ctgov-compliance-data-init:${{ github.sha }} \
+            --image=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/ctgov-compliance-data-init:latest \
             --region=${{ secrets.GCP_REGION }} \
             --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }} \
             --set-cloudsql-instances=${INSTANCE_CONNECTION} \
