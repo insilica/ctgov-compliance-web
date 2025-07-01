@@ -51,7 +51,7 @@ class TestCloudDBConnection:
         call_args = mock_pool.call_args[1]  # keyword arguments
         
         assert call_args['host'] == 'localhost'
-        assert call_args['port'] == 5432
+        assert call_args['port'] == '5432'
         assert call_args['dbname'] == 'ctgov-web'
         assert call_args['user'] == 'postgres'
 

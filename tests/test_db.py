@@ -26,7 +26,7 @@ def test_get_pool_initialization():
             mock_pool_init.assert_called_once()
             _, kwargs = mock_pool_init.call_args
             assert kwargs['host'] == 'localhost'
-            assert kwargs['port'] == 5464
+            assert kwargs['port'] == '5464'
             assert kwargs['dbname'] == 'ctgov-web'
 
 
@@ -62,7 +62,7 @@ def test_get_pool_with_env_vars():
             assert result == 'test_pool'
             _, kwargs = mock_pool_init.call_args
             assert kwargs['host'] == 'test_host'
-            assert kwargs['port'] == 1234
+            assert kwargs['port'] == '1234'
             assert kwargs['dbname'] == 'test_db'
             assert kwargs['user'] == 'test_user'
             assert kwargs['password'] == 'test_pass'

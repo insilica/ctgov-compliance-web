@@ -27,7 +27,7 @@ def _get_pool():
             # TCP connection for local or other remote databases
             connection_kwargs = {
                 'host': db_host,
-                'port': int(os.environ.get('DB_PORT', '5464')),
+                'port': os.environ.get('DB_PORT', '5464'),
                 'dbname': os.environ.get('DB_NAME', 'ctgov-web'),
                 'user': os.environ.get('DB_USER', 'postgres'),
                 'password': os.environ.get('DB_PASSWORD', 'devpassword'),
