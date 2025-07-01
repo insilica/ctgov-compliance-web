@@ -45,7 +45,7 @@
                 tableBtn.classList.remove('usa-button--active');
             }
         }
-        let initialView = getQueryParam('view') || localStorage.getItem('dashboardView') || 'card';
+        let initialView = getQueryParam('view') || localStorage.getItem('dashboardView') || 'table';
         setView(initialView);
         cardBtn.addEventListener('click', function() {
             setView('card');
