@@ -6,7 +6,7 @@ on:
       force:
         description: 'Force repopulation (even if data exists)'
         required: false
-        default: 'false'
+        default: false
         type: boolean
       organizations:
         description: 'Number of organizations to create'
