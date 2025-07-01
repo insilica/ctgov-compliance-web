@@ -103,11 +103,29 @@ jobs:
               --quiet
           fi
 
-          # Prepare command arguments
-          INIT_ARGS="--orgs,${{ github.event.inputs.organizations }},--users,${{ github.event.inputs.users }},--trials,${{ github.event.inputs.trials }},--skip-blazegraph"
+          # Prepare environment variables for script arguments
+          echo "Preparing environment variables..."
+          echo "Organizations: ${{ github.event.inputs.organizations }}"
+          echo "Users: ${{ github.event.inputs.users }}"
+          echo "Trials: ${{ github.event.inputs.trials }}"
+          echo "Force: ${{ github.event.inputs.force }}"
+
+          # Build environment variables string
+          ENV_VARS="DB_HOST=/cloudsql/${INSTANCE_CONNECTION}"
+          ENV_VARS="${ENV_VARS},DB_PORT=5432"
+          ENV_VARS="${ENV_VARS},DB_NAME=${{ secrets.GCP_DB_NAME }}"
+          ENV_VARS="${ENV_VARS},DB_USER=${{ secrets.GCP_DB_USER }}"
+          ENV_VARS="${ENV_VARS},CLOUD_SQL_INSTANCE=${INSTANCE_CONNECTION}"
+          ENV_VARS="${ENV_VARS},NUM_ORGS=${{ github.event.inputs.organizations }}"
+          ENV_VARS="${ENV_VARS},NUM_USERS=${{ github.event.inputs.users }}"
+          ENV_VARS="${ENV_VARS},NUM_TRIALS=${{ github.event.inputs.trials }}"
+          ENV_VARS="${ENV_VARS},SKIP_BLAZEGRAPH=true"
+          
           if [ "${{ github.event.inputs.force }}" = "true" ]; then
-            INIT_ARGS="$INIT_ARGS,--force"
+            ENV_VARS="${ENV_VARS},FORCE_REPOPULATE=true"
           fi
+
+          echo "Environment variables: $ENV_VARS"
 
           # Create and run the data initialization job
           echo "Creating Cloud Run job for database initialization..."
@@ -116,14 +134,13 @@ jobs:
             --region=${{ secrets.GCP_REGION }} \
             --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }} \
             --set-cloudsql-instances=${INSTANCE_CONNECTION} \
-            --set-env-vars="DB_HOST=/cloudsql/${INSTANCE_CONNECTION},DB_PORT=5432,DB_NAME=${{ secrets.GCP_DB_NAME }},DB_USER=${{ secrets.GCP_DB_USER }},CLOUD_SQL_INSTANCE=${INSTANCE_CONNECTION}" \
+            --set-env-vars="$ENV_VARS" \
             --set-secrets="DB_PASSWORD=${{ secrets.GCP_DB_PASSWORD_SECRET }}:latest" \
             --max-retries=0 \
             --parallelism=1 \
             --task-timeout=30m \
             --memory=2Gi \
-            --cpu=1 \
-            --args="$INIT_ARGS"
+            --cpu=1
 
           # Execute the job and wait for completion
           echo "Executing database initialization job..."

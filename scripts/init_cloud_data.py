@@ -332,12 +332,12 @@ def main():
 
     # Check for environment variables first (for Cloud Run compatibility)
     # Override with CLI args if provided, otherwise use env vars, finally fallback to defaults
-    orgs = int(os.environ.get('SCRIPT_ORGS', args.orgs))
-    users = int(os.environ.get('SCRIPT_USERS', args.users))
-    trials = int(os.environ.get('SCRIPT_TRIALS', args.trials))
-    force = os.environ.get('SCRIPT_FORCE', '').lower() in ('true', '1', 'yes') or args.force
-    check_status = os.environ.get('SCRIPT_CHECK_STATUS', '').lower() in ('true', '1', 'yes') or args.check_status
-    skip_blazegraph = os.environ.get('SCRIPT_SKIP_BLAZEGRAPH', '').lower() in ('true', '1', 'yes') or args.skip_blazegraph
+    orgs = int(os.environ.get('NUM_ORGS', args.orgs))
+    users = int(os.environ.get('NUM_USERS', args.users))
+    trials = int(os.environ.get('NUM_TRIALS', args.trials))
+    force = os.environ.get('FORCE_REPOPULATE', '').lower() in ('true', '1', 'yes') or args.force
+    check_status = os.environ.get('CHECK_STATUS', '').lower() in ('true', '1', 'yes') or args.check_status
+    skip_blazegraph = os.environ.get('SKIP_BLAZEGRAPH', '').lower() in ('true', '1', 'yes') or args.skip_blazegraph
 
     print(f"Configuration:")
     print(f"  Organizations: {orgs}")
