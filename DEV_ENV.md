@@ -4,7 +4,7 @@
 This document tracks the implementation of automatic user authentication for development environments in the CTGov Compliance Web application.
 
 ## Objective
-When `ENVIRONMENT=dev`, automatically authenticate users as a default test user without requiring manual login, while preserving normal authentication flow for other environments.
+When `ENVIRONMENT=dev` or `ENVIRONMENT=preview`, automatically authenticate users as a default test user without requiring manual login, while preserving normal authentication flow for other environments.
 
 ## Default Test User Credentials
 - **Username**: user1@example.com
@@ -47,12 +47,13 @@ When `ENVIRONMENT=dev`, automatically authenticate users as a default test user 
   - Enables lookup of users by email address for auto-authentication
 
 ### Environment Variables
-- `ENVIRONMENT=dev` - Enables auto-authentication mode
+- `ENVIRONMENT=dev` - Enables auto-authentication mode for local development
+- `ENVIRONMENT=preview` - Enables auto-authentication mode for preview deployments
 
 ## Testing Notes
-- Auto-authentication only works when `ENVIRONMENT=dev`
-- Normal authentication preserved for all other environments
-- Manual login/logout still functional in dev mode
+- Auto-authentication only works when `ENVIRONMENT=dev` or `ENVIRONMENT=preview`
+- Normal authentication preserved for all other environments (especially `prod`)
+- Manual login/logout still functional in dev/preview modes
 - Tested with custom test script - all functionality verified
 - Routes that skip auto-authentication: login, register, logout, reset_request, reset_password, health
 
@@ -61,17 +62,25 @@ When `ENVIRONMENT=dev`, automatically authenticate users as a default test user 
 ### To Enable Auto-Authentication
 Set the environment variable before starting the application:
 ```bash
+# For local development
 export ENVIRONMENT=dev
+flask run --host 0.0.0.0 --port 6525
+
+# For preview deployments (single PR testing)
+export ENVIRONMENT=preview
 flask run --host 0.0.0.0 --port 6525
 ```
 
 ### To Disable Auto-Authentication
-Either unset the environment variable or set it to any other value:
+Either unset the environment variable or set it to production:
 ```bash
-export ENVIRONMENT=production
+export ENVIRONMENT=prod
 # or
 unset ENVIRONMENT
 ```
+
+### Environment Flow
+`preview` (single PR) → `dev` (main branch) → `prod` (tagged release)
 
 ### Default Test User
 When auto-authentication is enabled, users will be automatically logged in as:
@@ -86,8 +95,10 @@ Note: This user must exist in the database/mock data for auto-authentication to 
 # 1. Set up the database with mock data (if not already done)
 python3 scripts/init_mock_data.py
 
-# 2. Enable development auto-authentication
-export ENVIRONMENT=dev
+# 2. Enable auto-authentication (choose environment)
+export ENVIRONMENT=dev      # For local development
+# OR
+export ENVIRONMENT=preview  # For preview deployments
 
 # 3. Start the application
 flask run --host 0.0.0.0 --port 6525
@@ -102,7 +113,7 @@ The application will automatically log you in when you visit any protected route
 
 ### Auto-Authentication Flow
 1. Before each request, the `auto_authenticate_dev_user()` function is called
-2. Checks if `ENVIRONMENT=dev` is set
+2. Checks if `ENVIRONMENT` is set to `dev` or `preview`
 3. Skips auto-auth for auth-related routes and health check
 4. Skips if user is already authenticated
 5. Attempts to load `user1@example.com` from database
@@ -123,8 +134,8 @@ The application will automatically log you in when you visit any protected route
 - **Non-Intrusive**: Only adds functionality, doesn't modify existing behavior
 
 ## Security Considerations
-- Auto-authentication is development-only
-- Production deployments should never use `ENVIRONMENT=dev`
+- Auto-authentication is development/testing-only (`dev` and `preview` environments)
+- Production deployments should use `ENVIRONMENT=prod` or leave unset
 - Real authentication system remains unchanged for production
 - Auto-authentication has comprehensive error handling
 - No sensitive data logged (only email addresses for debugging)
@@ -134,7 +145,7 @@ The application will automatically log you in when you visit any protected route
 The development environment auto-authentication feature has been successfully implemented with the following key benefits:
 
 ✅ **Developer Experience**: No need to manually log in during development  
-✅ **Production Safety**: Only works when `ENVIRONMENT=dev` is explicitly set  
+✅ **Production Safety**: Only works when `ENVIRONMENT=dev` or `ENVIRONMENT=preview` is set  
 ✅ **Backward Compatibility**: All existing authentication flows preserved  
 ✅ **Error Handling**: Graceful fallback to normal authentication on failures  
 ✅ **Testing Verified**: All functionality tested and working correctly  

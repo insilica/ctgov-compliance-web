@@ -28,11 +28,11 @@ def create_app(test_config=None):
     app.register_blueprint(auth_bp)
     app.register_blueprint(routes_bp)
 
-    # Auto-authentication for development environment
+    # Auto-authentication for development and preview environments
     @app.before_request
     def auto_authenticate_dev_user():
-        # Only auto-authenticate in dev environment
-        if app.config.get('ENVIRONMENT') != 'dev':
+        # Only auto-authenticate in dev and preview environments
+        if app.config.get('ENVIRONMENT') not in ['dev', 'preview']:
             return
         
         # Skip auto-auth for auth routes and health check
