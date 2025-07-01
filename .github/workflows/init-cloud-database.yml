@@ -127,21 +127,26 @@ jobs:
 
           # Execute the job and wait for completion
           echo "Executing database initialization job..."
+          set +e  # Temporarily disable exit on error
           gcloud run jobs execute $JOB_NAME \
             --region=${{ secrets.GCP_REGION }} \
             --wait
+          EXECUTION_RESULT=$?
+          set -e  # Re-enable exit on error
 
           # Get job execution status
           EXECUTION_STATUS=$(gcloud run jobs executions list \
             --job=$JOB_NAME \
             --region=${{ secrets.GCP_REGION }} \
             --limit=1 \
-            --format='value(status.conditions[0].type)')
+            --format='value(status.conditions[0].type)' 2>/dev/null || echo "Failed")
 
-          if [ "$EXECUTION_STATUS" = "Completed" ]; then
+          if [ "$EXECUTION_STATUS" = "Completed" ] && [ $EXECUTION_RESULT -eq 0 ]; then
             echo "✅ Database initialization completed successfully!"
           else
             echo "❌ Database initialization failed!"
+            echo "Execution result: $EXECUTION_RESULT"
+            echo "Execution status: $EXECUTION_STATUS"
             
             # Get logs for debugging
             echo "Getting job execution logs..."
@@ -149,11 +154,22 @@ jobs:
               --job=$JOB_NAME \
               --region=${{ secrets.GCP_REGION }} \
               --limit=1 \
-              --format='value(metadata.name)')
+              --format='value(metadata.name)' 2>/dev/null || echo "unknown")
             
-            gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME AND resource.labels.location=${{ secrets.GCP_REGION }}" \
-              --limit=100 \
-              --format='value(textPayload)'
+            echo "Execution name: $EXECUTION_NAME"
+            
+            if [ "$EXECUTION_NAME" != "unknown" ] && [ -n "$EXECUTION_NAME" ]; then
+              echo "Getting Cloud Logging logs..."
+              gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME AND resource.labels.location=${{ secrets.GCP_REGION }}" \
+                --limit=100 \
+                --format='value(textPayload)' \
+                --freshness=5m || echo "Failed to retrieve Cloud Logging logs"
+                
+              echo "Getting execution details..."
+              gcloud run jobs executions describe $EXECUTION_NAME \
+                --region=${{ secrets.GCP_REGION }} \
+                --format='value(status.conditions[].message)' || echo "Failed to get execution details"
+            fi
             
             exit 1
           fi
