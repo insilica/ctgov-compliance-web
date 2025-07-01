@@ -6,22 +6,22 @@ on:
       force:
         description: 'Force repopulation (even if data exists)'
         required: false
-        default: 'false'
+        default: false
         type: boolean
       organizations:
         description: 'Number of organizations to create'
         required: false
-        default: '1000'
+        default: '100'
         type: string
       users:
         description: 'Number of users to create'
         required: false
-        default: '100'
+        default: '10'
         type: string
       trials:
         description: 'Number of trials to create'
         required: false
-        default: '10000'
+        default: '1000'
         type: string
 
 env:
@@ -103,45 +103,76 @@ jobs:
               --quiet
           fi
 
-          # Prepare command arguments
-          INIT_ARGS="--orgs ${{ github.event.inputs.organizations }} --users ${{ github.event.inputs.users }} --trials ${{ github.event.inputs.trials }} --skip-blazegraph"
+          # Prepare environment variables for script arguments
+          echo "Preparing environment variables..."
+          echo "Organizations: ${{ github.event.inputs.organizations }}"
+          echo "Users: ${{ github.event.inputs.users }}"
+          echo "Trials: ${{ github.event.inputs.trials }}"
+          echo "Force: ${{ github.event.inputs.force }}"
+
+          # Build environment variables string
+          ENV_VARS="DB_HOST=/cloudsql/${INSTANCE_CONNECTION}"
+          ENV_VARS="${ENV_VARS},DB_PORT=5432"
+          ENV_VARS="${ENV_VARS},DB_NAME=${{ secrets.GCP_DB_NAME }}"
+          ENV_VARS="${ENV_VARS},DB_USER=${{ secrets.GCP_DB_USER }}"
+          ENV_VARS="${ENV_VARS},CLOUD_SQL_INSTANCE=${INSTANCE_CONNECTION}"
+          ENV_VARS="${ENV_VARS},NUM_ORGS=${{ github.event.inputs.organizations }}"
+          ENV_VARS="${ENV_VARS},NUM_USERS=${{ github.event.inputs.users }}"
+          ENV_VARS="${ENV_VARS},NUM_TRIALS=${{ github.event.inputs.trials }}"
+          ENV_VARS="${ENV_VARS},SKIP_BLAZEGRAPH=true"
+          
           if [ "${{ github.event.inputs.force }}" = "true" ]; then
-            INIT_ARGS="$INIT_ARGS --force"
+            ENV_VARS="${ENV_VARS},FORCE_REPOPULATE=true"
           fi
+
+          echo "Environment variables: $ENV_VARS"
 
           # Create and run the data initialization job
           echo "Creating Cloud Run job for database initialization..."
+          
+          # Use the exact image that was built and pushed
+          IMAGE_URI="${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/ctgov-compliance-data-init:${{ steps.meta.outputs.version }}"
+          echo "Using image: $IMAGE_URI"
+          
+          # Verify the image exists
+          echo "Verifying image exists..."
+          gcloud container images list-tags ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/ctgov-compliance-data-init --limit=5
+          
           gcloud run jobs create $JOB_NAME \
-            --image=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/ctgov-compliance-data-init:${{ github.sha }} \
+            --image="$IMAGE_URI" \
             --region=${{ secrets.GCP_REGION }} \
             --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }} \
             --set-cloudsql-instances=${INSTANCE_CONNECTION} \
-            --set-env-vars="DB_HOST=/cloudsql/${INSTANCE_CONNECTION},DB_PORT=5432,DB_NAME=${{ secrets.GCP_DB_NAME }},DB_USER=${{ secrets.GCP_DB_USER }},CLOUD_SQL_INSTANCE=${INSTANCE_CONNECTION}" \
+            --set-env-vars="$ENV_VARS" \
             --set-secrets="DB_PASSWORD=${{ secrets.GCP_DB_PASSWORD_SECRET }}:latest" \
             --max-retries=0 \
             --parallelism=1 \
             --task-timeout=30m \
             --memory=2Gi \
-            --cpu=1 \
-            --args="$INIT_ARGS"
+            --cpu=1
 
           # Execute the job and wait for completion
           echo "Executing database initialization job..."
+          set +e  # Temporarily disable exit on error
           gcloud run jobs execute $JOB_NAME \
             --region=${{ secrets.GCP_REGION }} \
             --wait
+          EXECUTION_RESULT=$?
+          set -e  # Re-enable exit on error
 
           # Get job execution status
           EXECUTION_STATUS=$(gcloud run jobs executions list \
             --job=$JOB_NAME \
             --region=${{ secrets.GCP_REGION }} \
             --limit=1 \
-            --format='value(status.conditions[0].type)')
+            --format='value(status.conditions[0].type)' 2>/dev/null || echo "Failed")
 
-          if [ "$EXECUTION_STATUS" = "Completed" ]; then
+          if [ "$EXECUTION_STATUS" = "Completed" ] && [ $EXECUTION_RESULT -eq 0 ]; then
             echo "✅ Database initialization completed successfully!"
           else
             echo "❌ Database initialization failed!"
+            echo "Execution result: $EXECUTION_RESULT"
+            echo "Execution status: $EXECUTION_STATUS"
             
             # Get logs for debugging
             echo "Getting job execution logs..."
@@ -149,11 +180,22 @@ jobs:
               --job=$JOB_NAME \
               --region=${{ secrets.GCP_REGION }} \
               --limit=1 \
-              --format='value(metadata.name)')
+              --format='value(metadata.name)' 2>/dev/null || echo "unknown")
             
-            gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME AND resource.labels.location=${{ secrets.GCP_REGION }}" \
-              --limit=100 \
-              --format='value(textPayload)'
+            echo "Execution name: $EXECUTION_NAME"
+            
+            if [ "$EXECUTION_NAME" != "unknown" ] && [ -n "$EXECUTION_NAME" ]; then
+              echo "Getting Cloud Logging logs..."
+              gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME AND resource.labels.location=${{ secrets.GCP_REGION }}" \
+                --limit=100 \
+                --format='value(textPayload)' \
+                --freshness=5m || echo "Failed to retrieve Cloud Logging logs"
+                
+              echo "Getting execution details..."
+              gcloud run jobs executions describe $EXECUTION_NAME \
+                --region=${{ secrets.GCP_REGION }} \
+                --format='value(status.conditions[].message)' || echo "Failed to get execution details"
+            fi
             
             exit 1
           fi

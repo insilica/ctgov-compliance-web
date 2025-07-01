@@ -330,13 +330,30 @@ def main():
     
     args = parser.parse_args()
 
-    if args.check_status:
+    # Check for environment variables first (for Cloud Run compatibility)
+    # Override with CLI args if provided, otherwise use env vars, finally fallback to defaults
+    orgs = int(os.environ.get('NUM_ORGS', args.orgs))
+    users = int(os.environ.get('NUM_USERS', args.users))
+    trials = int(os.environ.get('NUM_TRIALS', args.trials))
+    force = os.environ.get('FORCE_REPOPULATE', '').lower() in ('true', '1', 'yes') or args.force
+    check_status = os.environ.get('CHECK_STATUS', '').lower() in ('true', '1', 'yes') or args.check_status
+    skip_blazegraph = os.environ.get('SKIP_BLAZEGRAPH', '').lower() in ('true', '1', 'yes') or args.skip_blazegraph
+
+    print(f"Configuration:")
+    print(f"  Organizations: {orgs}")
+    print(f"  Users: {users}")
+    print(f"  Trials: {trials}")
+    print(f"  Force: {force}")
+    print(f"  Check Status: {check_status}")
+    print(f"  Skip Blazegraph: {skip_blazegraph}")
+
+    if check_status:
         check_database_status()
         return
 
-    success = populate_database_safely(args.orgs, args.users, args.trials, args.force)
+    success = populate_database_safely(orgs, users, trials, force)
     
-    if success and not args.skip_blazegraph:
+    if success and not skip_blazegraph:
         print("\n=== Populating Blazegraph ===\n")
         try:
             insert_mock_data()

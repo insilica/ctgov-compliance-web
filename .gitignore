@@ -39,7 +39,6 @@ blazegraph.*
 # build files
 /build
 /ctgov_compliance_web.egg-info
-report.*
 rules.log
 uv.lock
 
@@ -56,3 +55,6 @@ uv.lock
 
 # i don't know why this is here or where it came from
 /instance
+
+# ignoring cursor context files
+/cursor-files

@@ -13,7 +13,6 @@ web/static/src
 blazegraph.jar
 blazegraph.jnl
 dump.rdb
-README.md
 report.html
 report.json
 rules.log
