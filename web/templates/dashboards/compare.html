@@ -44,7 +44,7 @@
                 tableBtn.classList.remove('usa-button--active');
             }
         }
-        let initialView = getQueryParam('view') || localStorage.getItem('compareDashboardView') || 'card';
+        let initialView = getQueryParam('view') || localStorage.getItem('compareDashboardView') || 'table';
         setView(initialView);
         cardBtn.addEventListener('click', function() {
             setView('card');
