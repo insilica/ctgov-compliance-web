@@ -12,8 +12,8 @@
                         {% with title="Compare Organization Compliance Rates" %}
                             {% include "tables/header.html" %}
                         {% endwith %}
-                        <div id="card-view">{% include "tables/compare_card.html" with context %}</div>
-                        <div id="table-view" class="display-none">{% include "tables/compare_table.html" with context %}</div>
+                        <div id="card-view" class="display-none">{% include "tables/compare_card.html" with context %}</div>
+                        <div id="table-view">{% include "tables/compare_table.html" with context %}</div>
                         {% if pagination.total_pages > 1 %}
                             {% include "tables/pagination.html" with context %}
                         {% endif %}
@@ -27,10 +27,12 @@
         const tableBtn = document.getElementById('toggle-table');
         const cardView = document.getElementById('card-view');
         const tableView = document.getElementById('table-view');
+        
         function getQueryParam(name) {
             const url = new URL(window.location.href);
             return url.searchParams.get(name);
         }
+        
         function setView(view) {
             if (view === 'table') {
                 cardView.classList.add('display-none');
@@ -44,23 +46,7 @@
                 tableBtn.classList.remove('usa-button--active');
             }
         }
-        let initialView = getQueryParam('view') || localStorage.getItem('compareDashboardView') || 'table';
-        setView(initialView);
-        cardBtn.addEventListener('click', function() {
-            setView('card');
-            localStorage.setItem('compareDashboardView', 'card');
-            updatePaginationLinks('card');
-        });
-        tableBtn.addEventListener('click', function() {
-            setView('table');
-            localStorage.setItem('compareDashboardView', 'table');
-            updatePaginationLinks('table');
-        });
-        if (initialView === 'card') {
-            cardBtn.classList.add('usa-button--active');
-        } else {
-            tableBtn.classList.add('usa-button--active');
-        }
+        
         function updatePaginationLinks(view) {
             document.querySelectorAll('.usa-pagination__link, .usa-pagination__button').forEach(function(link) {
                 let url = new URL(link.href, window.location.origin);
@@ -68,6 +54,27 @@
                 link.href = url.toString();
             });
         }
+        
+        // Determine initial view - default to 'table' if nothing is specified
+        let initialView = getQueryParam('view') || localStorage.getItem('compareDashboardView') || 'table';
+        
+        // Set the initial view
+        setView(initialView);
+        
+        // Update pagination links with the current view
         updatePaginationLinks(initialView);
+        
+        // Add event listeners for view switching
+        cardBtn.addEventListener('click', function() {
+            setView('card');
+            localStorage.setItem('compareDashboardView', 'card');
+            updatePaginationLinks('card');
+        });
+        
+        tableBtn.addEventListener('click', function() {
+            setView('table');
+            localStorage.setItem('compareDashboardView', 'table');
+            updatePaginationLinks('table');
+        });
     </script>
 {% endblock content %}

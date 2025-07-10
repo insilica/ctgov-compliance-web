@@ -1,77 +1,345 @@
 {% extends "layout.html" %}
 {% block title %}
-    Dashboard - CTGov Compliance
+Dashboard - CTGov Compliance
 {% endblock title %}
 {% block content %}
-    <div class="grid-container-full">
-        <div class="grid-row grid-gap">
-            <div class="desktop:grid-col-3 padding-y-2">{% include "sidebars/search.html" %}</div>
-            <div class="desktop:grid-col-9 padding-y-2">
-                <div class="usa-card bg-base-lightest shadow-2 margin-bottom-2">
-                    <div class="usa-card__body">
-                        {% with title="Clinical Trials Data" %}
-                            {% include "tables/header.html" %}
-                        {% endwith %}
-                        <div id="card-view">{% include "tables/card.html" with context %}</div>
-                        <div id="table-view" class="display-none">{% include "tables/table.html" with context %}</div>
-                        {% if pagination.total_pages > 1 %}
-                            {% include "tables/pagination.html" with context %}
-                        {% endif %}
-                    </div>
+<div class="grid-container-full">
+    <div class="grid-row grid-gap">
+        <div class="desktop:grid-col-3 padding-y-2">{% include "sidebars/search.html" %}</div>
+        <div class="desktop:grid-col-9 padding-y-2">
+            <div class="usa-card bg-base-lightest shadow-2 margin-bottom-2">
+                <div class="usa-card__body">
+                    {% with title="Clinical Trials Data" %}
+                    {% include "tables/header.html" %}
+                    {% endwith %}
+                    <div id="card-view">{% include "tables/card.html" with context %}</div>
+                    <div id="table-view" class="display-none">{% include "tables/table.html" with context %}</div>
+                    {% if pagination.total_pages > 1 %}
+                    {% include "tables/pagination.html" with context %}
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    <script>
-        const cardBtn = document.getElementById('toggle-card');
-        const tableBtn = document.getElementById('toggle-table');
-        const cardView = document.getElementById('card-view');
-        const tableView = document.getElementById('table-view');
-        // Restore view from localStorage or query param
-        function getQueryParam(name) {
-            const url = new URL(window.location.href);
-            return url.searchParams.get(name);
+</div>
+<script>
+    const cardBtn = document.getElementById('toggle-card');
+    const tableBtn = document.getElementById('toggle-table');
+    const cardView = document.getElementById('card-view');
+    const tableView = document.getElementById('table-view');
+    // Restore view from localStorage or query param
+    function getQueryParam(name) {
+        const url = new URL(window.location.href);
+        return url.searchParams.get(name);
+    }
+    function setView(view) {
+        if (view === 'table') {
+            cardView.classList.add('display-none');
+            tableView.classList.remove('display-none');
+            tableBtn.classList.add('usa-button--active');
+            cardBtn.classList.remove('usa-button--active');
+        } else {
+            cardView.classList.remove('display-none');
+            tableView.classList.add('display-none');
+            cardBtn.classList.add('usa-button--active');
+            tableBtn.classList.remove('usa-button--active');
         }
-        function setView(view) {
-            if (view === 'table') {
-                cardView.classList.add('display-none');
-                tableView.classList.remove('display-none');
-                tableBtn.classList.add('usa-button--active');
-                cardBtn.classList.remove('usa-button--active');
-            } else {
-                cardView.classList.remove('display-none');
-                tableView.classList.add('display-none');
-                cardBtn.classList.add('usa-button--active');
-                tableBtn.classList.remove('usa-button--active');
+    }
+    let initialView = getQueryParam('view') || localStorage.getItem('dashboardView') || 'table';
+    setView(initialView);
+    cardBtn.addEventListener('click', function () {
+        setView('card');
+        localStorage.setItem('dashboardView', 'card');
+        updatePaginationLinks('card');
+    });
+    tableBtn.addEventListener('click', function () {
+        setView('table');
+        localStorage.setItem('dashboardView', 'table');
+        updatePaginationLinks('table');
+    });
+    // Set initial state
+    if (initialView === 'card') {
+        cardBtn.classList.add('usa-button--active');
+    } else {
+        tableBtn.classList.add('usa-button--active');
+    }
+    // Update pagination links to include view param
+    function updatePaginationLinks(view) {
+        document.querySelectorAll('.usa-pagination__link, .usa-pagination__button').forEach(function (link) {
+            let url = new URL(link.href, window.location.origin);
+            url.searchParams.set('view', view);
+            link.href = url.toString();
+        });
+    }
+    // On page load, update pagination links
+    updatePaginationLinks(initialView);
+
+    // Search History Functionality
+    class SearchHistory {
+        constructor() {
+            this.storageKey = 'ctgov_search_history';
+            this.maxHistoryItems = 10;
+            this.searchForm = document.getElementById('search-form');
+            this.historySection = document.getElementById('search-history-section');
+            this.historyList = document.getElementById('search-history-list');
+            this.clearAllBtn = document.getElementById('clear-all-history');
+
+            this.init();
+        }
+
+        init() {
+            this.loadHistory();
+            this.bindEvents();
+            this.checkIfSearchPerformed();
+        }
+
+        bindEvents() {
+            // Save search when form is submitted
+            if (this.searchForm) {
+                this.searchForm.addEventListener('submit', (e) => {
+                    this.saveCurrentSearch();
+                });
+            }
+
+            // Clear all history
+            if (this.clearAllBtn) {
+                this.clearAllBtn.addEventListener('click', () => {
+                    this.clearAllHistory();
+                });
             }
         }
-        let initialView = getQueryParam('view') || localStorage.getItem('dashboardView') || 'table';
-        setView(initialView);
-        cardBtn.addEventListener('click', function() {
-            setView('card');
-            localStorage.setItem('dashboardView', 'card');
-            updatePaginationLinks('card');
-        });
-        tableBtn.addEventListener('click', function() {
-            setView('table');
-            localStorage.setItem('dashboardView', 'table');
-            updatePaginationLinks('table');
-        });
-        // Set initial state
-        if (initialView === 'card') {
-            cardBtn.classList.add('usa-button--active');
-        } else {
-            tableBtn.classList.add('usa-button--active');
+
+        checkIfSearchPerformed() {
+            // Check if current page has search parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasSearchParams = Array.from(urlParams.keys()).some(key =>
+                ['title', 'nct_id', 'organization', 'user_email', 'date_from', 'date_to', 'compliance_status[]'].includes(key)
+            );
+
+            if (hasSearchParams) {
+                this.saveSearchFromURL();
+            }
         }
-        // Update pagination links to include view param
-        function updatePaginationLinks(view) {
-            document.querySelectorAll('.usa-pagination__link, .usa-pagination__button').forEach(function(link) {
-                let url = new URL(link.href, window.location.origin);
-                url.searchParams.set('view', view);
-                link.href = url.toString();
+
+        saveCurrentSearch() {
+            const formData = new FormData(this.searchForm);
+            const searchParams = {};
+
+            // Collect all form parameters
+            for (let [key, value] of formData.entries()) {
+                if (value.trim()) {
+                    if (key === 'compliance_status[]') {
+                        if (!searchParams[key]) searchParams[key] = [];
+                        searchParams[key].push(value);
+                    } else {
+                        searchParams[key] = value;
+                    }
+                }
+            }
+
+            this.saveSearch(searchParams);
+        }
+
+        saveSearchFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchParams = {};
+
+            for (let [key, value] of urlParams.entries()) {
+                if (value.trim()) {
+                    if (key === 'compliance_status[]') {
+                        if (!searchParams[key]) searchParams[key] = [];
+                        searchParams[key].push(value);
+                    } else if (['title', 'nct_id', 'organization', 'user_email', 'date_type', 'date_from', 'date_to'].includes(key)) {
+                        searchParams[key] = value;
+                    }
+                }
+            }
+
+            if (Object.keys(searchParams).length > 0) {
+                this.saveSearch(searchParams);
+            }
+        }
+
+        saveSearch(searchParams) {
+            if (Object.keys(searchParams).length === 0) return;
+
+            let history = this.getHistory();
+
+            // Create search entry
+            const searchEntry = {
+                id: Date.now(),
+                timestamp: new Date().toISOString(),
+                params: searchParams,
+                displayText: this.generateDisplayText(searchParams)
+            };
+
+            // Remove duplicates (same search parameters)
+            history = history.filter(item =>
+                JSON.stringify(item.params) !== JSON.stringify(searchParams)
+            );
+
+            // Add to beginning of array
+            history.unshift(searchEntry);
+
+            // Limit to max items
+            if (history.length > this.maxHistoryItems) {
+                history = history.slice(0, this.maxHistoryItems);
+            }
+
+            // Save to localStorage
+            localStorage.setItem(this.storageKey, JSON.stringify(history));
+
+            // Refresh display
+            this.displayHistory();
+        }
+
+        generateDisplayText(params) {
+            const parts = [];
+
+            if (params.title) parts.push(`Title: "${params.title}"`);
+            if (params.nct_id) parts.push(`NCT ID: "${params.nct_id}"`);
+            if (params.organization) parts.push(`Org: "${params.organization}"`);
+            if (params.user_email) parts.push(`Email: "${params.user_email}"`);
+            if (params.date_from || params.date_to) {
+                const dateType = params.date_type || 'completion';
+                const from = params.date_from || '';
+                const to = params.date_to || '';
+                parts.push(`${dateType} dates: ${from} - ${to}`);
+            }
+            if (params['compliance_status[]']) {
+                parts.push(`Status: ${params['compliance_status[]'].join(', ')}`);
+            }
+
+            return parts.length > 0 ? parts.join(' • ') : 'All records';
+        }
+
+        getHistory() {
+            try {
+                return JSON.parse(localStorage.getItem(this.storageKey)) || [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        loadHistory() {
+            this.displayHistory();
+        }
+
+        displayHistory() {
+            const history = this.getHistory();
+
+            if (history.length === 0) {
+                this.historySection.style.display = 'none';
+                return;
+            }
+
+            this.historySection.style.display = 'block';
+            this.historyList.innerHTML = '';
+
+            history.forEach(item => {
+                const historyItem = this.createHistoryItem(item);
+                this.historyList.appendChild(historyItem);
             });
         }
-        // On page load, update pagination links
-        updatePaginationLinks(initialView);
-    </script>
+
+        createHistoryItem(item) {
+            const div = document.createElement('div');
+            div.className = 'search-history-item';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'search-history-content';
+
+            const queryP = document.createElement('p');
+            queryP.className = 'search-history-query';
+            queryP.textContent = this.createQuerySummary(item.params);
+
+            const paramsP = document.createElement('p');
+            paramsP.className = 'search-history-params';
+            paramsP.textContent = item.displayText;
+
+            contentDiv.appendChild(queryP);
+            contentDiv.appendChild(paramsP);
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'search-history-actions';
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'search-history-delete';
+            deleteBtn.innerHTML = '<i class="ri-close-line"></i>';
+            deleteBtn.title = 'Remove from history';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.removeHistoryItem(item.id);
+            });
+
+            actionsDiv.appendChild(deleteBtn);
+
+            div.appendChild(contentDiv);
+            div.appendChild(actionsDiv);
+
+            // Make item clickable to restore search
+            div.addEventListener('click', () => {
+                this.restoreSearch(item.params);
+            });
+
+            return div;
+        }
+
+        createQuerySummary(params) {
+            const parts = [];
+            if (params.title) parts.push(params.title);
+            if (params.nct_id) parts.push(params.nct_id);
+            if (params.organization) parts.push(params.organization);
+
+            return parts.length > 0 ? parts.join(' • ') : 'General search';
+        }
+
+        restoreSearch(params) {
+            // Build URL with search parameters
+            const url = new URL(window.location.href);
+            const searchParams = new URLSearchParams();
+
+            // Clear existing search params
+            ['title', 'nct_id', 'organization', 'user_email', 'date_type', 'date_from', 'date_to', 'compliance_status[]'].forEach(param => {
+                searchParams.delete(param);
+            });
+
+            // Add stored parameters
+            Object.entries(params).forEach(([key, value]) => {
+                if (Array.isArray(value)) {
+                    value.forEach(v => searchParams.append(key, v));
+                } else {
+                    searchParams.set(key, value);
+                }
+            });
+
+            // Preserve view parameter
+            const currentView = getQueryParam('view');
+            if (currentView) {
+                searchParams.set('view', currentView);
+            }
+
+            // Navigate to search
+            url.search = searchParams.toString();
+            window.location.href = url.toString();
+        }
+
+        removeHistoryItem(id) {
+            let history = this.getHistory();
+            history = history.filter(item => item.id !== id);
+            localStorage.setItem(this.storageKey, JSON.stringify(history));
+            this.displayHistory();
+        }
+
+        clearAllHistory() {
+            localStorage.removeItem(this.storageKey);
+            this.displayHistory();
+        }
+    }
+
+    // Initialize search history when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        new SearchHistory();
+    });
+</script>
 {% endblock content %}
