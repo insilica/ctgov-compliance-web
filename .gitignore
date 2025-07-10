@@ -61,3 +61,5 @@ report.*
 
 # ignoring cursor context files
 /cursor-files
+
+*.db
