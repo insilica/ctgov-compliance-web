@@ -1,5 +1,8 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, make_response
 from flask_login import login_required    # pragma: no cover, current_user
+import csv
+import io
+from datetime import datetime
 from .utils.route_helpers import (
     process_index_request,
     process_search_request,
@@ -70,6 +73,142 @@ def show_user_dashboard(user_id):
     
     template_data = process_user_dashboard_request(user_id, current_user_getter)
     return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
+
+# CSV Export Route
+@bp.route('/export/csv')
+@login_required    # pragma: no cover
+def export_csv():
+    """Export current filtered data to CSV"""
+    # Get the same parameters as other routes
+    search_params = {
+        'title': request.args.get('title'),
+        'nct_id': request.args.get('nct_id'),
+        'organization': request.args.get('organization'),
+        'user_email': request.args.get('user_email'),
+        'date_type': request.args.get('date_type'),
+        'date_from': request.args.get('date_from'),
+        'date_to': request.args.get('date_to')
+    }
+    
+    compliance_status_list = request.args.getlist('compliance_status[]')
+    export_type = request.args.get('type', 'trials')  # Default to trials export
+    
+    # Get data based on export type
+    if export_type == 'organizations':
+        min_compliance = request.args.get('min_compliance')
+        max_compliance = request.args.get('max_compliance')
+        min_trials = request.args.get('min_trials')
+        max_trials = request.args.get('max_trials')
+        
+        org_compliance = get_organization_risk_analysis(min_compliance, max_compliance, min_trials, max_trials)
+        data = org_compliance
+        filename = 'organizations_compliance_export'
+        
+        # Define CSV headers for organizations
+        headers = [
+            'Organization Name',
+            'Total Trials',
+            'Compliant Trials',
+            'Non-Compliant Trials',
+            'Pending Trials',
+            'Compliance Rate (%)',
+            'High Risk Trials',
+            'Average Days Overdue'
+        ]
+        
+        # Format data for CSV
+        csv_data = []
+        for org in data:
+            compliance_rate = ((org.get('on_time_count', 0) / org.get('total_trials', 1) * 100) if org.get('total_trials', 0) > 0 else 0)
+            avg_days_overdue = ((org.get('total_overdue_days', 0) / org.get('late_count', 1)) if org.get('late_count', 0) > 0 else 0)
+            
+            csv_data.append([
+                org.get('name', ''),
+                org.get('total_trials', 0),
+                org.get('on_time_count', 0),
+                org.get('late_count', 0),
+                org.get('pending_count', 0),
+                round(compliance_rate, 1),
+                org.get('high_risk_trials', 0),
+                round(avg_days_overdue, 1) if avg_days_overdue > 0 else 0
+            ])
+            
+    elif export_type == 'user':
+        user_id = request.args.get('user_id')
+        if user_id:
+            def current_user_getter(uid):
+                return current_user.get(uid)
+            template_data = process_user_dashboard_request(int(user_id), current_user_getter)
+            data = template_data.get('trials', [])
+            filename = f'user_{user_id}_trials_export'
+        else:
+            template_data = process_search_request(search_params, compliance_status_list)
+            data = template_data.get('trials', [])
+            filename = 'trials_export'
+            
+    else:
+        # Default to trials export
+        if any(search_params.values()) or compliance_status_list:
+            template_data = process_search_request(search_params, compliance_status_list)
+        else:
+            template_data = process_index_request()
+            
+        data = template_data.get('trials', [])
+        filename = 'trials_export'
+    
+    # For trials data (default case and user case)
+    if export_type != 'organizations':
+        # Define CSV headers for trials
+        headers = [
+            'Title',
+            'NCT ID',
+            'Organization',
+            'User Email',
+            'Status',
+            'Start Date',
+            'End Date',
+            'Reporting Due Date'
+        ]
+        
+        # Format data for CSV
+        csv_data = []
+        for trial in data:
+            csv_data.append([
+                trial.get('title', ''),
+                trial.get('nct_id', ''),
+                trial.get('name', ''),
+                trial.get('email', ''),
+                trial.get('status', ''),
+                trial.get('start_date').strftime('%m/%d/%Y') if trial.get('start_date') else '',
+                trial.get('completion_date').strftime('%m/%d/%Y') if trial.get('completion_date') else '',
+                trial.get('reporting_due_date').strftime('%m/%d/%Y') if trial.get('reporting_due_date') else ''
+            ])
+    
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write headers
+    writer.writerow(headers)
+    
+    # Write data
+    for row in csv_data:
+        writer.writerow(row)
+    
+    # Create response
+    csv_content = output.getvalue()
+    output.close()
+    
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename_with_timestamp = f"{filename}_{timestamp}.csv"
+    
+    # Create response with proper headers
+    response = make_response(csv_content)
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = f'attachment; filename="{filename_with_timestamp}"'
+    
+    return response
 
 # Print Report Routes
 @bp.route('/report/print')

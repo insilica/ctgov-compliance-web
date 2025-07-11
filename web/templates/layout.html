@@ -1,159 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="description"
-              content="CTGov Compliance - Clinical trial compliance monitoring and reporting dashboard" />
-        <meta name="keywords"
-              content="clinical trials, compliance, reporting, CTGov, FDA, research" />
-        <meta name="author" content="CTGov Compliance" />
-        <title>
-            {% block title %}
-                CTGov Compliance
-            {% endblock title %}
-        </title>
-        <link rel="icon"
-              type="image/x-icon"
-              href="{{ url_for('static', filename='img/favicon.ico') }}" />
-        <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css"
-              rel="stylesheet" />
-        <link href="{{ url_for('static', filename='dist/css/uswds.min.css') }}"
-              rel="stylesheet" />
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-    </head>
-    <body>
-        <script src="{{url_for('static', filename='dist/js/uswds.min.js')}}"></script>
-        <div class="usa-overlay"></div>
-        <header class="usa-header bg-base-lightest">
-            <div class="desktop:grid-container-widescreen margin-x-0 width-full maxw-full">
-                <div class="usa-nav-container padding-2 margin-x-0 width-full maxw-full">
-                    <div class="grid-row">
-                        <div class="grid-col-12 display-flex flex-row flex-align-center">
-                            <div class="usa-navbar">
-                                <div class="usa-logo">
-                                    <span class="usa-logo__text padding-x-2 padding-y-2">
-                                        <a class="usa-logo__text"
-                                           href="{{ url_for('routes.index') }}"
-                                           title="CTGov Compliance">CTGov Compliance</a>
-                                    </span>
-                                </div>
-                            </div>
-                            <button type="button" class="usa-menu-btn margin-left-auto bg-base-lightest">
-                                <i class="ri-menu-line" style="color: #000000; font-size: 1.1rem;"></i>
-                            </button>
-                            <div class="usa-nav margin-left-auto">
-                                <ul class="usa-nav__links padding-y-2 display-flex flex-row flex-align-center usa-list--unstyled">
-                                    <li class="usa-nav__item margin-x-1">
-                                        <span class="font-ui-md">{{ current_user.email }}</span>
-                                    </li>
-                                    <li class="usa-nav__item padding-x-1 margin-right-1">
-                                        <span class="font-ui-md">|</span>
-                                    </li>
-                                    <li class="usa-nav__item">
-                                        <a class="font-ui-md" href="{{ url_for('auth.logout') }}">
-                                            <span>Logout</span>
-                                            <i class="ri-logout-box-line margin-right-1"></i>
-                                        </a>
-                                    </li>
-                                </ul>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description"
+        content="CTGov Compliance - Clinical trial compliance monitoring and reporting dashboard" />
+    <meta name="keywords" content="clinical trials, compliance, reporting, CTGov, FDA, research" />
+    <meta name="author" content="CTGov Compliance" />
+    <title>
+        {% block title %}
+        CTGov Compliance
+        {% endblock title %}
+    </title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}" />
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css" rel="stylesheet" />
+    <link href="{{ url_for('static', filename='dist/css/uswds.min.css') }}" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+
+<body>
+    <script src="{{url_for('static', filename='dist/js/uswds.min.js')}}"></script>
+    <div class="usa-overlay"></div>
+    <header class="usa-header bg-base-lightest">
+        <div class="desktop:grid-container-widescreen margin-x-0 width-full maxw-full">
+            <div class="usa-nav-container padding-2 margin-x-0 width-full maxw-full">
+                <div class="grid-row">
+                    <div class="grid-col-12 display-flex flex-row flex-align-center">
+                        <div class="usa-navbar">
+                            <div class="usa-logo">
+                                <span class="usa-logo__text padding-x-2 padding-y-2">
+                                    <a class="usa-logo__text" href="{{ url_for('routes.index') }}"
+                                        title="CTGov Compliance">CTGov Compliance</a>
+                                </span>
                             </div>
                         </div>
+                        <button type="button" class="usa-menu-btn margin-left-auto bg-base-lightest">
+                            <i class="ri-menu-line" style="color: #000000; font-size: 1.1rem;"></i>
+                        </button>
+                        <div class="usa-nav margin-left-auto">
+                            <ul
+                                class="usa-nav__links padding-y-2 display-flex flex-row flex-align-center usa-list--unstyled">
+                                <li class="usa-nav__item margin-x-1">
+                                    <span class="font-ui-md">{{ current_user.email }}</span>
+                                </li>
+                                <li class="usa-nav__item padding-x-1 margin-right-1">
+                                    <span class="font-ui-md">|</span>
+                                </li>
+                                <li class="usa-nav__item">
+                                    <a class="font-ui-md" href="{{ url_for('auth.logout') }}">
+                                        <span>Logout</span>
+                                        <i class="ri-logout-box-line margin-right-1"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
-                    {% if current_user.is_authenticated %}
-                        <div class="grid-row">
-                            <nav aria-label="Primary Navigation Menu" class="usa-nav">
-                                <div class="usa-nav__inner">
-                                    <button type="button" class="usa-nav__close margin-1">
-                                        <svg class="usa-icon" alt="Close" role="img">
-                                            <use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#close">
-                                            </use>
-                                        </svg>
+                </div>
+                {% if current_user.is_authenticated %}
+                <div class="grid-row">
+                    <nav aria-label="Primary Navigation Menu" class="usa-nav">
+                        <div class="usa-nav__inner">
+                            <button type="button" class="usa-nav__close margin-1">
+                                <svg class="usa-icon" alt="Close" role="img">
+                                    <use href="{{ url_for('static', filename='dist/img/sprite.svg') }}#close">
+                                    </use>
+                                </svg>
+                            </button>
+                            <ul class="usa-nav__primary usa-accordion usa-list--unstyled">
+                                <li class="usa-nav__primary-item hover:bg-primary-lighter">
+                                    <a href="{{ url_for('routes.index') }}" class="usa-nav-link">
+                                        <span class="font-ui-md">Advanced Search</span>
+                                    </a>
+                                </li>
+                                <li class="usa-nav__primary-item hover:bg-primary-lighter">
+                                    <button type="button" class=" usa-accordion__button usa-nav__link"
+                                        aria-expanded="false" aria-controls="extended-nav-section-one"
+                                        title="Organizations" aria-label="Organizations"
+                                        aria-controls="extended-nav-section-one">
+                                        <span class="font-ui-md">Organizations</span>
                                     </button>
-                                    <ul class="usa-nav__primary usa-accordion usa-list--unstyled">
-                                        <li class="usa-nav__primary-item hover:bg-primary-lighter">
-                                            <a href="{{ url_for('routes.index') }}" class="usa-nav-link">
-                                                <span class="font-ui-md">Advanced Search</span>
+                                    <ul id="extended-nav-section-one" class="usa-nav__submenu">
+                                        <li class="usa-nav__submenu-item">
+                                            <a href="{{ url_for('routes.show_compare_organizations_dashboard') }}">
+                                                <span>Compare Organizations</span>
                                             </a>
                                         </li>
-                                        <li class="usa-nav__primary-item hover:bg-primary-lighter">
-                                            <button type="button"
-                                                    class=" usa-accordion__button usa-nav__link"
-                                                    aria-expanded="false"
-                                                    aria-controls="extended-nav-section-one"
-                                                    title="Organizations"
-                                                    aria-label="Organizations"
-                                                    aria-controls="extended-nav-section-one">
-                                                <span class="font-ui-md">Organizations</span>
-                                            </button>
-                                            <ul id="extended-nav-section-one" class="usa-nav__submenu">
-                                                <li class="usa-nav__submenu-item">
-                                                    <a href="{{ url_for('routes.show_compare_organizations_dashboard') }}">
-                                                        <span>Compare Organizations</span>
-                                                    </a>
-                                                </li>
-                                                {% if current_user.organization_ids %}
-                                                    <li class="usa-nav__submenu-item">
-                                                        <a href="{{ url_for('routes.show_organization_dashboard', org_ids=(current_user.organization_ids|urlencode) ) }}">
-                                                            <span>View my Organizations</span>
-                                                        </a>
-                                                    </li>
-                                                {% endif %}
-                                            </ul>
+                                        {% if current_user.organization_ids %}
+                                        <li class="usa-nav__submenu-item">
+                                            <a
+                                                href="{{ url_for('routes.show_organization_dashboard', org_ids=(current_user.organization_ids|urlencode) ) }}">
+                                                <span>View my Organizations</span>
+                                            </a>
                                         </li>
-                                        <li class="usa-nav__primary-item hover:bg-primary-lighter">
-                                            <button type="button"
-                                                    class="usa-accordion__button usa-nav__link"
-                                                    aria-expanded="false"
-                                                    aria-controls="extended-nav-section-two">
-                                                <span class="font-ui-md">Users</span>
-                                            </button>
-                                            <ul id="extended-nav-section-two" class="usa-nav__submenu">
-                                                <li class="usa-nav__submenu-item">
-                                                    <!-- TODO: Create a user comparison page -->
-                                                    <a href="">
-                                                        <span>Compare Users</span>
-                                                    </a>
-                                                </li>
-                                                {% if current_user.trials %}
-                                                    <li class="usa-nav__submenu-item">
-                                                        <a href="{{ url_for('routes.show_user_dashboard', user_id=current_user.id) }}">
-                                                            <span>View my Trials</span>
-                                                        </a>
-                                                    </li>
-                                                {% endif %}
-                                            </ul>
-                                        </li>
+                                        {% endif %}
                                     </ul>
-                                </div>
-                            </nav>
+                                </li>
+                                <li class="usa-nav__primary-item hover:bg-primary-lighter">
+                                    <button type="button" class="usa-accordion__button usa-nav__link"
+                                        aria-expanded="false" aria-controls="extended-nav-section-two">
+                                        <span class="font-ui-md">Users</span>
+                                    </button>
+                                    <ul id="extended-nav-section-two" class="usa-nav__submenu">
+                                        <li class="usa-nav__submenu-item">
+                                            <!-- TODO: Create a user comparison page -->
+                                            <a href="">
+                                                <span>Compare Users</span>
+                                            </a>
+                                        </li>
+                                        {% if current_user.trials %}
+                                        <li class="usa-nav__submenu-item">
+                                            <a
+                                                href="{{ url_for('routes.show_user_dashboard', user_id=current_user.id) }}">
+                                                <span>View my Trials</span>
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </li>
+                            </ul>
                         </div>
-                    </div>
-                {% endif %}
+                    </nav>
+                </div>
             </div>
-        </header>
-        <main>
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="grid-container">
-                        {% for category, message in messages %}
-                            <div class="usa-alert usa-alert--{{ category if category != 'message' else 'info' }} margin-y-2"
-                                 role="alert">
-                                <div class="usa-alert__body">
-                                    <p class="usa-alert__text">{{ message|safe }}</p>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
-            {% block content %}
-            {% endblock content %}
-            <div class="position-fixed bottom-0 right-0 z-top padding-1">
-                <a href="#" class="usa-footer__return-to-top usa-button circle-205">
-                    <i class="ri-arrow-up-double-line"></i>
-                </a>
+            {% endif %}
+        </div>
+    </header>
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="grid-container">
+            {% for category, message in messages %}
+            <div class="usa-alert usa-alert--{{ category if category != 'message' else 'info' }} margin-y-2"
+                role="alert">
+                <div class="usa-alert__body">
+                    <p class="usa-alert__text">{{ message|safe }}</p>
+                </div>
             </div>
-        </main>
-    </body>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% block content %}
+        {% endblock content %}
+        <div class="position-fixed bottom-0 right-0 z-top padding-1">
+            <a href="#" class="usa-footer__return-to-top usa-button circle-205">
+                <i class="ri-arrow-up-double-line"></i>
+            </a>
+        </div>
+    </main>
+</body>
+
 </html>
