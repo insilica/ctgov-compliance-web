@@ -341,5 +341,67 @@ Dashboard - CTGov Compliance
     document.addEventListener('DOMContentLoaded', () => {
         new SearchHistory();
     });
+
+    // Print Report Functionality
+    document.addEventListener('DOMContentLoaded', function () {
+        const printReportBtn = document.getElementById('print-report-btn');
+
+        if (printReportBtn) {
+            printReportBtn.addEventListener('click', function () {
+                generatePrintReport();
+            });
+        }
+    });
+
+    function generatePrintReport() {
+        // Get current URL parameters
+        const currentParams = new URLSearchParams(window.location.search);
+
+        // Build report URL
+        const reportUrl = new URL('/report/print', window.location.origin);
+
+        // Copy relevant parameters to report URL
+        const reportParams = new URLSearchParams();
+
+        // Copy search parameters
+        ['title', 'nct_id', 'organization', 'user_email', 'date_type', 'date_from', 'date_to'].forEach(param => {
+            if (currentParams.has(param)) {
+                reportParams.set(param, currentParams.get(param));
+            }
+        });
+
+        // Copy compliance status parameters
+        const complianceStatus = currentParams.getAll('compliance_status[]');
+        complianceStatus.forEach(status => {
+            reportParams.append('compliance_status[]', status);
+        });
+
+        // Determine report type based on current page
+        const path = window.location.pathname;
+        if (path.includes('/compare')) {
+            reportParams.set('type', 'organizations');
+            // Copy organization filter parameters
+            ['min_compliance', 'max_compliance', 'min_trials', 'max_trials'].forEach(param => {
+                if (currentParams.has(param)) {
+                    reportParams.set(param, currentParams.get(param));
+                }
+            });
+        } else if (path.includes('/user/')) {
+            reportParams.set('type', 'user');
+            // Extract user ID from path
+            const userIdMatch = path.match(/\/user\/(\d+)/);
+            if (userIdMatch) {
+                reportParams.set('user_id', userIdMatch[1]);
+            }
+        } else {
+            reportParams.set('type', 'trials');
+        }
+
+        // Set report URL parameters
+        reportUrl.search = reportParams.toString();
+
+        // Open report in new tab
+        window.open(reportUrl.toString(), '_blank');
+    }
 </script>
 {% endblock content %}
