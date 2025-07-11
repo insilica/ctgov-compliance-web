@@ -63,3 +63,5 @@ report.*
 /cursor-files
 
 *.db
+
+report.*
