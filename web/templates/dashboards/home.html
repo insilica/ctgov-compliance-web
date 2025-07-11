@@ -342,6 +342,218 @@ Dashboard - CTGov Compliance
         new SearchHistory();
     });
 
+    // Filter Presets Functionality
+    class FilterPresets {
+        constructor() {
+            this.searchForm = document.getElementById('search-form');
+            this.presetButtons = document.querySelectorAll('.preset-btn');
+            this.init();
+        }
+
+        init() {
+            this.bindEvents();
+            this.detectActivePreset();
+        }
+
+        bindEvents() {
+            this.presetButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const preset = button.getAttribute('data-preset');
+                    this.applyPreset(preset);
+                });
+            });
+        }
+
+        applyPreset(presetName) {
+            // Clear all form fields first
+            this.clearForm();
+
+            // Clear active states
+            this.clearActiveStates();
+
+            switch (presetName) {
+                case 'overdue-trials':
+                    this.applyOverdueTrialsPreset();
+                    break;
+                case 'noncompliant-only':
+                    this.applyNoncompliantOnlyPreset();
+                    break;
+                case 'recent-completions':
+                    this.applyRecentCompletionsPreset();
+                    break;
+                case 'due-soon':
+                    this.applyDueSoonPreset();
+                    break;
+                case 'clear-all':
+                    this.clearForm();
+                    this.clearActiveStates();
+                    // Submit form to show all results
+                    this.searchForm.submit();
+                    return;
+            }
+
+            // Set active state for clicked button
+            this.setActivePreset(presetName);
+
+            // Submit the form with the preset filters
+            this.searchForm.submit();
+        }
+
+        clearForm() {
+            // Clear text inputs
+            document.getElementById('trial-title').value = '';
+            document.getElementById('nct-id').value = '';
+            document.getElementById('organization').value = '';
+            document.getElementById('user-email').value = '';
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
+
+            // Reset date type to default
+            document.getElementById('date-range').value = 'completion';
+
+            // Uncheck compliance status checkboxes
+            document.getElementById('compliant').checked = false;
+            document.getElementById('non-compliant').checked = false;
+        }
+
+        applyOverdueTrialsPreset() {
+            // Set date type to "due" and date range to past dates
+            document.getElementById('date-range').value = 'due';
+
+            // Set "to" date to yesterday to get overdue trials
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            document.getElementById('date-to').value = yesterday.toISOString().split('T')[0];
+
+            // Check noncompliant status
+            document.getElementById('non-compliant').checked = true;
+        }
+
+        applyNoncompliantOnlyPreset() {
+            // Only check noncompliant status
+            document.getElementById('non-compliant').checked = true;
+        }
+
+        applyRecentCompletionsPreset() {
+            // Set date type to "completion" and last 30 days
+            document.getElementById('date-range').value = 'completion';
+
+            const today = new Date();
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+
+            document.getElementById('date-from').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('date-to').value = today.toISOString().split('T')[0];
+        }
+
+        applyDueSoonPreset() {
+            // Set date type to "due" and next 30 days
+            document.getElementById('date-range').value = 'due';
+
+            const today = new Date();
+            const thirtyDaysFromNow = new Date();
+            thirtyDaysFromNow.setDate(today.getDate() + 30);
+
+            document.getElementById('date-from').value = today.toISOString().split('T')[0];
+            document.getElementById('date-to').value = thirtyDaysFromNow.toISOString().split('T')[0];
+        }
+
+        detectActivePreset() {
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // Check if any search parameters exist
+            const hasTitle = urlParams.get('title');
+            const hasNctId = urlParams.get('nct_id');
+            const hasOrg = urlParams.get('organization');
+            const hasUserEmail = urlParams.get('user_email');
+            const dateType = urlParams.get('date_type') || 'completion';
+            const dateFrom = urlParams.get('date_from');
+            const dateTo = urlParams.get('date_to');
+            const complianceStatus = urlParams.getAll('compliance_status[]');
+
+            // If no parameters at all, no preset is active
+            if (!hasTitle && !hasNctId && !hasOrg && !hasUserEmail && !dateFrom && !dateTo && complianceStatus.length === 0) {
+                return;
+            }
+
+            // If any text search fields are filled, no preset matches
+            if (hasTitle || hasNctId || hasOrg || hasUserEmail) {
+                return;
+            }
+
+            // Check for noncompliant-only preset
+            if (complianceStatus.length === 1 && complianceStatus[0] === 'incompliant' && !dateFrom && !dateTo) {
+                this.setActivePreset('noncompliant-only');
+                return;
+            }
+
+            // Check for presets with date ranges
+            if (dateFrom && dateTo) {
+                const fromDate = new Date(dateFrom);
+                const toDate = new Date(dateTo);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                if (dateType === 'due') {
+                    // Check for overdue trials preset
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+
+                    if (toDate <= yesterday && complianceStatus.length === 1 && complianceStatus[0] === 'incompliant') {
+                        this.setActivePreset('overdue-trials');
+                        return;
+                    }
+
+                    // Check for due-soon preset (next 30 days from today)
+                    const thirtyDaysFromNow = new Date(today);
+                    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+                    const fromDateMatches = Math.abs(fromDate - today) <= 24 * 60 * 60 * 1000; // Within 1 day
+                    const toDateMatches = Math.abs(toDate - thirtyDaysFromNow) <= 24 * 60 * 60 * 1000; // Within 1 day
+
+                    if (fromDateMatches && toDateMatches && complianceStatus.length === 0) {
+                        this.setActivePreset('due-soon');
+                        return;
+                    }
+                }
+
+                if (dateType === 'completion') {
+                    // Check for recent-completions preset (last 30 days)
+                    const thirtyDaysAgo = new Date(today);
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+                    const fromDateMatches = Math.abs(fromDate - thirtyDaysAgo) <= 24 * 60 * 60 * 1000; // Within 1 day
+                    const toDateMatches = Math.abs(toDate - today) <= 24 * 60 * 60 * 1000; // Within 1 day
+
+                    if (fromDateMatches && toDateMatches && complianceStatus.length === 0) {
+                        this.setActivePreset('recent-completions');
+                        return;
+                    }
+                }
+            }
+        }
+
+        setActivePreset(presetName) {
+            this.clearActiveStates();
+            const button = document.querySelector(`[data-preset="${presetName}"]`);
+            if (button) {
+                button.classList.add('preset-active');
+            }
+        }
+
+        clearActiveStates() {
+            this.presetButtons.forEach(button => {
+                button.classList.remove('preset-active');
+            });
+        }
+    }
+
+    // Initialize filter presets when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        new FilterPresets();
+    });
+
     // Print Report Functionality
     document.addEventListener('DOMContentLoaded', function () {
         const printReportBtn = document.getElementById('print-report-btn');

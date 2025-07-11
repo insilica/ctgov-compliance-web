@@ -193,6 +193,85 @@ td {
     border-left: 6px solid #005ea2;
 }
 
+/* Filter Presets Styles */
+.filter-presets {
+    border-bottom: 1px solid #dfe1e2;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.filter-presets h3 {
+    color: #1a4480;
+    font-weight: 600;
+}
+
+.preset-buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* Active preset button styling */
+.preset-btn.preset-active {
+    background-color: #005ea2 !important;
+    color: #fff !important;
+    border-color: #005ea2 !important;
+}
+
+.preset-btn.preset-active:hover {
+    background-color: #1a4480 !important;
+    border-color: #1a4480 !important;
+}
+
+/* Enhanced view toggle button styling */
+#toggle-card.usa-button--active,
+#toggle-table.usa-button--active {
+    background-color: #005ea2 !important;
+    color: #fff !important;
+    border-color: #005ea2 !important;
+    box-shadow: 0 2px 4px rgba(0, 94, 162, 0.2);
+}
+
+#toggle-card.usa-button--active:hover,
+#toggle-table.usa-button--active:hover {
+    background-color: #1a4480 !important;
+    border-color: #1a4480 !important;
+}
+
+/* Ensure inactive view toggle buttons have proper styling */
+#toggle-card:not(.usa-button--active),
+#toggle-table:not(.usa-button--active) {
+    background-color: #fff;
+    color: #005ea2;
+    border-color: #005ea2;
+}
+
+#toggle-card:not(.usa-button--active):hover,
+#toggle-table:not(.usa-button--active):hover {
+    background-color: #f0f6fb;
+    border-color: #1a4480;
+    color: #1a4480;
+}
+
+/* Responsive adjustments for mobile */
+@media screen and (max-width: 40em) {
+    .preset-buttons-container {
+        justify-content: center;
+    }
+    
+    .preset-btn {
+        flex: 1;
+        min-width: calc(50% - 0.25rem);
+    }
+    
+    .preset-btn[data-preset="clear-all"] {
+        flex: 1;
+        min-width: 100%;
+        margin-top: 0.25rem;
+    }
+}
+
 /* Search History Styles */
 .search-history-list {
     max-height: 300px;

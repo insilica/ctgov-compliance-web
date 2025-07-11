@@ -12,6 +12,34 @@
                             <i style="size: 32px;" class="ri-arrow-down-s-line search-arrow"></i>
                         </div>
                     </div>
+
+                    <!-- Filter Presets Section -->
+                    <div class="filter-presets margin-bottom-2">
+                        <h3 class="usa-heading margin-y-1 font-sans-sm text-primary">Quick Filters</h3>
+                        <div class="preset-buttons-container">
+                            <button type="button" class="usa-button usa-button--outline usa-button--small preset-btn"
+                                data-preset="overdue-trials">
+                                Overdue
+                            </button>
+                            <button type="button" class="usa-button usa-button--outline usa-button--small preset-btn"
+                                data-preset="noncompliant-only">
+                                Noncompliant
+                            </button>
+                            <button type="button" class="usa-button usa-button--outline usa-button--small preset-btn"
+                                data-preset="recent-completions">
+                                Recent
+                            </button>
+                            <button type="button" class="usa-button usa-button--outline usa-button--small preset-btn"
+                                data-preset="due-soon">
+                                Due Soon
+                            </button>
+                            <button type="button" class="usa-button usa-button--unstyled preset-btn"
+                                data-preset="clear-all">
+                                Clear All
+                            </button>
+                        </div>
+                    </div>
+
                     <form class="usa-form width-full maxw-full" method="get" action="{{ url_for('routes.search') }}"
                         id="search-form">
                         <fieldset class="usa-fieldset margin-bottom-2">
