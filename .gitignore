@@ -45,10 +45,6 @@ uv.lock
 # ignoring personal vscode settings
 .vscode
 
-/web/static/*
-!/web/static/style.css
-!/web/static/img
-
 # ignoring pytest files
 .coverage
 .pytest_cache
@@ -65,3 +61,4 @@ report.*
 *.db
 
 report.*
+gcloud-logs.json
