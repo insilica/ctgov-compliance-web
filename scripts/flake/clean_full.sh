@@ -28,11 +28,6 @@ targets=(
   "report.html"
   "report.json"
   "rules.log"
-  # Add Nix-specific cleanup targets
-  ".direnv"
-  ".envrc"
-  "result"
-  "result-*"
   # Redis files
   "dump.rdb"
   # Python cache files
@@ -84,20 +79,6 @@ delete_target() {
   fi
 }
 
-# Clean Nix store references
-clean_nix_references() {
-  echo -e "\nCleaning Nix store references..."
-  if command -v nix &> /dev/null; then
-    # Only clean up the current profile's generations
-    if [ -n "$NIX_PROFILE" ]; then
-      nix-env --profile "$NIX_PROFILE" --delete-generations old
-    fi
-    
-    # Clean up only the user's profile
-    nix-collect-garbage --delete-old
-  fi
-}
-
 echo "Calculating total files to clean..."
 total_files=$(count_total_files)
 echo "Found $total_files files to clean"
@@ -120,8 +101,6 @@ for target in "${targets[@]}"; do
   fi
 done
 
-# Clean Nix store
-clean_nix_references >/dev/null 2>&1
 
 echo -e "\n\nCleaning up processes..."
 
