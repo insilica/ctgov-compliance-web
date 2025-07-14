@@ -4,6 +4,20 @@ from web.utils.pagination import Pagination, get_pagination_args, paginate
 
 
 def test_pagination_init():
+    items = list(range(10, 20))  # This represents page 2 of data (items 10-19)
+    pagination = Pagination(items, 2, 10, total_entries=100)
+    
+    assert pagination.page == 2
+    assert pagination.per_page == 10
+    assert pagination.total_entries == 100
+    assert pagination.total_pages == 10
+    assert pagination.items_page == items  # Should be the pre-paginated subset
+    assert pagination.start_index == 11
+    assert pagination.end_index == 20
+
+
+def test_pagination_init_backwards_compatibility():
+    """Test that old behavior still works when total_entries is not provided"""
     items = list(range(100))
     pagination = Pagination(items, 2, 10)
     
@@ -11,13 +25,13 @@ def test_pagination_init():
     assert pagination.per_page == 10
     assert pagination.total_entries == 100
     assert pagination.total_pages == 10
-    assert pagination.items_page == items[10:20]
+    assert pagination.items_page == items  # Full dataset when total_entries not provided
     assert pagination.start_index == 11
     assert pagination.end_index == 20
 
 
 def test_pagination_empty_items():
-    pagination = Pagination([], 1, 10)
+    pagination = Pagination([], 1, 10, total_entries=0)
     
     assert pagination.page == 1
     assert pagination.per_page == 10
@@ -29,68 +43,73 @@ def test_pagination_empty_items():
 
 
 def test_pagination_page_out_of_range():
-    items = list(range(30))
+    # Test with new approach - items represent the actual page data
+    items_page_3 = list(range(20, 30))  # Items for page 3 (last page)
     
-    # Page too high
-    pagination = Pagination(items, 10, 10)
+    # Page too high - should be adjusted to max valid page (3)
+    pagination = Pagination(items_page_3, 10, 10, total_entries=30)
     assert pagination.page == 3  # Should be adjusted to max valid page
-    assert pagination.items_page == items[20:30]
+    assert pagination.items_page == items_page_3
     
-    # Page too low
-    pagination = Pagination(items, -1, 10)
+    # Page too low - should be adjusted to min valid page (1)
+    items_page_1 = list(range(0, 10))  # Items for page 1
+    pagination = Pagination(items_page_1, -1, 10, total_entries=30)
     assert pagination.page == 1  # Should be adjusted to min valid page
-    assert pagination.items_page == items[0:10]
+    assert pagination.items_page == items_page_1
 
 
 def test_pagination_string_parameters():
-    items = list(range(100))
-    pagination = Pagination(items, "2", "10")
+    items = list(range(10, 20))  # Page 2 data
+    pagination = Pagination(items, "2", "10", total_entries=100)
     
     assert pagination.page == 2
     assert pagination.per_page == 10
     assert pagination.total_entries == 100
     assert pagination.total_pages == 10
-    assert pagination.items_page == items[10:20]
+    assert pagination.items_page == items
 
 
 def test_pagination_invalid_parameters():
     """Test that invalid parameters raise appropriate exceptions"""
-    items = list(range(100))
+    items = list(range(10))
     
     # Non-convertible string should raise ValueError
     with pytest.raises(ValueError):
-        Pagination(items, "abc", 10)
+        Pagination(items, "abc", 10, total_entries=100)
     
     with pytest.raises(ValueError):
-        Pagination(items, 1, "xyz")
+        Pagination(items, 1, "xyz", total_entries=100)
     
     # None values should raise TypeError
     with pytest.raises(TypeError):
-        Pagination(items, None, 10)
+        Pagination(items, None, 10, total_entries=100)
     
     with pytest.raises(TypeError):
-        Pagination(items, 1, None)
+        Pagination(items, 1, None, total_entries=100)
 
 
 def test_pagination_has_prev_next():
-    items = list(range(100))
+    # Test with new approach using total_entries
     
     # First page
-    pagination = Pagination(items, 1, 10)
+    items_page_1 = list(range(0, 10))
+    pagination = Pagination(items_page_1, 1, 10, total_entries=100)
     assert pagination.has_prev is False
     assert pagination.has_next is True
     assert pagination.prev_page == 1  # Stays at 1
     assert pagination.next_page == 2
     
     # Middle page
-    pagination = Pagination(items, 5, 10)
+    items_page_5 = list(range(40, 50))
+    pagination = Pagination(items_page_5, 5, 10, total_entries=100)
     assert pagination.has_prev is True
     assert pagination.has_next is True
     assert pagination.prev_page == 4
     assert pagination.next_page == 6
     
     # Last page
-    pagination = Pagination(items, 10, 10)
+    items_page_10 = list(range(90, 100))
+    pagination = Pagination(items_page_10, 10, 10, total_entries=100)
     assert pagination.has_prev is True
     assert pagination.has_next is False
     assert pagination.prev_page == 9
@@ -98,8 +117,8 @@ def test_pagination_has_prev_next():
 
 
 def test_pagination_iter_pages():
-    items = list(range(12))
-    pagination = Pagination(items, 6, 1)
+    items = list(range(5, 6))  # Page 6 data (1 item per page)
+    pagination = Pagination(items, 6, 1, total_entries=12)
 
     middle = pagination.page
     end = pagination.total_pages
@@ -118,7 +137,7 @@ def test_pagination_iter_pages():
             end - 1, 
             end,
         ]
-        return expected  # Remove duplicates and sort
+        return expected
     
     expected_pages = create_expected_pages()
     pages = list(pagination.iter_pages())
@@ -127,8 +146,8 @@ def test_pagination_iter_pages():
 
 
 def test_pagination_iter_pages_custom_params():
-    items = list(range(100))
-    pagination = Pagination(items, 50, 1)
+    items = list(range(49, 50))  # Page 50 data (1 item per page)
+    pagination = Pagination(items, 50, 1, total_entries=100)
     
     # Custom parameters: show only 1 page on each edge and 1 page around current
     pages = list(pagination.iter_pages(left_edge=1, left_current=1, right_current=1, right_edge=1))
@@ -158,8 +177,8 @@ def test_pagination_iter_pages_custom_params():
 
 def test_pagination_iter_pages_few_pages():
     """Test iter_pages when there are few pages (no gaps)"""
-    items = list(range(30))
-    pagination = Pagination(items, 2, 10)
+    items = list(range(10, 20))  # Page 2 data
+    pagination = Pagination(items, 2, 10, total_entries=30)
     
     # With only 3 pages, there should be no gaps
     pages = list(pagination.iter_pages())
@@ -173,8 +192,8 @@ def test_pagination_iter_pages_few_pages():
 
 
 def test_pagination_single_page():
-    items = list(range(5))
-    pagination = Pagination(items, 1, 10)
+    items = list(range(5))  # All items fit on one page
+    pagination = Pagination(items, 1, 10, total_entries=5)
     
     assert pagination.page == 1
     assert pagination.per_page == 10
@@ -193,14 +212,14 @@ def test_pagination_single_page():
 
 def test_pagination_small_per_page():
     """Test pagination with very small per_page value (1)"""
-    items = list(range(10))
-    pagination = Pagination(items, 5, 1)
+    items = [4]  # Page 5 data (1 item per page, zero-indexed item 4)
+    pagination = Pagination(items, 5, 1, total_entries=10)
     
     assert pagination.page == 5
     assert pagination.per_page == 1
     assert pagination.total_entries == 10
     assert pagination.total_pages == 10
-    assert pagination.items_page == [4]  # Zero-indexed, so page 5 with per_page 1 gives item at index 4
+    assert pagination.items_page == [4]
     assert pagination.start_index == 5
     assert pagination.end_index == 5
     assert pagination.has_prev is True
@@ -211,16 +230,16 @@ def test_pagination_small_per_page():
 
 def test_pagination_large_dataset():
     """Test pagination with a large number of items"""
-    # Create a large dataset (100,000 items)
-    items = list(range(100000))
-    pagination = Pagination(items, 1000, 100)
+    # Page 1000 data (100 items)
+    items = list(range(99900, 100000))
+    pagination = Pagination(items, 1000, 100, total_entries=100000)
     
     assert pagination.page == 1000
     assert pagination.per_page == 100
     assert pagination.total_entries == 100000
     assert pagination.total_pages == 1000
     assert len(pagination.items_page) == 100
-    assert pagination.items_page[0] == 99900  # First item on page 1000 (0-indexed)
+    assert pagination.items_page[0] == 99900  # First item on page 1000
     assert pagination.items_page[-1] == 99999  # Last item
     assert pagination.start_index == 99901  # 1-indexed for display
     assert pagination.end_index == 100000
@@ -257,6 +276,21 @@ def test_get_pagination_args():
 
 
 def test_paginate_function():
+    items = list(range(20, 40))  # Page 2 data
+    
+    app = Flask(__name__)
+    with app.test_request_context('/?page=2&per_page=20'):
+        pagination, per_page = paginate(items, total_entries=100)
+        assert isinstance(pagination, Pagination)
+        assert pagination.page == 2
+        assert pagination.per_page == 20
+        assert per_page == 20
+        assert pagination.items_page == items
+        assert pagination.total_entries == 100
+
+
+def test_paginate_function_backwards_compatibility():
+    """Test that paginate still works without total_entries for backwards compatibility"""
     items = list(range(100))
     
     app = Flask(__name__)
@@ -266,7 +300,8 @@ def test_paginate_function():
         assert pagination.page == 2
         assert pagination.per_page == 20
         assert per_page == 20
-        assert pagination.items_page == items[20:40]
+        assert pagination.items_page == items
+        assert pagination.total_entries == 100  # Should use len(items)
 
 
 def test_paginate_function_empty_items():
@@ -274,7 +309,7 @@ def test_paginate_function_empty_items():
     
     app = Flask(__name__)
     with app.test_request_context('/?page=1&per_page=10'):
-        pagination, per_page = paginate(items)
+        pagination, per_page = paginate(items, total_entries=0)
         assert isinstance(pagination, Pagination)
         assert pagination.page == 1
         assert pagination.per_page == 10
