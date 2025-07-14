@@ -97,6 +97,8 @@ jobs:
               -locations='filesystem:./.flyway/sql' \\
               migrate
             
+            uv sync 
+            
             # Run tests with verbose output
             echo 'Running tests...'
             uv run python3 -m pytest tests/ -v --tb=short
