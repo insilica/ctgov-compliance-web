@@ -92,6 +92,21 @@ jobs:
       - name: Setup Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Get Cloud SQL Instance Connection
+        id: get-sql-instance
+        run: |
+          SERVICE_NAME="${{ secrets.GCP_CLOUDRUN_SERVICE_NAME }}"
+          INSTANCE_CONNECTION=$(gcloud run services describe ${SERVICE_NAME} \
+            --region=${{ secrets.GCP_REGION }} \
+            --format='value(spec.template.metadata.annotations."run.googleapis.com/cloudsql-instances")')
+
+          if [ -z "$INSTANCE_CONNECTION" ]; then
+            echo "Error: Could not retrieve Cloud SQL instance connection name"
+            exit 1
+          fi
+
+          echo "instance_connection=${INSTANCE_CONNECTION}" >> $GITHUB_OUTPUT
+
       - name: Deploy to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -108,9 +123,17 @@ jobs:
             --concurrency=80
             --allow-unauthenticated
             --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+            --add-cloudsql-instances=${{ steps.get-sql-instance.outputs.instance_connection }}
           env_vars: |
             ENVIRONMENT=preview
             PR_NUMBER=${{ github.event.pull_request.number }}
+            DB_HOST=/cloudsql/${{ steps.get-sql-instance.outputs.instance_connection }}
+            DB_PORT=5432
+            DB_NAME=${{ secrets.GCP_DB_NAME }}
+            DB_USER=${{ secrets.GCP_DB_USER }}
+            CLOUD_SQL_INSTANCE=${{ steps.get-sql-instance.outputs.instance_connection }}
+          secrets: |
+            DB_PASSWORD=${{ secrets.GCP_DB_PASSWORD_SECRET }}:latest
 
       - name: Comment PR
         uses: actions/github-script@v7
