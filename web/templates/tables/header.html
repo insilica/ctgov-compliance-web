@@ -34,39 +34,47 @@
         </form>
     </div>
 </div>
-<div class="margin-bottom-2">
-    <div class="display-flex flex-align-center">
-        <div class="display-flex flex-align-center flex-2">
-            <span class="font-sans-sm margin-right-1">View as:</span>
-            <button id="toggle-card" class="usa-button usa-button--outline margin-right-1" type="button">Cards</button>
-            <button id="toggle-table" class="usa-button usa-button--outline" type="button">Table</button>
+<div class="grid-row margin-bottom-2">
+    <div class="grid-col-12 desktop:grid-col-6">
+        <div class="grid-row">
+            <div class="grid-col-12">
+                <span class="font-sans-sm">View as:</span>
+            </div>
         </div>
-        <div class="display-flex flex-align-center">
-            <!-- Column Configuration Dropdown - allows users to show/hide table columns -->
-            <!-- The container will be populated by the TableColumnConfig JavaScript class -->
-            <div class="column-config-container margin-right-1"></div>
+        <div class="grid-row">
+            <div class="grid-col-12 display-flex flex-row">
+                <button id="toggle-card" class="usa-button usa-button--outline margin-right-1"
+                    type="button">Cards</button>
+                <button id="toggle-table" class="usa-button usa-button--outline margin-0" type="button">Table</button>
+            </div>
+        </div>
+    </div>
+    <div
+        class="grid-col-12 desktop:grid-col-6 display-flex flex-align-center flex-justify-end margin-top-2 desktop:margin-top-0 flex-row">
+        <!-- Column Configuration Dropdown - allows users to show/hide table columns -->
+        <!-- The container will be populated by the TableColumnConfig JavaScript class -->
+        <div class="column-config-container margin-right-1"></div>
 
-            <!-- Actions Dropdown -->
-            <div class="usa-dropdown position-relative margin-0" id="actions-dropdown">
-                <button id="actions-dropdown-btn" class="usa-button usa-button--secondary margin-0" type="button"
-                    aria-expanded="false" aria-haspopup="true" aria-controls="actions-dropdown-menu"
-                    title="Actions menu">Actions
-                    <i class="ri-arrow-down-s-line margin-left-05"></i>
+        <!-- Actions Dropdown -->
+        <div class="usa-dropdown position-relative" id="actions-dropdown">
+            <button id="actions-dropdown-btn" class="usa-button usa-button--secondary margin-0" type="button"
+                aria-expanded="false" aria-haspopup="true" aria-controls="actions-dropdown-menu"
+                title="Actions menu">Actions
+                <i class="ri-arrow-down-s-line margin-left-05"></i>
+            </button>
+            <div id="actions-dropdown-menu"
+                class="usa-dropdown-menu position-absolute top-auto right-0 bg-white border-1px border-base-lighter shadow-2 z-500 width-card margin-top-05 display-none"
+                role="menu" aria-labelledby="actions-dropdown-btn">
+                <button id="print-report-btn"
+                    class="usa-button usa-button--unstyled width-full text-left padding-2 border-0 hover:bg-base-lightest"
+                    type="button" role="menuitem" title="Generate printable report">
+                    <i class="ri-printer-line margin-right-1"></i>Print Report
                 </button>
-                <div id="actions-dropdown-menu"
-                    class="usa-dropdown-menu position-absolute top-auto right-0 bg-white border-1px border-base-lighter shadow-2 z-500 width-card margin-top-05 display-none"
-                    role="menu" aria-labelledby="actions-dropdown-btn">
-                    <button id="print-report-btn"
-                        class="usa-button usa-button--unstyled width-full text-left padding-2 border-0 hover:bg-base-lightest"
-                        type="button" role="menuitem" title="Generate printable report">
-                        <i class="ri-printer-line margin-right-1"></i>Print Report
-                    </button>
-                    <button id="export-data-btn"
-                        class="usa-button usa-button--unstyled width-full text-left padding-2 border-0 hover:bg-base-lightest"
-                        type="button" role="menuitem" title="Export data as CSV">
-                        <i class="ri-download-line margin-right-1"></i>Export Data (CSV)
-                    </button>
-                </div>
+                <button id="export-data-btn"
+                    class="usa-button usa-button--unstyled width-full text-left padding-2 border-0 hover:bg-base-lightest"
+                    type="button" role="menuitem" title="Export data as CSV">
+                    <i class="ri-download-line margin-right-1"></i>Export Data (CSV)
+                </button>
             </div>
         </div>
     </div>
