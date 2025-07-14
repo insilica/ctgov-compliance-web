@@ -1,73 +1,113 @@
 {% extends "layout.html" %}
 {% block title %}
-    {{ user_email }} - CTGov Compliance
+{{ user_email }} - CTGov Compliance
 {% endblock title %}
 {% block content %}
-    <div class="grid-container-full">
-        <div class="grid-row grid-gap">
-            <div class="grid-col-3 padding-2">{% include "sidebars/metrics_card.html" %}</div>
-            <div class="grid-col-9 padding-2">
-                <div class="usa-card bg-base-lightest shadow-2 margin-bottom-2">
-                    <div class="usa-card__body">
-                        {% with title="Your Clinical Trials" %}
-                            {% include "tables/header.html" %}
-                        {% endwith %}
-                        <div id="card-view">{% include "tables/card.html" with context %}</div>
-                        <div id="table-view" class="display-none">{% include "tables/table.html" with context %}</div>
-                        {% if pagination.total_pages > 1 %}
-                            {% include "tables/pagination.html" with context %}
-                        {% endif %}
-                    </div>
+<div class="grid-container-full">
+    <div class="grid-row grid-gap">
+        <div class="grid-col-3 padding-2">{% include "sidebars/metrics_card.html" %}</div>
+        <div class="grid-col-9 padding-2">
+            <div class="usa-card bg-base-lightest shadow-2 margin-bottom-2">
+                <div class="usa-card__body">
+                    {% with title="Your Clinical Trials" %}
+                    {% include "tables/header.html" %}
+                    {% endwith %}
+                    <div id="card-view">{% include "tables/card.html" with context %}</div>
+                    <div id="table-view" class="display-none">{% include "tables/table.html" with context %}</div>
+                    {% if pagination.total_pages > 1 %}
+                    {% include "tables/pagination.html" with context %}
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    <script>
-        const cardBtn = document.getElementById('toggle-card');
-        const tableBtn = document.getElementById('toggle-table');
-        const cardView = document.getElementById('card-view');
-        const tableView = document.getElementById('table-view');
-        function getQueryParam(name) {
-            const url = new URL(window.location.href);
-            return url.searchParams.get(name);
-        }
-        function setView(view) {
-            if (view === 'table') {
-                cardView.classList.add('display-none');
-                tableView.classList.remove('display-none');
-                tableBtn.classList.add('usa-button--active');
-                cardBtn.classList.remove('usa-button--active');
-            } else {
-                cardView.classList.remove('display-none');
-                tableView.classList.add('display-none');
-                cardBtn.classList.add('usa-button--active');
-                tableBtn.classList.remove('usa-button--active');
-            }
-        }
-        let initialView = getQueryParam('view') || localStorage.getItem('userDashboardView') || 'table';
-        setView(initialView);
-        cardBtn.addEventListener('click', function() {
-            setView('card');
-            localStorage.setItem('userDashboardView', 'card');
-            updatePaginationLinks('card');
-        });
-        tableBtn.addEventListener('click', function() {
-            setView('table');
-            localStorage.setItem('userDashboardView', 'table');
-            updatePaginationLinks('table');
-        });
-        if (initialView === 'card') {
-            cardBtn.classList.add('usa-button--active');
-        } else {
+</div>
+<script>
+    const cardBtn = document.getElementById('toggle-card');
+    const tableBtn = document.getElementById('toggle-table');
+    const cardView = document.getElementById('card-view');
+    const tableView = document.getElementById('table-view');
+    function getQueryParam(name) {
+        const url = new URL(window.location.href);
+        return url.searchParams.get(name);
+    }
+    function setView(view) {
+        if (view === 'table') {
+            cardView.classList.add('display-none');
+            tableView.classList.remove('display-none');
             tableBtn.classList.add('usa-button--active');
+            cardBtn.classList.remove('usa-button--active');
+        } else {
+            cardView.classList.remove('display-none');
+            tableView.classList.add('display-none');
+            cardBtn.classList.add('usa-button--active');
+            tableBtn.classList.remove('usa-button--active');
         }
-        function updatePaginationLinks(view) {
-            document.querySelectorAll('.usa-pagination__link, .usa-pagination__button').forEach(function(link) {
-                let url = new URL(link.href, window.location.origin);
-                url.searchParams.set('view', view);
-                link.href = url.toString();
+    }
+    let initialView = getQueryParam('view') || localStorage.getItem('userDashboardView') || 'table';
+    setView(initialView);
+    cardBtn.addEventListener('click', function () {
+        setView('card');
+        localStorage.setItem('userDashboardView', 'card');
+        updatePaginationLinks('card');
+    });
+    tableBtn.addEventListener('click', function () {
+        setView('table');
+        localStorage.setItem('userDashboardView', 'table');
+        updatePaginationLinks('table');
+    });
+    if (initialView === 'card') {
+        cardBtn.classList.add('usa-button--active');
+    } else {
+        tableBtn.classList.add('usa-button--active');
+    }
+    function updatePaginationLinks(view) {
+        document.querySelectorAll('.usa-pagination__link, .usa-pagination__button').forEach(function (link) {
+            let url = new URL(link.href, window.location.origin);
+            url.searchParams.set('view', view);
+            link.href = url.toString();
+        });
+    }
+    updatePaginationLinks(initialView);
+
+    // Initialize column configuration for the trials table
+    document.addEventListener('DOMContentLoaded', () => {
+        const columnConfig = new TableColumnConfig('trials');
+        columnConfig.insertToggleUI('.column-config-container');
+    });
+
+    // Print Report Functionality
+    document.addEventListener('DOMContentLoaded', function () {
+        const printReportBtn = document.getElementById('print-report-btn');
+
+        if (printReportBtn) {
+            printReportBtn.addEventListener('click', function () {
+                generatePrintReport();
             });
         }
-        updatePaginationLinks(initialView);
-    </script>
+    });
+
+    function generatePrintReport() {
+        // Build report URL
+        const reportUrl = new URL('/report/print', window.location.origin);
+
+        // Copy relevant parameters to report URL
+        const reportParams = new URLSearchParams();
+
+        // Set report type and user ID
+        reportParams.set('type', 'user');
+
+        // Extract user ID from current path
+        const userIdMatch = window.location.pathname.match(/\/user\/(\d+)/);
+        if (userIdMatch) {
+            reportParams.set('user_id', userIdMatch[1]);
+        }
+
+        // Set report URL parameters
+        reportUrl.search = reportParams.toString();
+
+        // Open report in new tab
+        window.open(reportUrl.toString(), '_blank');
+    }
+</script>
 {% endblock content %}

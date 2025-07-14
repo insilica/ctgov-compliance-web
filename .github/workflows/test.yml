@@ -97,9 +97,11 @@ jobs:
               -locations='filesystem:./.flyway/sql' \\
               migrate
             
+            uv sync 
+            
             # Run tests with verbose output
             echo 'Running tests...'
-            python -m pytest tests/ -v --tb=short
+            uv run python3 -m pytest tests/ --tb=short
           "
           
       - name: Upload Flyway Report on Failure

@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTGov Compliance Report</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/uswds.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Print-specific styles */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-break {
+                page-break-before: always;
+            }
+
+            .print-avoid-break {
+                page-break-inside: avoid;
+            }
+
+            table {
+                page-break-inside: auto;
+            }
+
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            .report-header {
+                border-bottom: 2px solid #000;
+                margin-bottom: 1rem;
+                padding-bottom: 1rem;
+            }
+
+            .badge {
+                border: 1px solid #000 !important;
+                background: white !important;
+                color: black !important;
+            }
+
+            .badge-success {
+                border-color: #198a00 !important;
+            }
+
+            .badge-error {
+                border-color: #d83933 !important;
+            }
+
+            .usa-table {
+                border-collapse: collapse !important;
+            }
+
+            .usa-table th,
+            .usa-table td {
+                border: 1px solid #000 !important;
+                padding: 0.5rem !important;
+            }
+        }
+
+        /* Screen styles for preview */
+        @media screen {
+            .report-container {
+                max-width: 8.5in;
+                margin: 0 auto;
+                padding: 1in;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                background: white;
+            }
+
+            .print-controls {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 1000;
+                background: white;
+                padding: 1rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+        }
+
+        .report-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .report-subtitle {
+            font-size: 1rem;
+            color: #5d5d5d;
+            margin-bottom: 1rem;
+        }
+
+        .report-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            font-size: 0.875rem;
+        }
+
+        .report-meta-item {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #dfe1e2;
+            padding-bottom: 0.25rem;
+        }
+
+        .report-section {
+            margin-bottom: 2rem;
+        }
+
+        .report-section-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #005ea2;
+            padding-bottom: 0.5rem;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-stat {
+            text-align: center;
+            padding: 1rem;
+            border: 1px solid #dfe1e2;
+            border-radius: 4px;
+        }
+
+        .summary-stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #005ea2;
+            display: block;
+        }
+
+        .summary-stat-label {
+            font-size: 0.875rem;
+            color: #5d5d5d;
+            margin-top: 0.25rem;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+
+        .report-table th,
+        .report-table td {
+            padding: 0.75rem 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #dfe1e2;
+            font-size: 0.875rem;
+        }
+
+        .report-table th {
+            background: #f0f6fb;
+            font-weight: bold;
+            border-bottom: 2px solid #005ea2;
+        }
+
+        .report-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .search-criteria {
+            background: #f0f6fb;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 2rem;
+        }
+
+        .search-criteria h4 {
+            margin: 0 0 0.5rem 0;
+            font-weight: bold;
+        }
+
+        .search-criteria-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .search-criteria-item {
+            font-size: 0.875rem;
+        }
+
+        .report-footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid #dfe1e2;
+            font-size: 0.75rem;
+            color: #5d5d5d;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Print Controls (hidden when printing) -->
+    <div class="print-controls no-print">
+        <button onclick="window.print()" class="usa-button">
+            <i class="ri-printer-line"></i> Print Report
+        </button>
+        <button onclick="window.close()" class="usa-button usa-button--outline margin-left-1">
+            Close
+        </button>
+    </div>
+
+    <div class="report-container">
+        <!-- Report Header -->
+        <div class="report-header print-avoid-break">
+            <h1 class="report-title">CTGov Compliance Report</h1>
+            <div class="report-subtitle">
+                {% if report_type == 'organizations' %}
+                Organization Compliance Analysis
+                {% elif report_type == 'user' %}
+                User-Specific Compliance Report
+                {% else %}
+                Clinical Trials Compliance Report
+                {% endif %}
+            </div>
+
+            <div class="report-meta">
+                <div class="report-meta-item">
+                    <span><strong>Generated:</strong></span>
+                    <span>{{ report_generated.strftime('%B %d, %Y at %I:%M %p') }}</span>
+                </div>
+                <div class="report-meta-item">
+                    <span><strong>Report Type:</strong></span>
+                    <span>{{ report_type.title() }}</span>
+                </div>
+                {% if pagination %}
+                <div class="report-meta-item">
+                    <span><strong>Total Records:</strong></span>
+                    <span>{{ pagination.total_entries }}</span>
+                </div>
+                <div class="report-meta-item">
+                    <span><strong>Records Shown:</strong></span>
+                    <span>{{ pagination.end_index }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Search Criteria (if applicable) -->
+        {% if search_params or compliance_status_list %}
+        <div class="search-criteria print-avoid-break">
+            <h4>Applied Filters</h4>
+            <ul class="search-criteria-list">
+                {% if search_params.title %}
+                <li class="search-criteria-item"><strong>Trial Title:</strong> {{ search_params.title }}</li>
+                {% endif %}
+                {% if search_params.nct_id %}
+                <li class="search-criteria-item"><strong>NCT ID:</strong> {{ search_params.nct_id }}</li>
+                {% endif %}
+                {% if search_params.organization %}
+                <li class="search-criteria-item"><strong>Organization:</strong> {{ search_params.organization }}</li>
+                {% endif %}
+                {% if search_params.user_email %}
+                <li class="search-criteria-item"><strong>User Email:</strong> {{ search_params.user_email }}</li>
+                {% endif %}
+                {% if search_params.date_from or search_params.date_to %}
+                <li class="search-criteria-item">
+                    <strong>Date Range:</strong>
+                    {{ search_params.date_from or 'Any' }} to {{ search_params.date_to or 'Any' }}
+                    ({{ search_params.date_type or 'completion' }} dates)
+                </li>
+                {% endif %}
+                {% if compliance_status_list %}
+                <li class="search-criteria-item"><strong>Compliance Status:</strong> {{ compliance_status_list | join(',
+                    ') }}</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Summary Statistics -->
+        {% if on_time_count is defined and late_count is defined %}
+        <div class="report-section print-avoid-break">
+            <h3 class="report-section-title">Summary Statistics</h3>
+            <div class="summary-stats">
+                <div class="summary-stat">
+                    <span class="summary-stat-value">{{ total_trials or (on_time_count + late_count) }}</span>
+                    <span class="summary-stat-label">Total Trials</span>
+                </div>
+                <div class="summary-stat">
+                    <span class="summary-stat-value">{{ compliant_count or on_time_count }}</span>
+                    <span class="summary-stat-label">Compliant</span>
+                </div>
+                <div class="summary-stat">
+                    <span class="summary-stat-value">{{ incompliant_count or late_count }}</span>
+                    <span class="summary-stat-label">Non-Compliant</span>
+                </div>
+                {% if pending_count is defined %}
+                <div class="summary-stat">
+                    <span class="summary-stat-value">{{ pending_count }}</span>
+                    <span class="summary-stat-label">Pending Review</span>
+                </div>
+                {% endif %}
+                <div class="summary-stat">
+                    <span class="summary-stat-value">
+                        {% if compliance_rate is defined %}
+                        {{ compliance_rate }}%
+                        {% elif (on_time_count + late_count) > 0 %}
+                        {{ ((on_time_count / (on_time_count + late_count)) * 100) | round(1) }}%
+                        {% else %}
+                        0%
+                        {% endif %}
+                    </span>
+                    <span class="summary-stat-label">Compliance Rate</span>
+                </div>
+                {% if overdue_trials is defined %}
+                <div class="summary-stat">
+                    <span class="summary-stat-value">{{ overdue_trials }}</span>
+                    <span class="summary-stat-label">Overdue Trials</span>
+                </div>
+                {% endif %}
+                {% if trials_due_soon is defined %}
+                <div class="summary-stat">
+                    <span class="summary-stat-value">{{ trials_due_soon }}</span>
+                    <span class="summary-stat-label">Due Soon (30 days)</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Executive Summary -->
+        {% if critical_issues or high_risk_count is defined %}
+        <div class="report-section print-avoid-break">
+            <h3 class="report-section-title">Executive Summary</h3>
+            <div class="executive-summary">
+                <div class="key-findings">
+                    <h4 style="margin: 0 0 1rem 0; color: #005ea2;">Key Findings</h4>
+                    <ul style="margin: 0; padding-left: 1.5rem;">
+                        {% if compliance_rate is defined %}
+                        {% if compliance_rate >= 90 %}
+                        <li><strong>Excellent Compliance:</strong> {{ compliance_rate }}% compliance rate indicates
+                            strong regulatory adherence.</li>
+                        {% elif compliance_rate >= 75 %}
+                        <li><strong>Good Compliance:</strong> {{ compliance_rate }}% compliance rate with room for
+                            improvement.</li>
+                        {% elif compliance_rate >= 50 %}
+                        <li><strong>Moderate Compliance:</strong> {{ compliance_rate }}% compliance rate requires
+                            attention.</li>
+                        {% else %}
+                        <li><strong>Poor Compliance:</strong> {{ compliance_rate }}% compliance rate needs immediate
+                            intervention.</li>
+                        {% endif %}
+                        {% endif %}
+
+                        {% if overdue_trials is defined and overdue_trials > 0 %}
+                        <li><strong>Overdue Trials:</strong> {{ overdue_trials }} trials are past their reporting
+                            deadlines.</li>
+                        {% endif %}
+
+                        {% if trials_due_soon is defined and trials_due_soon > 0 %}
+                        <li><strong>Upcoming Deadlines:</strong> {{ trials_due_soon }} trials have reporting deadlines
+                            in the next 30 days.</li>
+                        {% endif %}
+
+                        {% if avg_days_overdue is defined and avg_days_overdue > 0 %}
+                        <li><strong>Average Delay:</strong> Overdue trials are an average of {{ avg_days_overdue }} days
+                            past deadline.</li>
+                        {% endif %}
+
+                        {% if high_risk_count is defined and high_risk_count > 0 %}
+                        <li><strong>High Risk Trials:</strong> {{ high_risk_count }} trials require immediate attention.
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                {% if critical_issues %}
+                <div class="recommendations" style="margin-top: 1.5rem;">
+                    <h4 style="margin: 0 0 1rem 0; color: #d83933;">Immediate Actions Required</h4>
+                    <ul style="margin: 0; padding-left: 1.5rem;">
+                        {% for issue in critical_issues[:5] %}
+                        <li><strong>{{ issue.priority }} Priority:</strong> {{ issue.description }}</li>
+                        {% endfor %}
+                        {% if critical_issues|length > 5 %}
+                        <li><em>... and {{ critical_issues|length - 5 }} additional items requiring attention.</em></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Critical Issues Alert -->
+        {% if critical_issues %}
+        <div class="report-section print-avoid-break">
+            <h3 class="report-section-title" style="color: #d83933; border-bottom-color: #d83933;">
+                🚨 Critical Issues Requiring Immediate Attention
+            </h3>
+            <div class="critical-issues-list">
+                {% for issue in critical_issues %}
+                <div class="critical-issue-item" style="margin-bottom: 1rem; padding: 1rem; border-left: 4px solid 
+                     {% if issue.priority == 'Critical' %}#d83933{% else %}#ff8c00{% endif %}; background: #fef7f7;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <h5 style="margin: 0; color: #1a4480;">{{ issue.type }} - {{ issue.trial_id or
+                            issue.organization }}</h5>
+                        <span
+                            style="background: {% if issue.priority == 'Critical' %}#d83933{% else %}#ff8c00{% endif %}; 
+                                     color: white; padding: 0.25rem 0.5rem; border-radius: 3px; font-size: 0.75rem; font-weight: bold;">
+                            {{ issue.priority }}
+                        </span>
+                    </div>
+                    <p style="margin: 0; font-size: 0.875rem;">{{ issue.description }}</p>
+                    {% if issue.days_overdue %}
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem; color: #5d5d5d;">
+                        <strong>Days Overdue:</strong> {{ issue.days_overdue }}
+                    </p>
+                    {% endif %}
+                    {% if issue.days_until_due %}
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem; color: #5d5d5d;">
+                        <strong>Days Until Due:</strong> {{ issue.days_until_due }}
+                    </p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Risk Analysis (if available) -->
+        {% if high_risk_count is defined or medium_risk_count is defined %}
+        <div class="report-section print-avoid-break">
+            <h3 class="report-section-title">Risk Analysis</h3>
+            <div class="risk-analysis">
+                <div class="summary-stats">
+                    {% if high_risk_count is defined %}
+                    <div class="summary-stat" style="border-color: #d83933;">
+                        <span class="summary-stat-value" style="color: #d83933;">{{ high_risk_count }}</span>
+                        <span class="summary-stat-label">High Risk</span>
+                    </div>
+                    {% endif %}
+                    {% if medium_risk_count is defined %}
+                    <div class="summary-stat" style="border-color: #ff8c00;">
+                        <span class="summary-stat-value" style="color: #ff8c00;">{{ medium_risk_count }}</span>
+                        <span class="summary-stat-label">Medium Risk</span>
+                    </div>
+                    {% endif %}
+                    {% if low_risk_count is defined %}
+                    <div class="summary-stat" style="border-color: #198a00;">
+                        <span class="summary-stat-value" style="color: #198a00;">{{ low_risk_count }}</span>
+                        <span class="summary-stat-label">Low Risk</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div style="margin-top: 1rem; padding: 1rem; background: #f0f6fb; border-radius: 4px;">
+                    <h5 style="margin: 0 0 0.5rem 0;">Risk Level Definitions:</h5>
+                    <ul style="margin: 0; padding-left: 1.5rem; font-size: 0.875rem;">
+                        <li><strong>High Risk:</strong> Trials that are overdue for compliance reporting</li>
+                        <li><strong>Medium Risk:</strong> Trials with reporting due within 30 days</li>
+                        <li><strong>Low Risk:</strong> Trials with reporting due within 60 days</li>
+                        <li><strong>Normal:</strong> Trials with adequate time before reporting deadline</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Main Data Table -->
+        <div class="report-section">
+            {% if report_type == 'organizations' and org_compliance %}
+            <h3 class="report-section-title">Organization Compliance Data</h3>
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Organization</th>
+                        <th>Total Trials</th>
+                        <th>Compliant</th>
+                        <th>Non-Compliant</th>
+                        <th>Pending</th>
+                        <th>Compliance Rate</th>
+                        <th>High Risk Trials</th>
+                        <th>Avg Days Overdue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for org in org_compliance %}
+                    <tr>
+                        <td>{{ org.name }}</td>
+                        <td>{{ org.total_trials }}</td>
+                        <td>{{ org.on_time_count }}</td>
+                        <td>{{ org.late_count }}</td>
+                        <td>{{ org.pending_count or 0 }}</td>
+                        <td>
+                            {% set compliance_rate = ((org.on_time_count / org.total_trials * 100) if org.total_trials >
+                            0 else 0) %}
+                            <span
+                                style="color: {% if compliance_rate >= 80 %}#198a00{% elif compliance_rate >= 60 %}#ff8c00{% else %}#d83933{% endif %}">
+                                {{ compliance_rate | round(1) }}%
+                            </span>
+                        </td>
+                        <td>{{ org.high_risk_trials or 0 }}</td>
+                        <td>
+                            {% if org.total_overdue_days and org.late_count > 0 %}
+                            {{ (org.total_overdue_days / org.late_count) | round(1) }}
+                            {% else %}
+                            0
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% elif enhanced_trials %}
+            <h3 class="report-section-title">Enhanced Clinical Trials Data</h3>
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>NCT ID</th>
+                        <th>Organization</th>
+                        <th>Status</th>
+                        <th>Risk Level</th>
+                        <th>Days Overdue</th>
+                        <th>Days Until Due</th>
+                        <th>Due Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trial in enhanced_trials %}
+                    <tr>
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">{{ trial.title }}</td>
+                        <td>{{ trial.nct_id }}</td>
+                        <td>{{ trial.name }}</td>
+                        <td>
+                            {% if trial.status %}
+                            <span
+                                class="badge {% if trial.status|lower == 'compliant' %}badge-success{% else %}badge-error{% endif %}">
+                                {{ trial.status }}
+                            </span>
+                            {% else %}
+                            <span style="color: #5d5d5d;">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span style="color: 
+                                    {% if trial.risk_level == 'High' %}#d83933
+                                    {% elif trial.risk_level == 'Medium' %}#ff8c00
+                                    {% elif trial.risk_level == 'Low' %}#198a00
+                                    {% else %}#005ea2{% endif %}">
+                                {{ trial.risk_level }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if trial.days_overdue > 0 %}
+                            <span style="color: #d83933; font-weight: bold;">{{ trial.days_overdue }}</span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if trial.days_until_due > 0 %}
+                            <span
+                                style="color: {% if trial.days_until_due <= 7 %}#d83933{% elif trial.days_until_due <= 30 %}#ff8c00{% else %}#198a00{% endif %}">
+                                {{ trial.days_until_due }}
+                            </span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>{{ trial.reporting_due_date.strftime("%m/%d/%Y") if trial.reporting_due_date else '-' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% elif trials %}
+            <h3 class="report-section-title">Clinical Trials Data</h3>
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>NCT ID</th>
+                        <th>Organization</th>
+                        <th>User</th>
+                        <th>Status</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Due Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trial in trials %}
+                    <tr>
+                        <td>{{ trial.title }}</td>
+                        <td>{{ trial.nct_id }}</td>
+                        <td>{{ trial.name }}</td>
+                        <td>{{ trial.email }}</td>
+                        <td>
+                            {% if trial.status %}
+                            <span
+                                class="badge {% if trial.status|lower == 'compliant' %}badge-success{% else %}badge-error{% endif %}">
+                                {{ trial.status }}
+                            </span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>{{ trial.start_date.strftime("%m/%d/%Y") if trial.start_date else '-' }}</td>
+                        <td>{{ trial.completion_date.strftime("%m/%d/%Y") if trial.completion_date else '-' }}</td>
+                        <td>{{ trial.reporting_due_date.strftime("%m/%d/%Y") if trial.reporting_due_date else '-' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center" style="padding: 2rem;">
+                <h3>No Data Available</h3>
+                <p>No records match the selected criteria.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Report Footer -->
+        <div class="report-footer">
+            <p>This report was generated by the CTGov Compliance system on {{ report_generated.strftime('%B %d, %Y at
+                %I:%M %p') }}.</p>
+            <p>For questions about this report, please contact your system administrator.</p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-focus print dialog when opening in new tab
+        if (window.location.search.includes('auto_print=true')) {
+            window.onload = function () {
+                setTimeout(function () {
+                    window.print();
+                }, 500);
+            };
+        }
+    </script>
+</body>
+
+</html>

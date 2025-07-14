@@ -1,49 +1,239 @@
 {% block content %}
-    <div class="grid-row grid-gap margin-bottom-2">
-        <div class="desktop:grid-col-fill text-left">
-            <h2 class="usa-heading margin-y-1 text-ink">{{ title }}</h2>
-            {% if pagination %}
-                <span class="usa-hint text-primary">Showing {{ pagination.end_index }} of {{
-                    pagination.total_entries }}
-                entries</span>
-            {% endif %}
-        </div>
-        <div class="grid-col-auto display-flex flex-row flex-justify-center flex-align-center">
-            <form method="get" class="display-inline">
-                {% for key, value in request.args.items() %}
-                    {% if key != 'per_page' and key != 'page' %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}
-                {% endfor %}
-                <div class="grid-row">
-                    <div class="grid-col-12">
-                        <label class="usa-label margin-0" for="entries-per-page">Rows per page:</label>
-                    </div>
-                </div>
-                <div class="grid-row">
-                    <div class="grid-col-12">
-                        <select class="usa-select margin-0"
-                                id="entries-per-page"
-                                name="per_page"
-                                onchange="this.form.submit()">
-                            <option value="10" {% if per_page==10 %}selected{% endif %}>10</option>
-                            <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
-                            <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
-                            <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
-                        </select>
-                        <input type="hidden" name="page" value="1">
-                    </div>
-                </div>
-            </form>
-        </div>
+<div class="grid-row grid-gap margin-bottom-2">
+    <div class="desktop:grid-col-fill text-left">
+        <h2 class="usa-heading margin-y-1 text-ink">{{ title }}</h2>
+        {% if pagination %}
+        <span class="usa-hint text-primary">Showing {{ pagination.end_index }} of {{
+            pagination.total_entries }}
+            entries</span>
+        {% endif %}
     </div>
-    <div class="margin-bottom-2">
-        <div class="display-flex flex-align-center">
+    <div class="grid-col-auto display-flex flex-row flex-justify-center flex-align-center">
+        <form method="get" class="display-inline">
+            {% for key, value in request.args.items() %}
+            {% if key != 'per_page' and key != 'page' %}<input type="hidden" name="{{ key }}" value="{{ value }}">{%
+            endif %}
+            {% endfor %}
+            <div class="grid-row">
+                <div class="grid-col-12">
+                    <label class="usa-label margin-0" for="entries-per-page">Rows per page:</label>
+                </div>
+            </div>
+            <div class="grid-row">
+                <div class="grid-col-12">
+                    <select class="usa-select margin-0" id="entries-per-page" name="per_page"
+                        onchange="this.form.submit()">
+                        <option value="10" {% if per_page==10 %}selected{% endif %}>10</option>
+                        <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
+                        <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
+                        <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
+                    </select>
+                    <input type="hidden" name="page" value="1">
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="margin-bottom-2">
+    <div class="display-flex flex-align-center">
+        <div class="display-flex flex-align-center flex-2">
             <span class="font-sans-sm margin-right-1">View as:</span>
-            <button id="toggle-card"
-                    class="usa-button usa-button--outline margin-right-1"
-                    type="button">Cards</button>
-            <button id="toggle-table"
-                    class="usa-button usa-button--outline"
-                    type="button">Table</button>
+            <button id="toggle-card" class="usa-button usa-button--outline margin-right-1" type="button">Cards</button>
+            <button id="toggle-table" class="usa-button usa-button--outline" type="button">Table</button>
+        </div>
+        <div class="display-flex flex-align-center">
+            <!-- Column Configuration Dropdown - allows users to show/hide table columns -->
+            <!-- The container will be populated by the TableColumnConfig JavaScript class -->
+            <div class="column-config-container margin-right-1"></div>
+
+            <!-- Actions Dropdown -->
+            <div class="usa-dropdown position-relative margin-0" id="actions-dropdown">
+                <button id="actions-dropdown-btn" class="usa-button usa-button--secondary margin-0" type="button"
+                    aria-expanded="false" aria-haspopup="true" aria-controls="actions-dropdown-menu"
+                    title="Actions menu">Actions
+                    <i class="ri-arrow-down-s-line margin-left-05"></i>
+                </button>
+                <div id="actions-dropdown-menu"
+                    class="usa-dropdown-menu position-absolute top-auto right-0 bg-white border-1px border-base-lighter shadow-2 z-500 width-card margin-top-05 display-none"
+                    role="menu" aria-labelledby="actions-dropdown-btn">
+                    <button id="print-report-btn"
+                        class="usa-button usa-button--unstyled width-full text-left padding-2 border-0 hover:bg-base-lightest"
+                        type="button" role="menuitem" title="Generate printable report">
+                        <i class="ri-printer-line margin-right-1"></i>Print Report
+                    </button>
+                    <button id="export-data-btn"
+                        class="usa-button usa-button--unstyled width-full text-left padding-2 border-0 hover:bg-base-lightest"
+                        type="button" role="menuitem" title="Export data as CSV">
+                        <i class="ri-download-line margin-right-1"></i>Export Data (CSV)
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
+</div>
+
+<style>
+    /* Custom dropdown styles using USWDS patterns */
+    .usa-dropdown-menu {
+        min-width: 150px;
+        border-radius: 0.25rem;
+    }
+
+    .usa-dropdown-menu button:hover:not(:disabled) {
+        background-color: #f0f0f0 !important;
+    }
+
+    .usa-dropdown-menu button:focus {
+        outline: 0.25rem solid #2491ff;
+        outline-offset: 0;
+    }
+
+    .usa-dropdown-menu button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Arrow rotation animation */
+    #actions-dropdown-btn[aria-expanded="true"] .ri-arrow-down-s-line {
+        transform: rotate(180deg);
+    }
+
+    #actions-dropdown-btn .ri-arrow-down-s-line {
+        transition: transform 0.15s ease-in-out;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const dropdownBtn = document.getElementById('actions-dropdown-btn');
+        const dropdownMenu = document.getElementById('actions-dropdown-menu');
+        const dropdown = document.getElementById('actions-dropdown');
+        const exportBtn = document.getElementById('export-data-btn');
+
+        function toggleDropdown() {
+            const isExpanded = dropdownBtn.getAttribute('aria-expanded') === 'true';
+
+            if (isExpanded) {
+                closeDropdown();
+            } else {
+                openDropdown();
+            }
+        }
+
+        function openDropdown() {
+            dropdownBtn.setAttribute('aria-expanded', 'true');
+            dropdownMenu.classList.remove('display-none');
+
+            // Focus first menu item
+            const firstMenuItem = dropdownMenu.querySelector('button:not(:disabled)');
+            if (firstMenuItem) {
+                firstMenuItem.focus();
+            }
+        }
+
+        function closeDropdown() {
+            dropdownBtn.setAttribute('aria-expanded', 'false');
+            dropdownMenu.classList.add('display-none');
+        }
+
+        // Toggle dropdown on button click
+        dropdownBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            toggleDropdown();
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!dropdown.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        // Handle keyboard navigation
+        dropdown.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeDropdown();
+                dropdownBtn.focus();
+            } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                const menuItems = Array.from(dropdownMenu.querySelectorAll('button:not(:disabled)'));
+                const currentIndex = menuItems.indexOf(document.activeElement);
+
+                let nextIndex;
+                if (e.key === 'ArrowDown') {
+                    nextIndex = currentIndex < menuItems.length - 1 ? currentIndex + 1 : 0;
+                } else {
+                    nextIndex = currentIndex > 0 ? currentIndex - 1 : menuItems.length - 1;
+                }
+
+                menuItems[nextIndex].focus();
+            }
+        });
+
+        // Handle menu item clicks
+        dropdownMenu.addEventListener('click', function (e) {
+            if (e.target.tagName === 'BUTTON' && !e.target.disabled) {
+                closeDropdown();
+            }
+        });
+
+        // Export CSV functionality
+        if (exportBtn) {
+            exportBtn.addEventListener('click', function () {
+                generateCSVExport();
+            });
+        }
+
+        function generateCSVExport() {
+            // Get current URL parameters
+            const currentParams = new URLSearchParams(window.location.search);
+
+            // Build export URL
+            const exportUrl = new URL('/export/csv', window.location.origin);
+
+            // Copy relevant parameters to export URL
+            const exportParams = new URLSearchParams();
+
+            // Copy search parameters
+            ['title', 'nct_id', 'organization', 'user_email', 'date_type', 'date_from', 'date_to'].forEach(param => {
+                if (currentParams.has(param)) {
+                    exportParams.set(param, currentParams.get(param));
+                }
+            });
+
+            // Copy compliance status parameters
+            const complianceStatus = currentParams.getAll('compliance_status[]');
+            complianceStatus.forEach(status => {
+                exportParams.append('compliance_status[]', status);
+            });
+
+            // Determine export type based on current page
+            const path = window.location.pathname;
+            if (path.includes('/compare')) {
+                exportParams.set('type', 'organizations');
+                // Copy organization filter parameters
+                ['min_compliance', 'max_compliance', 'min_trials', 'max_trials'].forEach(param => {
+                    if (currentParams.has(param)) {
+                        exportParams.set(param, currentParams.get(param));
+                    }
+                });
+            } else if (path.includes('/user/')) {
+                exportParams.set('type', 'user');
+                // Extract user ID from path
+                const userIdMatch = path.match(/\/user\/(\d+)/);
+                if (userIdMatch) {
+                    exportParams.set('user_id', userIdMatch[1]);
+                }
+            } else {
+                exportParams.set('type', 'trials');
+            }
+
+            // Set export URL parameters
+            exportUrl.search = exportParams.toString();
+
+            // Trigger download by navigating to the export URL
+            window.location.href = exportUrl.toString();
+        }
+    });
+</script>
 {% endblock content %}

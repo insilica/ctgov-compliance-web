@@ -1,77 +1,623 @@
 {% extends "layout.html" %}
 {% block title %}
-    Dashboard - CTGov Compliance
+Dashboard - CTGov Compliance
 {% endblock title %}
 {% block content %}
-    <div class="grid-container-full">
-        <div class="grid-row grid-gap">
-            <div class="desktop:grid-col-3 padding-y-2">{% include "sidebars/search.html" %}</div>
-            <div class="desktop:grid-col-9 padding-y-2">
-                <div class="usa-card bg-base-lightest shadow-2 margin-bottom-2">
-                    <div class="usa-card__body">
-                        {% with title="Clinical Trials Data" %}
-                            {% include "tables/header.html" %}
-                        {% endwith %}
-                        <div id="card-view">{% include "tables/card.html" with context %}</div>
-                        <div id="table-view" class="display-none">{% include "tables/table.html" with context %}</div>
-                        {% if pagination.total_pages > 1 %}
-                            {% include "tables/pagination.html" with context %}
-                        {% endif %}
-                    </div>
+<div class="grid-container-full">
+    <div class="grid-row grid-gap">
+        <div class="desktop:grid-col-3 padding-y-2">{% include "sidebars/search.html" %}</div>
+        <div class="desktop:grid-col-9 padding-y-2">
+            <div class="usa-card bg-base-lightest shadow-2 margin-bottom-2">
+                <div class="usa-card__body">
+                    {% with title="Clinical Trials Data" %}
+                    {% include "tables/header.html" %}
+                    {% endwith %}
+                    <div id="card-view">{% include "tables/card.html" with context %}</div>
+                    <div id="table-view" class="display-none">{% include "tables/table.html" with context %}</div>
+                    {% if pagination.total_pages > 1 %}
+                    {% include "tables/pagination.html" with context %}
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    <script>
-        const cardBtn = document.getElementById('toggle-card');
-        const tableBtn = document.getElementById('toggle-table');
-        const cardView = document.getElementById('card-view');
-        const tableView = document.getElementById('table-view');
-        // Restore view from localStorage or query param
-        function getQueryParam(name) {
-            const url = new URL(window.location.href);
-            return url.searchParams.get(name);
+</div>
+<script>
+    const cardBtn = document.getElementById('toggle-card');
+    const tableBtn = document.getElementById('toggle-table');
+    const cardView = document.getElementById('card-view');
+    const tableView = document.getElementById('table-view');
+    // Restore view from localStorage or query param
+    function getQueryParam(name) {
+        const url = new URL(window.location.href);
+        return url.searchParams.get(name);
+    }
+    function setView(view) {
+        if (view === 'table') {
+            cardView.classList.add('display-none');
+            tableView.classList.remove('display-none');
+            tableBtn.classList.add('usa-button--active');
+            cardBtn.classList.remove('usa-button--active');
+        } else {
+            cardView.classList.remove('display-none');
+            tableView.classList.add('display-none');
+            cardBtn.classList.add('usa-button--active');
+            tableBtn.classList.remove('usa-button--active');
         }
-        function setView(view) {
-            if (view === 'table') {
-                cardView.classList.add('display-none');
-                tableView.classList.remove('display-none');
-                tableBtn.classList.add('usa-button--active');
-                cardBtn.classList.remove('usa-button--active');
-            } else {
-                cardView.classList.remove('display-none');
-                tableView.classList.add('display-none');
-                cardBtn.classList.add('usa-button--active');
-                tableBtn.classList.remove('usa-button--active');
+    }
+    let initialView = getQueryParam('view') || localStorage.getItem('dashboardView') || 'table';
+    setView(initialView);
+    cardBtn.addEventListener('click', function () {
+        setView('card');
+        localStorage.setItem('dashboardView', 'card');
+        updatePaginationLinks('card');
+    });
+    tableBtn.addEventListener('click', function () {
+        setView('table');
+        localStorage.setItem('dashboardView', 'table');
+        updatePaginationLinks('table');
+    });
+    // Set initial state
+    if (initialView === 'card') {
+        cardBtn.classList.add('usa-button--active');
+    } else {
+        tableBtn.classList.add('usa-button--active');
+    }
+    // Update pagination links to include view param
+    function updatePaginationLinks(view) {
+        document.querySelectorAll('.usa-pagination__link, .usa-pagination__button').forEach(function (link) {
+            let url = new URL(link.href, window.location.origin);
+            url.searchParams.set('view', view);
+            link.href = url.toString();
+        });
+    }
+    // On page load, update pagination links
+    updatePaginationLinks(initialView);
+
+    // Search History Functionality
+    class SearchHistory {
+        constructor() {
+            this.storageKey = 'ctgov_search_history';
+            this.maxHistoryItems = 10;
+            this.searchForm = document.getElementById('search-form');
+            this.historySection = document.getElementById('search-history-section');
+            this.historyList = document.getElementById('search-history-list');
+            this.clearAllBtn = document.getElementById('clear-all-history');
+
+            this.init();
+        }
+
+        init() {
+            this.loadHistory();
+            this.bindEvents();
+            this.checkIfSearchPerformed();
+        }
+
+        bindEvents() {
+            // Save search when form is submitted
+            if (this.searchForm) {
+                this.searchForm.addEventListener('submit', (e) => {
+                    this.saveCurrentSearch();
+                });
+            }
+
+            // Clear all history
+            if (this.clearAllBtn) {
+                this.clearAllBtn.addEventListener('click', () => {
+                    this.clearAllHistory();
+                });
             }
         }
-        let initialView = getQueryParam('view') || localStorage.getItem('dashboardView') || 'table';
-        setView(initialView);
-        cardBtn.addEventListener('click', function() {
-            setView('card');
-            localStorage.setItem('dashboardView', 'card');
-            updatePaginationLinks('card');
-        });
-        tableBtn.addEventListener('click', function() {
-            setView('table');
-            localStorage.setItem('dashboardView', 'table');
-            updatePaginationLinks('table');
-        });
-        // Set initial state
-        if (initialView === 'card') {
-            cardBtn.classList.add('usa-button--active');
-        } else {
-            tableBtn.classList.add('usa-button--active');
+
+        checkIfSearchPerformed() {
+            // Check if current page has search parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasSearchParams = Array.from(urlParams.keys()).some(key =>
+                ['title', 'nct_id', 'organization', 'user_email', 'date_from', 'date_to', 'compliance_status[]'].includes(key)
+            );
+
+            if (hasSearchParams) {
+                this.saveSearchFromURL();
+            }
         }
-        // Update pagination links to include view param
-        function updatePaginationLinks(view) {
-            document.querySelectorAll('.usa-pagination__link, .usa-pagination__button').forEach(function(link) {
-                let url = new URL(link.href, window.location.origin);
-                url.searchParams.set('view', view);
-                link.href = url.toString();
+
+        saveCurrentSearch() {
+            const formData = new FormData(this.searchForm);
+            const searchParams = {};
+
+            // Collect all form parameters
+            for (let [key, value] of formData.entries()) {
+                if (value.trim()) {
+                    if (key === 'compliance_status[]') {
+                        if (!searchParams[key]) searchParams[key] = [];
+                        searchParams[key].push(value);
+                    } else {
+                        searchParams[key] = value;
+                    }
+                }
+            }
+
+            this.saveSearch(searchParams);
+        }
+
+        saveSearchFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchParams = {};
+
+            for (let [key, value] of urlParams.entries()) {
+                if (value.trim()) {
+                    if (key === 'compliance_status[]') {
+                        if (!searchParams[key]) searchParams[key] = [];
+                        searchParams[key].push(value);
+                    } else if (['title', 'nct_id', 'organization', 'user_email', 'date_type', 'date_from', 'date_to'].includes(key)) {
+                        searchParams[key] = value;
+                    }
+                }
+            }
+
+            if (Object.keys(searchParams).length > 0) {
+                this.saveSearch(searchParams);
+            }
+        }
+
+        saveSearch(searchParams) {
+            if (Object.keys(searchParams).length === 0) return;
+
+            let history = this.getHistory();
+
+            // Create search entry
+            const searchEntry = {
+                id: Date.now(),
+                timestamp: new Date().toISOString(),
+                params: searchParams,
+                displayText: this.generateDisplayText(searchParams)
+            };
+
+            // Remove duplicates (same search parameters)
+            history = history.filter(item =>
+                JSON.stringify(item.params) !== JSON.stringify(searchParams)
+            );
+
+            // Add to beginning of array
+            history.unshift(searchEntry);
+
+            // Limit to max items
+            if (history.length > this.maxHistoryItems) {
+                history = history.slice(0, this.maxHistoryItems);
+            }
+
+            // Save to localStorage
+            localStorage.setItem(this.storageKey, JSON.stringify(history));
+
+            // Refresh display
+            this.displayHistory();
+        }
+
+        generateDisplayText(params) {
+            const parts = [];
+
+            if (params.title) parts.push(`Title: "${params.title}"`);
+            if (params.nct_id) parts.push(`NCT ID: "${params.nct_id}"`);
+            if (params.organization) parts.push(`Org: "${params.organization}"`);
+            if (params.user_email) parts.push(`Email: "${params.user_email}"`);
+            if (params.date_from || params.date_to) {
+                const dateType = params.date_type || 'completion';
+                const from = params.date_from || '';
+                const to = params.date_to || '';
+                parts.push(`${dateType} dates: ${from} - ${to}`);
+            }
+            if (params['compliance_status[]']) {
+                parts.push(`Status: ${params['compliance_status[]'].join(', ')}`);
+            }
+
+            return parts.length > 0 ? parts.join(' • ') : 'All records';
+        }
+
+        getHistory() {
+            try {
+                return JSON.parse(localStorage.getItem(this.storageKey)) || [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        loadHistory() {
+            this.displayHistory();
+        }
+
+        displayHistory() {
+            const history = this.getHistory();
+
+            if (history.length === 0) {
+                this.historySection.style.display = 'none';
+                return;
+            }
+
+            this.historySection.style.display = 'block';
+            this.historyList.innerHTML = '';
+
+            history.forEach(item => {
+                const historyItem = this.createHistoryItem(item);
+                this.historyList.appendChild(historyItem);
             });
         }
-        // On page load, update pagination links
-        updatePaginationLinks(initialView);
-    </script>
+
+        createHistoryItem(item) {
+            const div = document.createElement('div');
+            div.className = 'search-history-item';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'search-history-content';
+
+            const queryP = document.createElement('p');
+            queryP.className = 'search-history-query';
+            queryP.textContent = this.createQuerySummary(item.params);
+
+            const paramsP = document.createElement('p');
+            paramsP.className = 'search-history-params';
+            paramsP.textContent = item.displayText;
+
+            contentDiv.appendChild(queryP);
+            contentDiv.appendChild(paramsP);
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'search-history-actions';
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'search-history-delete';
+            deleteBtn.innerHTML = '<i class="ri-close-line"></i>';
+            deleteBtn.title = 'Remove from history';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.removeHistoryItem(item.id);
+            });
+
+            actionsDiv.appendChild(deleteBtn);
+
+            div.appendChild(contentDiv);
+            div.appendChild(actionsDiv);
+
+            // Make item clickable to restore search
+            div.addEventListener('click', () => {
+                this.restoreSearch(item.params);
+            });
+
+            return div;
+        }
+
+        createQuerySummary(params) {
+            const parts = [];
+            if (params.title) parts.push(params.title);
+            if (params.nct_id) parts.push(params.nct_id);
+            if (params.organization) parts.push(params.organization);
+
+            return parts.length > 0 ? parts.join(' • ') : 'General search';
+        }
+
+        restoreSearch(params) {
+            // Build URL with search parameters
+            const url = new URL(window.location.href);
+            const searchParams = new URLSearchParams();
+
+            // Clear existing search params
+            ['title', 'nct_id', 'organization', 'user_email', 'date_type', 'date_from', 'date_to', 'compliance_status[]'].forEach(param => {
+                searchParams.delete(param);
+            });
+
+            // Add stored parameters
+            Object.entries(params).forEach(([key, value]) => {
+                if (Array.isArray(value)) {
+                    value.forEach(v => searchParams.append(key, v));
+                } else {
+                    searchParams.set(key, value);
+                }
+            });
+
+            // Preserve view parameter
+            const currentView = getQueryParam('view');
+            if (currentView) {
+                searchParams.set('view', currentView);
+            }
+
+            // Navigate to search
+            url.search = searchParams.toString();
+            window.location.href = url.toString();
+        }
+
+        removeHistoryItem(id) {
+            let history = this.getHistory();
+            history = history.filter(item => item.id !== id);
+            localStorage.setItem(this.storageKey, JSON.stringify(history));
+            this.displayHistory();
+        }
+
+        clearAllHistory() {
+            localStorage.removeItem(this.storageKey);
+            this.displayHistory();
+        }
+    }
+
+    // Initialize column configuration when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        new SearchHistory();
+
+        // Initialize column configuration for the trials table
+        const columnConfig = new TableColumnConfig('trials');
+        columnConfig.insertToggleUI('.column-config-container');
+    });
+
+    // Filter Presets Functionality
+    class FilterPresets {
+        constructor() {
+            this.searchForm = document.getElementById('search-form');
+            this.presetButtons = document.querySelectorAll('.preset-btn');
+            this.init();
+        }
+
+        init() {
+            this.bindEvents();
+            this.detectActivePreset();
+        }
+
+        bindEvents() {
+            this.presetButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const preset = button.getAttribute('data-preset');
+                    this.applyPreset(preset);
+                });
+            });
+        }
+
+        applyPreset(presetName) {
+            // Clear all form fields first
+            this.clearForm();
+
+            // Clear active states
+            this.clearActiveStates();
+
+            switch (presetName) {
+                case 'overdue-trials':
+                    this.applyOverdueTrialsPreset();
+                    break;
+                case 'noncompliant-only':
+                    this.applyNoncompliantOnlyPreset();
+                    break;
+                case 'recent-completions':
+                    this.applyRecentCompletionsPreset();
+                    break;
+                case 'due-soon':
+                    this.applyDueSoonPreset();
+                    break;
+                case 'clear-all':
+                    this.clearForm();
+                    this.clearActiveStates();
+                    // Submit form to show all results
+                    this.searchForm.submit();
+                    return;
+            }
+
+            // Set active state for clicked button
+            this.setActivePreset(presetName);
+
+            // Submit the form with the preset filters
+            this.searchForm.submit();
+        }
+
+        clearForm() {
+            // Clear text inputs
+            document.getElementById('trial-title').value = '';
+            document.getElementById('nct-id').value = '';
+            document.getElementById('organization').value = '';
+            document.getElementById('user-email').value = '';
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
+
+            // Reset date type to default
+            document.getElementById('date-range').value = 'completion';
+
+            // Uncheck compliance status checkboxes
+            document.getElementById('compliant').checked = false;
+            document.getElementById('non-compliant').checked = false;
+        }
+
+        applyOverdueTrialsPreset() {
+            // Set date type to "due" and date range to past dates
+            document.getElementById('date-range').value = 'due';
+
+            // Set "to" date to yesterday to get overdue trials
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            document.getElementById('date-to').value = yesterday.toISOString().split('T')[0];
+
+            // Check noncompliant status
+            document.getElementById('non-compliant').checked = true;
+        }
+
+        applyNoncompliantOnlyPreset() {
+            // Only check noncompliant status
+            document.getElementById('non-compliant').checked = true;
+        }
+
+        applyRecentCompletionsPreset() {
+            // Set date type to "completion" and last 30 days
+            document.getElementById('date-range').value = 'completion';
+
+            const today = new Date();
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+
+            document.getElementById('date-from').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('date-to').value = today.toISOString().split('T')[0];
+        }
+
+        applyDueSoonPreset() {
+            // Set date type to "due" and next 30 days
+            document.getElementById('date-range').value = 'due';
+
+            const today = new Date();
+            const thirtyDaysFromNow = new Date();
+            thirtyDaysFromNow.setDate(today.getDate() + 30);
+
+            document.getElementById('date-from').value = today.toISOString().split('T')[0];
+            document.getElementById('date-to').value = thirtyDaysFromNow.toISOString().split('T')[0];
+        }
+
+        detectActivePreset() {
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // Check if any search parameters exist
+            const hasTitle = urlParams.get('title');
+            const hasNctId = urlParams.get('nct_id');
+            const hasOrg = urlParams.get('organization');
+            const hasUserEmail = urlParams.get('user_email');
+            const dateType = urlParams.get('date_type') || 'completion';
+            const dateFrom = urlParams.get('date_from');
+            const dateTo = urlParams.get('date_to');
+            const complianceStatus = urlParams.getAll('compliance_status[]');
+
+            // If no parameters at all, no preset is active
+            if (!hasTitle && !hasNctId && !hasOrg && !hasUserEmail && !dateFrom && !dateTo && complianceStatus.length === 0) {
+                return;
+            }
+
+            // If any text search fields are filled, no preset matches
+            if (hasTitle || hasNctId || hasOrg || hasUserEmail) {
+                return;
+            }
+
+            // Check for noncompliant-only preset
+            if (complianceStatus.length === 1 && complianceStatus[0] === 'incompliant' && !dateFrom && !dateTo) {
+                this.setActivePreset('noncompliant-only');
+                return;
+            }
+
+            // Check for presets with date ranges
+            if (dateFrom && dateTo) {
+                const fromDate = new Date(dateFrom);
+                const toDate = new Date(dateTo);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                if (dateType === 'due') {
+                    // Check for overdue trials preset
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+
+                    if (toDate <= yesterday && complianceStatus.length === 1 && complianceStatus[0] === 'incompliant') {
+                        this.setActivePreset('overdue-trials');
+                        return;
+                    }
+
+                    // Check for due-soon preset (next 30 days from today)
+                    const thirtyDaysFromNow = new Date(today);
+                    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+                    const fromDateMatches = Math.abs(fromDate - today) <= 24 * 60 * 60 * 1000; // Within 1 day
+                    const toDateMatches = Math.abs(toDate - thirtyDaysFromNow) <= 24 * 60 * 60 * 1000; // Within 1 day
+
+                    if (fromDateMatches && toDateMatches && complianceStatus.length === 0) {
+                        this.setActivePreset('due-soon');
+                        return;
+                    }
+                }
+
+                if (dateType === 'completion') {
+                    // Check for recent-completions preset (last 30 days)
+                    const thirtyDaysAgo = new Date(today);
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+                    const fromDateMatches = Math.abs(fromDate - thirtyDaysAgo) <= 24 * 60 * 60 * 1000; // Within 1 day
+                    const toDateMatches = Math.abs(toDate - today) <= 24 * 60 * 60 * 1000; // Within 1 day
+
+                    if (fromDateMatches && toDateMatches && complianceStatus.length === 0) {
+                        this.setActivePreset('recent-completions');
+                        return;
+                    }
+                }
+            }
+        }
+
+        setActivePreset(presetName) {
+            this.clearActiveStates();
+            const button = document.querySelector(`[data-preset="${presetName}"]`);
+            if (button) {
+                button.classList.add('preset-active');
+            }
+        }
+
+        clearActiveStates() {
+            this.presetButtons.forEach(button => {
+                button.classList.remove('preset-active');
+            });
+        }
+    }
+
+    // Initialize filter presets when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        new FilterPresets();
+    });
+
+    // Print Report Functionality
+    document.addEventListener('DOMContentLoaded', function () {
+        const printReportBtn = document.getElementById('print-report-btn');
+
+        if (printReportBtn) {
+            printReportBtn.addEventListener('click', function () {
+                generatePrintReport();
+            });
+        }
+    });
+
+    function generatePrintReport() {
+        // Get current URL parameters
+        const currentParams = new URLSearchParams(window.location.search);
+
+        // Build report URL
+        const reportUrl = new URL('/report/print', window.location.origin);
+
+        // Copy relevant parameters to report URL
+        const reportParams = new URLSearchParams();
+
+        // Copy search parameters
+        ['title', 'nct_id', 'organization', 'user_email', 'date_type', 'date_from', 'date_to'].forEach(param => {
+            if (currentParams.has(param)) {
+                reportParams.set(param, currentParams.get(param));
+            }
+        });
+
+        // Copy compliance status parameters
+        const complianceStatus = currentParams.getAll('compliance_status[]');
+        complianceStatus.forEach(status => {
+            reportParams.append('compliance_status[]', status);
+        });
+
+        // Determine report type based on current page
+        const path = window.location.pathname;
+        if (path.includes('/compare')) {
+            reportParams.set('type', 'organizations');
+            // Copy organization filter parameters
+            ['min_compliance', 'max_compliance', 'min_trials', 'max_trials'].forEach(param => {
+                if (currentParams.has(param)) {
+                    reportParams.set(param, currentParams.get(param));
+                }
+            });
+        } else if (path.includes('/user/')) {
+            reportParams.set('type', 'user');
+            // Extract user ID from path
+            const userIdMatch = path.match(/\/user\/(\d+)/);
+            if (userIdMatch) {
+                reportParams.set('user_id', userIdMatch[1]);
+            }
+        } else {
+            reportParams.set('type', 'trials');
+        }
+
+        // Set report URL parameters
+        reportUrl.search = reportParams.toString();
+
+        // Open report in new tab
+        window.open(reportUrl.toString(), '_blank');
+    }
+</script>
 {% endblock content %}

@@ -1,73 +1,123 @@
 {% extends "layout.html" %}
 {% block title %}
-    My Organizations - CTGov Compliance
+My Organizations - CTGov Compliance
 {% endblock title %}
 {% block content %}
-    <div class="grid-container-full">
-        <div class="grid-row grid-gap">
-            <div class="tablet:grid-col-3 padding-y-2">{% include "sidebars/metrics_card.html" with context %}</div>
-            <div class="tablet:grid-col-9 padding-y-2">
-                <div class="usa-card bg-base-lightest shadow-2 margin-bottom-2">
-                    <div class="usa-card__body">
-                        {% with title="My Organizations' Clinical Trials" %}
-                            {% include "tables/header.html" %}
-                        {% endwith %}
-                        <div id="card-view">{% include "tables/card.html" with context %}</div>
-                        <div id="table-view" class="display-none">{% include "tables/table.html" with context %}</div>
-                        {% if pagination.total_pages > 1 %}
-                            {% include "tables/pagination.html" with context %}
-                        {% endif %}
-                    </div>
+<div class="grid-container-full">
+    <div class="grid-row grid-gap">
+        <div class="tablet:grid-col-3 padding-y-2">{% include "sidebars/metrics_card.html" with context %}</div>
+        <div class="tablet:grid-col-9 padding-y-2">
+            <div class="usa-card bg-base-lightest shadow-2 margin-bottom-2">
+                <div class="usa-card__body">
+                    {% with title="My Organizations' Clinical Trials" %}
+                    {% include "tables/header.html" %}
+                    {% endwith %}
+                    <div id="card-view">{% include "tables/card.html" with context %}</div>
+                    <div id="table-view" class="display-none">{% include "tables/table.html" with context %}</div>
+                    {% if pagination.total_pages > 1 %}
+                    {% include "tables/pagination.html" with context %}
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    <script>
-        const cardBtn = document.getElementById('toggle-card');
-        const tableBtn = document.getElementById('toggle-table');
-        const cardView = document.getElementById('card-view');
-        const tableView = document.getElementById('table-view');
-        function getQueryParam(name) {
-            const url = new URL(window.location.href);
-            return url.searchParams.get(name);
-        }
-        function setView(view) {
-            if (view === 'table') {
-                cardView.classList.add('display-none');
-                tableView.classList.remove('display-none');
-                tableBtn.classList.add('usa-button--active');
-                cardBtn.classList.remove('usa-button--active');
-            } else {
-                cardView.classList.remove('display-none');
-                tableView.classList.add('display-none');
-                cardBtn.classList.add('usa-button--active');
-                tableBtn.classList.remove('usa-button--active');
-            }
-        }
-        let initialView = getQueryParam('view') || localStorage.getItem('orgDashboardView') || 'table';
-        setView(initialView);
-        cardBtn.addEventListener('click', function() {
-            setView('card');
-            localStorage.setItem('orgDashboardView', 'card');
-            updatePaginationLinks('card');
-        });
-        tableBtn.addEventListener('click', function() {
-            setView('table');
-            localStorage.setItem('orgDashboardView', 'table');
-            updatePaginationLinks('table');
-        });
-        if (initialView === 'card') {
-            cardBtn.classList.add('usa-button--active');
-        } else {
+</div>
+<script>
+    const cardBtn = document.getElementById('toggle-card');
+    const tableBtn = document.getElementById('toggle-table');
+    const cardView = document.getElementById('card-view');
+    const tableView = document.getElementById('table-view');
+    function getQueryParam(name) {
+        const url = new URL(window.location.href);
+        return url.searchParams.get(name);
+    }
+    function setView(view) {
+        if (view === 'table') {
+            cardView.classList.add('display-none');
+            tableView.classList.remove('display-none');
             tableBtn.classList.add('usa-button--active');
+            cardBtn.classList.remove('usa-button--active');
+        } else {
+            cardView.classList.remove('display-none');
+            tableView.classList.add('display-none');
+            cardBtn.classList.add('usa-button--active');
+            tableBtn.classList.remove('usa-button--active');
         }
-        function updatePaginationLinks(view) {
-            document.querySelectorAll('.usa-pagination__link, .usa-pagination__button').forEach(function(link) {
-                let url = new URL(link.href, window.location.origin);
-                url.searchParams.set('view', view);
-                link.href = url.toString();
+    }
+    let initialView = getQueryParam('view') || localStorage.getItem('orgDashboardView') || 'table';
+    setView(initialView);
+    cardBtn.addEventListener('click', function () {
+        setView('card');
+        localStorage.setItem('orgDashboardView', 'card');
+        updatePaginationLinks('card');
+    });
+    tableBtn.addEventListener('click', function () {
+        setView('table');
+        localStorage.setItem('orgDashboardView', 'table');
+        updatePaginationLinks('table');
+    });
+    if (initialView === 'card') {
+        cardBtn.classList.add('usa-button--active');
+    } else {
+        tableBtn.classList.add('usa-button--active');
+    }
+    function updatePaginationLinks(view) {
+        document.querySelectorAll('.usa-pagination__link, .usa-pagination__button').forEach(function (link) {
+            let url = new URL(link.href, window.location.origin);
+            url.searchParams.set('view', view);
+            link.href = url.toString();
+        });
+    }
+    updatePaginationLinks(initialView);
+
+    // Initialize column configuration for the trials table
+    document.addEventListener('DOMContentLoaded', () => {
+        const columnConfig = new TableColumnConfig('trials');
+        columnConfig.insertToggleUI('.column-config-container');
+    });
+
+    // Print Report Functionality
+    document.addEventListener('DOMContentLoaded', function () {
+        const printReportBtn = document.getElementById('print-report-btn');
+
+        if (printReportBtn) {
+            printReportBtn.addEventListener('click', function () {
+                generatePrintReport();
             });
         }
-        updatePaginationLinks(initialView);
-    </script>
+    });
+
+    function generatePrintReport() {
+        // Get current URL parameters
+        const currentParams = new URLSearchParams(window.location.search);
+
+        // Build report URL
+        const reportUrl = new URL('/report/print', window.location.origin);
+
+        // Copy relevant parameters to report URL
+        const reportParams = new URLSearchParams();
+
+        // Copy search parameters if any
+        ['title', 'nct_id', 'organization', 'user_email', 'date_type', 'date_from', 'date_to'].forEach(param => {
+            if (currentParams.has(param)) {
+                reportParams.set(param, currentParams.get(param));
+            }
+        });
+
+        // Copy compliance status parameters
+        const complianceStatus = currentParams.getAll('compliance_status[]');
+        complianceStatus.forEach(status => {
+            reportParams.append('compliance_status[]', status);
+        });
+
+        // Set report type
+        reportParams.set('type', 'trials');
+
+        // Set report URL parameters
+        reportUrl.search = reportParams.toString();
+
+        // Open report in new tab
+        window.open(reportUrl.toString(), '_blank');
+    }
+</script>
 {% endblock content %}

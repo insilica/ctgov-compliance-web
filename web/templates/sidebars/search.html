@@ -1,155 +1,198 @@
 {% block content %}
-    <div class="usa-card">
-        <div class="usa-card__body bg-base-lightest shadow-2 padding-2 border-left-accent margin-bottom-2">
-            <div class="grid-row">
-                <div class="grid-col-12">
-                    <div class="search-card">
-                        <div class="grid-row display-flex flex-align-center">
-                            <div class="grid-col-10">
-                                <h2 class="usa-heading margin-y-1 text-primary">Search</h2>
+<div class="usa-card">
+    <div class="usa-card__body bg-base-lightest shadow-2 padding-2 border-left-accent margin-bottom-2">
+        <div class="grid-row">
+            <div class="grid-col-12">
+                <div class="search-card">
+                    <div class="grid-row display-flex flex-align-center">
+                        <div class="grid-col-10">
+                            <h2 class="usa-heading margin-y-1 text-primary">Search</h2>
+                        </div>
+                        <div class="grid-col-2 display-flex flex-justify-end">
+                            <i style="size: 32px;" class="ri-arrow-down-s-line search-arrow"></i>
+                        </div>
+                    </div>
+
+                    <!-- Filter Presets Section -->
+                    <div class="filter-presets margin-bottom-2">
+                        <h3 class="usa-heading margin-y-1 font-sans-sm text-primary">Quick Filters</h3>
+                        <div class="preset-buttons-container">
+                            <button type="button" class="usa-button usa-button--outline usa-button--small preset-btn"
+                                data-preset="overdue-trials">
+                                Overdue
+                            </button>
+                            <button type="button" class="usa-button usa-button--outline usa-button--small preset-btn"
+                                data-preset="noncompliant-only">
+                                Noncompliant
+                            </button>
+                            <button type="button" class="usa-button usa-button--outline usa-button--small preset-btn"
+                                data-preset="recent-completions">
+                                Recent
+                            </button>
+                            <button type="button" class="usa-button usa-button--outline usa-button--small preset-btn"
+                                data-preset="due-soon">
+                                Due Soon
+                            </button>
+                            <button type="button" class="usa-button usa-button--unstyled preset-btn"
+                                data-preset="clear-all">
+                                Clear All
+                            </button>
+                        </div>
+                    </div>
+
+                    <form class="usa-form width-full maxw-full" method="get" action="{{ url_for('routes.search') }}"
+                        id="search-form">
+                        <fieldset class="usa-fieldset margin-bottom-2">
+                            <!-- Trial Information -->
+                            <div class="grid-row grid-gap-1 margin-y-1">
+                                <div class="desktop:grid-col-6">
+                                    <label class="usa-label margin-top-0" for="trial-title">
+                                        Trial Title
+                                        <span class="usa-hint font-sans-2xs margin-top-05">Start typing to see
+                                            suggestions</span>
+                                    </label>
+                                    <input class="usa-input" id="trial-title" name="title" type="text"
+                                        value="{{ request.args.get('title', '') }}" autocomplete="off"
+                                        aria-describedby="trial-title-hint" />
+                                </div>
+                                <div class="desktop:grid-col-6">
+                                    <label class="usa-label margin-top-0" for="nct-id">
+                                        NCT ID
+                                        <span class="usa-hint font-sans-2xs margin-top-05">Format: NCT followed by 8
+                                            digits</span>
+                                    </label>
+                                    <input class="usa-input" id="nct-id" name="nct_id" type="text" pattern="NCT[0-9]{8}"
+                                        title="NCT ID format: NCT followed by 8 digits"
+                                        value="{{ request.args.get('nct_id', '') }}" autocomplete="off"
+                                        aria-describedby="nct-id-hint" />
+                                </div>
                             </div>
-                            <div class="grid-col-2 display-flex flex-justify-end">
-                                <i style="size: 32px;" class="ri-arrow-down-s-line search-arrow"></i>
+                            <!-- Organization and Status -->
+                            <div class="grid-row grid-gap-1 margin-y-1">
+                                <div class="desktop:grid-col-6">
+                                    <label class="usa-label margin-top-0" for="organization">
+                                        Organization
+                                        <span class="usa-hint font-sans-2xs margin-top-05">Search by organization
+                                            name</span>
+                                    </label>
+                                    <input class="usa-input" id="organization" name="organization" type="text"
+                                        value="{{ request.args.get('organization', '') }}" autocomplete="off"
+                                        aria-describedby="organization-hint" />
+                                </div>
+                                <div class="desktop:grid-col-6">
+                                    <label class="usa-label margin-top-0" for="user-email">
+                                        User Email
+                                        <span class="usa-hint font-sans-2xs margin-top-05">Search by user email
+                                            address</span>
+                                    </label>
+                                    <input class="usa-input" id="user-email" name="user_email" type="text"
+                                        value="{{ request.args.get('user_email', '') }}" autocomplete="off"
+                                        aria-describedby="user-email-hint" />
+                                </div>
+                            </div>
+                            <!-- Date Range Fields -->
+                            <div class="grid-row margin-y-1">
+                                <div class="desktop:grid-col-12">
+                                    <div class="usa-form-group margin-top-0">
+                                        <label class="usa-label margin-top-0" for="date-range">Date Range Type</label>
+                                        <select class="usa-select" id="date-range" name="date_type">
+                                            <option value="completion" {% if request.args.get('date_type', 'completion'
+                                                )=='completion' %}selected{% endif %}>
+                                                Completion Date
+                                            </option>
+                                            <option value="start" {% if request.args.get('date_type')=='start'
+                                                %}selected{% endif %}>
+                                                Start Date
+                                            </option>
+                                            <option value="due" {% if request.args.get('date_type')=='due' %}selected{%
+                                                endif %}>
+                                                Reporting Due Date
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid-row margin-y-1">
+                                <div class="desktop:grid-col-6">
+                                    <div class="usa-form-group margin-top-0">
+                                        <label class="usa-label margin-top-0" for="date-from">From</label>
+                                        <div class="usa-date-picker">
+                                            <input class="usa-input" id="date-from" name="date_from" type="text"
+                                                value="{{ request.args.get('date_from', '') }}" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="desktop:grid-col-6">
+                                    <div class="usa-form-group margin-top-0">
+                                        <label class="usa-label margin-top-0" for="date-to">To</label>
+                                        <div class="usa-date-picker">
+                                            <input class="usa-input" id="date-to" name="date_to" type="text"
+                                                value="{{ request.args.get('date_to', '') }}" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Compliance Status -->
+                            <div class="grid-row margin-y-1">
+                                <div class="grid-col-12">
+                                    <fieldset class="usa-fieldset margin-top-0">
+                                        <legend class="usa-legend margin-top-0">Compliance Status</legend>
+                                        <div class="grid-row grid-gap-1">
+                                            <div class="grid-col-6 usa-checkbox bg-base-lightest">
+                                                <input class="usa-checkbox__input" id="compliant" type="checkbox"
+                                                    name="compliance_status[]" value="compliant" {% if 'compliant' in
+                                                    request.args.getlist('compliance_status[]') %}checked{% endif %} />
+                                                <label class="usa-checkbox__label" for="compliant">Compliant</label>
+                                            </div>
+                                            <div class="grid-col-6 usa-checkbox bg-base-lightest">
+                                                <input class="usa-checkbox__input" id="non-compliant" type="checkbox"
+                                                    name="compliance_status[]" value="incompliant" {% if 'incompliant'
+                                                    in request.args.getlist('compliance_status[]') %}checked{% endif
+                                                    %} />
+                                                <label class="usa-checkbox__label"
+                                                    for="non-compliant">Noncompliant</label>
+                                            </div>
+                                        </div>
+                                    </fieldset>
+                                    <!-- Search Button -->
+                                    <div class="grid-row margin-top-2">
+                                        <div class="grid-col-6 display-flex flex-justify-center">
+                                            <a href="{{ url_for('routes.index') }}"
+                                                class="usa-button usa-button--outline" style="width: 75%">Clear</a>
+                                        </div>
+                                        <div class="grid-col-6 display-flex flex-justify-center">
+                                            <button class="usa-button bg-primary-dark text-white" style="width: 75%"
+                                                type="submit">Search</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
+                    </form>
+
+                    <!-- Search History Section -->
+                    <div id="search-history-section" class="margin-top-3" style="display: none;">
+                        <div class="border-top-1px border-base-lighter padding-top-2">
+                            <div class="grid-row display-flex flex-align-center margin-bottom-1">
+                                <div class="grid-col-10">
+                                    <h3 class="usa-heading margin-0 font-sans-md text-primary">Recent Searches</h3>
+                                </div>
+                                <div class="grid-col-2 display-flex flex-justify-end">
+                                    <button type="button" id="clear-all-history"
+                                        class="usa-button usa-button--unstyled text-error padding-0"
+                                        title="Clear all history">
+                                        <i class="ri-delete-bin-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="search-history-list" class="search-history-list">
+                                <!-- Search history items will be populated here by JavaScript -->
                             </div>
                         </div>
-                        <form class="usa-form width-full maxw-full"
-                              method="get"
-                              action="{{ url_for('routes.search') }}">
-                            <fieldset class="usa-fieldset margin-bottom-2">
-                                <!-- Trial Information -->
-                                <div class="grid-row grid-gap-1 margin-y-1">
-                                    <div class="desktop:grid-col-6">
-                                        <label class="usa-label margin-top-0" for="trial-title">Trial Title</label>
-                                        <input class="usa-input"
-                                               id="trial-title"
-                                               name="title"
-                                               type="text"
-                                               value="{{ request.args.get('title', '') }}" />
-                                    </div>
-                                    <div class="desktop:grid-col-6">
-                                        <label class="usa-label margin-top-0" for="nct-id">NCT ID</label>
-                                        <input class="usa-input"
-                                               id="nct-id"
-                                               name="nct_id"
-                                               type="text"
-                                               pattern="NCT[0-9]{8}"
-                                               title="NCT ID format: NCT followed by 8 digits"
-                                               value="{{ request.args.get('nct_id', '') }}" />
-                                    </div>
-                                </div>
-                                <!-- Organization and Status -->
-                                <div class="grid-row grid-gap-1 margin-y-1">
-                                    <div class="desktop:grid-col-6">
-                                        <label class="usa-label margin-top-0" for="organization">Organization</label>
-                                        <input class="usa-input"
-                                               id="organization"
-                                               name="organization"
-                                               type="text"
-                                               value="{{ request.args.get('organization', '') }}" />
-                                    </div>
-                                    <div class="desktop:grid-col-6">
-                                        <label class="usa-label margin-top-0" for="user-email">User Email</label>
-                                        <input class="usa-input"
-                                               id="user-email"
-                                               name="user_email"
-                                               type="text"
-                                               value="{{ request.args.get('user_email', '') }}" />
-                                    </div>
-                                </div>
-                                <!-- Date Range Fields -->
-                                <div class="grid-row margin-y-1">
-                                    <div class="desktop:grid-col-12">
-                                        <div class="usa-form-group margin-top-0">
-                                            <label class="usa-label margin-top-0" for="date-range">Date Range Type</label>
-                                            <select class="usa-select" id="date-range" name="date_type">
-                                                <option value="completion"
-                                                        {% if request.args.get('date_type', 'completion')=='completion' %}selected{% endif %}>
-                                                    Completion Date
-                                                </option>
-                                                <option value="start"
-                                                        {% if request.args.get('date_type')=='start' %}selected{% endif %}>
-                                                    Start Date
-                                                </option>
-                                                <option value="due"
-                                                        {% if request.args.get('date_type')=='due' %}selected{% endif %}>
-                                                    Reporting Due Date
-                                                </option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="grid-row margin-y-1">
-                                    <div class="desktop:grid-col-6">
-                                        <div class="usa-form-group margin-top-0">
-                                            <label class="usa-label margin-top-0" for="date-from">From</label>
-                                            <div class="usa-date-picker">
-                                                <input class="usa-input"
-                                                       id="date-from"
-                                                       name="date_from"
-                                                       type="text"
-                                                       value="{{ request.args.get('date_from', '') }}" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="desktop:grid-col-6">
-                                        <div class="usa-form-group margin-top-0">
-                                            <label class="usa-label margin-top-0" for="date-to">To</label>
-                                            <div class="usa-date-picker">
-                                                <input class="usa-input"
-                                                       id="date-to"
-                                                       name="date_to"
-                                                       type="text"
-                                                       value="{{ request.args.get('date_to', '') }}" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Compliance Status -->
-                                <div class="grid-row margin-y-1">
-                                    <div class="grid-col-12">
-                                        <fieldset class="usa-fieldset margin-top-0">
-                                            <legend class="usa-legend margin-top-0">Compliance Status</legend>
-                                            <div class="grid-row grid-gap-1">
-                                                <div class="grid-col-6 usa-checkbox bg-base-lightest">
-                                                    <input class="usa-checkbox__input"
-                                                           id="compliant"
-                                                           type="checkbox"
-                                                           name="compliance_status[]"
-                                                           value="compliant"
-                                                           {% if 'compliant' in request.args.getlist('compliance_status[]') %}checked{% endif %} />
-                                                    <label class="usa-checkbox__label" for="compliant">Compliant</label>
-                                                </div>
-                                                <div class="grid-col-6 usa-checkbox bg-base-lightest">
-                                                    <input class="usa-checkbox__input"
-                                                           id="non-compliant"
-                                                           type="checkbox"
-                                                           name="compliance_status[]"
-                                                           value="incompliant"
-                                                           {% if 'incompliant' in request.args.getlist('compliance_status[]') %}checked{% endif %} />
-                                                    <label class="usa-checkbox__label" for="non-compliant">Noncompliant</label>
-                                                </div>
-                                            </div>
-                                        </fieldset>
-                                        <!-- Search Button -->
-                                        <div class="grid-row margin-top-2">
-                                            <div class="grid-col-6 display-flex flex-justify-center">
-                                                <a href="{{ url_for('routes.index') }}"
-                                                   class="usa-button usa-button--outline"
-                                                   style="width: 75%">Clear</a>
-                                            </div>
-                                            <div class="grid-col-6 display-flex flex-justify-center">
-                                                <button class="usa-button bg-primary-dark text-white"
-                                                        style="width: 75%"
-                                                        type="submit">Search</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </fieldset>
-                        </form>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 {% endblock content %}

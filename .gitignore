@@ -45,16 +45,20 @@ uv.lock
 # ignoring personal vscode settings
 .vscode
 
-/web/static/*
-!/web/static/style.css
-!/web/static/img
-
 # ignoring pytest files
 .coverage
 .pytest_cache
 
-# i don't know why this is here or where it came from
-/instance
+# ignoring cursor context files
+/cursor-files
+
+# ignoring report files
+report.*
 
 # ignoring cursor context files
 /cursor-files
+
+*.db
+
+report.*
+gcloud-logs.json
