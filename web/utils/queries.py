@@ -15,11 +15,14 @@ def get_all_trials():
         t.reporting_due_date,
         tc.last_checked,
         o.id,
-        t.user_id
+        t.user_id,
+        o.created_at as org_created_at,
+        uo.role as user_role
     FROM trial t
     LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
     LEFT JOIN organization o ON o.id = t.organization_id
     LEFT JOIN ctgov_user u ON u.id = t.user_id
+    LEFT JOIN user_organization uo ON u.id = uo.user_id AND o.id = uo.organization_id
     ORDER BY t.title ASC
     '''
     return query(sql)
@@ -37,11 +40,14 @@ def get_org_trials(org_ids):
         t.reporting_due_date,
         tc.last_checked,
         t.user_id,
-        o.id
+        o.id,
+        o.created_at as org_created_at,
+        uo.role as user_role
     FROM trial t
     LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
     LEFT JOIN organization o ON o.id = t.organization_id
     LEFT JOIN ctgov_user u ON u.id = t.user_id
+    LEFT JOIN user_organization uo ON u.id = uo.user_id AND o.id = uo.organization_id
     WHERE o.id IN %s
     ORDER BY t.title ASC
     '''
@@ -60,11 +66,14 @@ def get_user_trials(user_id):
         t.reporting_due_date,
         tc.last_checked,
         t.user_id,
-        o.id
+        o.id,
+        o.created_at as org_created_at,
+        uo.role as user_role
     FROM trial t
     LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
     LEFT JOIN organization o ON o.id = t.organization_id
     LEFT JOIN ctgov_user u ON u.id = t.user_id
+    LEFT JOIN user_organization uo ON u.id = uo.user_id AND o.id = uo.organization_id
     WHERE u.id = %s
     ORDER BY t.title ASC
     '''
@@ -85,11 +94,14 @@ def search_trials(params):
         t.reporting_due_date,
         tc.last_checked,
         o.id,
-        t.user_id
+        t.user_id,
+        o.created_at as org_created_at,
+        uo.role as user_role
     FROM trial t
     LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
     LEFT JOIN organization o ON o.id = t.organization_id
     LEFT JOIN ctgov_user u ON u.id = t.user_id
+    LEFT JOIN user_organization uo ON u.id = uo.user_id AND o.id = uo.organization_id
     WHERE 1=1
     '''
     
@@ -165,13 +177,24 @@ def get_org_compliance(min_compliance=None, max_compliance=None, min_trials=None
     SELECT 
         o.id,
         o.name,
+        o.email_domain,
+        o.created_at,
         COUNT(t.id) AS total_trials,
         SUM(CASE WHEN tc.status = 'Compliant' THEN 1 ELSE 0 END) AS on_time_count,
-        SUM(CASE WHEN tc.status = 'Incompliant' THEN 1 ELSE 0 END) AS late_count
+        SUM(CASE WHEN tc.status = 'Incompliant' THEN 1 ELSE 0 END) AS late_count,
+        -- Calculate reporting rate as percentage of trials with status
+        ROUND(
+            (COUNT(CASE WHEN tc.status IS NOT NULL THEN 1 END) * 100.0 / NULLIF(COUNT(t.id), 0)), 
+            1
+        ) AS reporting_rate,
+        -- Placeholder for funding source (would need additional table)
+        NULL AS funding_source,
+        -- Placeholder for Wilson LCB score (would need calculation)
+        NULL AS wilson_lcb_score
     FROM organization o
     LEFT JOIN trial t ON o.id = t.organization_id
     LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
-    GROUP BY o.id, o.name
+    GROUP BY o.id, o.name, o.email_domain, o.created_at
     '''
     having_clauses = []
     params = []
@@ -190,7 +213,7 @@ def get_org_compliance(min_compliance=None, max_compliance=None, min_trials=None
         params.append(max_trials)
     if having_clauses:
         sql += ' HAVING ' + ' AND '.join(having_clauses)
-    sql += '\nORDER BY o.name ASC'
+    sql += '\nORDER BY total_trials DESC, o.name ASC'
     return query(sql, params)
 
 

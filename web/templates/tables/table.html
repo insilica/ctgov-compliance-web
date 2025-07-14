@@ -1,51 +1,69 @@
 {% block content %}
-    <div class="table-container">
-        <table class="usa-table usa-table--striped usa-table--sticky-header compare-table">
-            <thead class="bg-primary-lighter text-ink">
-                <tr>
-                    <th data-sortable scope="col" role="columnheader">Title</th>
-                    <th data-sortable scope="col" role="columnheader">NCT ID</th>
-                    <th data-sortable scope="col" role="columnheader">Organization</th>
-                    <th data-sortable scope="col" role="columnheader">User</th>
-                    <th data-sortable scope="col" role="columnheader">Status</th>
-                    <th data-sortable scope="col" role="columnheader">Start Date</th>
-                    <th data-sortable scope="col" role="columnheader">End Date</th>
-                    <th data-sortable scope="col" role="columnheader">Reporting Due Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for trial in trials %}
-                    <tr>
-                        <td scope="row" role="rowheader">
-                            <a href="https://clinicaltrials.gov/study/{{ trial.nct_id }}">{{ trial.title }}</a>
-                        </td>
-                        <td>{{ trial.nct_id }}</td>
-                        <td>
-                            <a href="{{ url_for('routes.show_organization_dashboard', org_ids=trial.id) }}">{{ trial.name }}</a>
-                        </td>
-                        <td>
-                            <a href="{{ url_for('routes.show_user_dashboard', user_id=trial.user_id) }}">{{ trial.email }}</a>
-                        </td>
-                        <td>
-                            {% if trial.status|lower == 'compliant' %}
-                                <span class="badge badge-success">{{ trial.status }}</span>
-                            {% elif trial.status|lower == 'incompliant' or trial.status|lower == 'not compliant' %}
-                                <span class="badge badge-error">{{ trial.status }}</span>
-                            {% endif %}
-                        </td>
-                        <td class="date-column">
-                            <span class="date-mobile">{{ trial.start_date.strftime("%m/%d/%y") }}</span>
-                        </td>
-                        <td class="date-column">
-                            <span class="date-mobile">{{ trial.completion_date.strftime("%m/%d/%y") }}</span>
-                        </td>
-                        <td class="date-column">
-                            <span class="date-mobile">{{ trial.reporting_due_date.strftime("%m/%d/%y") }}</span>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <div class="usa-sr-only usa-table__announcement-region" aria-live="polite"></div>
-    </div>
+<div class="table-container">
+    <table class="usa-table usa-table--striped usa-table--sticky-header compare-table" data-table-type="trials">
+        <thead class="bg-primary-lighter text-ink">
+            <tr>
+                <th data-sortable scope="col" role="columnheader" data-column="title">Title</th>
+                <th data-sortable scope="col" role="columnheader" data-column="nct_id">NCT ID</th>
+                <th data-sortable scope="col" role="columnheader" data-column="organization">Organization</th>
+                <th data-sortable scope="col" role="columnheader" data-column="user">User</th>
+                <th data-sortable scope="col" role="columnheader" data-column="status">Status</th>
+                <th data-sortable scope="col" role="columnheader" data-column="start_date">Start Date</th>
+                <th data-sortable scope="col" role="columnheader" data-column="end_date">End Date</th>
+                <th data-sortable scope="col" role="columnheader" data-column="reporting_due_date">Reporting Due Date
+                </th>
+                <th data-sortable scope="col" role="columnheader" data-column="last_checked">Last Checked</th>
+                <th data-sortable scope="col" role="columnheader" data-column="user_role">User Role</th>
+                <th data-sortable scope="col" role="columnheader" data-column="org_created_at">Org Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for trial in trials %}
+            <tr>
+                <td scope="row" role="rowheader" data-column="title">
+                    <a href="https://clinicaltrials.gov/study/{{ trial.nct_id }}">{{ trial.title }}</a>
+                </td>
+                <td data-column="nct_id">{{ trial.nct_id }}</td>
+                <td data-column="organization">
+                    <a href="{{ url_for('routes.show_organization_dashboard', org_ids=trial.id) }}">{{ trial.name }}</a>
+                </td>
+                <td data-column="user">
+                    <a href="{{ url_for('routes.show_user_dashboard', user_id=trial.user_id) }}">{{ trial.email }}</a>
+                </td>
+                <td data-column="status">
+                    {% if trial.status|lower == 'compliant' %}
+                    <span class="badge badge-success">{{ trial.status }}</span>
+                    {% elif trial.status|lower == 'incompliant' or trial.status|lower == 'not compliant' %}
+                    <span class="badge badge-error">{{ trial.status }}</span>
+                    {% endif %}
+                </td>
+                <td class="date-column" data-column="start_date">
+                    <span class="date-mobile">{{ trial.start_date.strftime("%m/%d/%y") if trial.start_date else '-'
+                        }}</span>
+                </td>
+                <td class="date-column" data-column="end_date">
+                    <span class="date-mobile">{{ trial.completion_date.strftime("%m/%d/%y") if trial.completion_date
+                        else '-' }}</span>
+                </td>
+                <td class="date-column" data-column="reporting_due_date">
+                    <span class="date-mobile">{{ trial.reporting_due_date.strftime("%m/%d/%y") if
+                        trial.reporting_due_date else '-' }}</span>
+                </td>
+                <td class="date-column" data-column="last_checked">
+                    <span class="date-mobile">{{ trial.last_checked.strftime("%m/%d/%y") if trial.last_checked else '-'
+                        }}</span>
+                </td>
+                <td data-column="user_role">
+                    {{ trial.user_role|title if trial.user_role else '-' }}
+                </td>
+                <td class="date-column" data-column="org_created_at">
+                    <span class="date-mobile">{{ trial.org_created_at.strftime("%m/%d/%y") if trial.org_created_at else
+                        '-' }}</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="usa-sr-only usa-table__announcement-region" aria-live="polite"></div>
+</div>
 {% endblock content %}

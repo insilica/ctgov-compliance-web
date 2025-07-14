@@ -46,28 +46,48 @@
                             <!-- Trial Information -->
                             <div class="grid-row grid-gap-1 margin-y-1">
                                 <div class="desktop:grid-col-6">
-                                    <label class="usa-label margin-top-0" for="trial-title">Trial Title</label>
+                                    <label class="usa-label margin-top-0" for="trial-title">
+                                        Trial Title
+                                        <span class="usa-hint font-sans-2xs margin-top-05">Start typing to see
+                                            suggestions</span>
+                                    </label>
                                     <input class="usa-input" id="trial-title" name="title" type="text"
-                                        value="{{ request.args.get('title', '') }}" />
+                                        value="{{ request.args.get('title', '') }}" autocomplete="off"
+                                        aria-describedby="trial-title-hint" />
                                 </div>
                                 <div class="desktop:grid-col-6">
-                                    <label class="usa-label margin-top-0" for="nct-id">NCT ID</label>
+                                    <label class="usa-label margin-top-0" for="nct-id">
+                                        NCT ID
+                                        <span class="usa-hint font-sans-2xs margin-top-05">Format: NCT followed by 8
+                                            digits</span>
+                                    </label>
                                     <input class="usa-input" id="nct-id" name="nct_id" type="text" pattern="NCT[0-9]{8}"
                                         title="NCT ID format: NCT followed by 8 digits"
-                                        value="{{ request.args.get('nct_id', '') }}" />
+                                        value="{{ request.args.get('nct_id', '') }}" autocomplete="off"
+                                        aria-describedby="nct-id-hint" />
                                 </div>
                             </div>
                             <!-- Organization and Status -->
                             <div class="grid-row grid-gap-1 margin-y-1">
                                 <div class="desktop:grid-col-6">
-                                    <label class="usa-label margin-top-0" for="organization">Organization</label>
+                                    <label class="usa-label margin-top-0" for="organization">
+                                        Organization
+                                        <span class="usa-hint font-sans-2xs margin-top-05">Search by organization
+                                            name</span>
+                                    </label>
                                     <input class="usa-input" id="organization" name="organization" type="text"
-                                        value="{{ request.args.get('organization', '') }}" />
+                                        value="{{ request.args.get('organization', '') }}" autocomplete="off"
+                                        aria-describedby="organization-hint" />
                                 </div>
                                 <div class="desktop:grid-col-6">
-                                    <label class="usa-label margin-top-0" for="user-email">User Email</label>
+                                    <label class="usa-label margin-top-0" for="user-email">
+                                        User Email
+                                        <span class="usa-hint font-sans-2xs margin-top-05">Search by user email
+                                            address</span>
+                                    </label>
                                     <input class="usa-input" id="user-email" name="user_email" type="text"
-                                        value="{{ request.args.get('user_email', '') }}" />
+                                        value="{{ request.args.get('user_email', '') }}" autocomplete="off"
+                                        aria-describedby="user-email-hint" />
                                 </div>
                             </div>
                             <!-- Date Range Fields -->

@@ -337,9 +337,13 @@ Dashboard - CTGov Compliance
         }
     }
 
-    // Initialize search history when DOM is loaded
+    // Initialize column configuration when DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
         new SearchHistory();
+
+        // Initialize column configuration for the trials table
+        const columnConfig = new TableColumnConfig('trials');
+        columnConfig.insertToggleUI('.column-config-container');
     });
 
     // Filter Presets Functionality

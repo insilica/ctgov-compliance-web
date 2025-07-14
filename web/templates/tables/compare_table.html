@@ -1,40 +1,49 @@
 {% block content %}
 <div class="table-container overflow-auto" style="max-width: 100%">
-    <table class="usa-table usa-table--striped usa-table--sticky-header compare-table">
+    <table class="usa-table usa-table--striped usa-table--sticky-header compare-table" data-table-type="compare">
         <thead class="bg-primary-lighter text-ink">
             <tr>
-                <th data-sortable scope="col" role="columnheader">Sponsor</th>
-                <th data-sortable scope="col" role="columnheader">Funding Source</th>
-                <th data-sortable scope="col" role="columnheader">Total Trials</th>
-                <th data-sortable scope="col" role="columnheader">Reporting Rate</th>
-                <th data-sortable scope="col" role="columnheader">Compliant Trials</th>
-                <th data-sortable scope="col" role="columnheader">Late Submissions</th>
-                <th data-sortable scope="col" role="columnheader">Compliance Rate</th>
-                <th data-sortable scope="col" role="columnheader">Wilson LCB Score</th>
+                <th data-sortable scope="col" role="columnheader" data-column="sponsor">Sponsor</th>
+                <th data-sortable scope="col" role="columnheader" data-column="funding_source">Funding Source</th>
+                <th data-sortable scope="col" role="columnheader" data-column="total_trials">Total Trials</th>
+                <th data-sortable scope="col" role="columnheader" data-column="reporting_rate">Reporting Rate</th>
+                <th data-sortable scope="col" role="columnheader" data-column="compliant_trials">Compliant Trials</th>
+                <th data-sortable scope="col" role="columnheader" data-column="late_submissions">Late Submissions</th>
+                <th data-sortable scope="col" role="columnheader" data-column="compliance_rate">Compliance Rate</th>
+                <th data-sortable scope="col" role="columnheader" data-column="wilson_lcb_score">Wilson LCB Score</th>
+                <th data-sortable scope="col" role="columnheader" data-column="email_domain">Email Domain</th>
+                <th data-sortable scope="col" role="columnheader" data-column="created_at">Created Date</th>
             </tr>
         </thead>
         <tbody>
             {% for org in org_compliance %}
             <tr>
-                <td scope="row">
+                <td scope="row" data-column="sponsor">
                     <a href="{{ url_for('routes.show_organization_dashboard', org_ids=org.id) }}" class="usa-link">{{
                         org.name }}</a>
                 </td>
-                <td scope="row"></td>
-                <td scope="row">{{ org.total_trials }}</td>
-                <td scope="row"></td>
-                <td scope="row">
+                <td scope="row" data-column="funding_source">{{ org.funding_source or '-' }}</td>
+                <td scope="row" data-column="total_trials">{{ org.total_trials }}</td>
+                <td scope="row" data-column="reporting_rate">
+                    {{ org.reporting_rate ~ '%' if org.reporting_rate is not none else '-' }}
+                </td>
+                <td scope="row" data-column="compliant_trials">
                     <span class="badge badge-success"><i class="ri-check-line"></i> {{ org.on_time_count }}</span>
                 </td>
-                <td scope="row">
+                <td scope="row" data-column="late_submissions">
                     <span class="badge badge-error"><i class="ri-close-line"></i> {{ org.late_count }}</span>
                 </td>
-                <td scope="row">
+                <td scope="row" data-column="compliance_rate">
                     {% set compliance_rate = ((org.on_time_count / org.total_trials * 100) if org.total_trials > 0 else
                     0) %}
                     <span class="badge badge-compliance">{{ compliance_rate }}%</span>
                 </td>
-                <td scope="row"></td>
+                <td scope="row" data-column="wilson_lcb_score">{{ org.wilson_lcb_score or '-' }}</td>
+                <td scope="row" data-column="email_domain">{{ org.email_domain or '-' }}</td>
+                <td scope="row" data-column="created_at">
+                    <span class="date-mobile">{{ org.created_at.strftime("%m/%d/%y") if org.created_at else '-'
+                        }}</span>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

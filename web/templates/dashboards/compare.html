@@ -64,6 +64,12 @@ Compare Organization Compliance - CTGov Compliance
     // Update pagination links with the current view
     updatePaginationLinks(initialView);
 
+    // Initialize column configuration for the compare table
+    document.addEventListener('DOMContentLoaded', () => {
+        const columnConfig = new TableColumnConfig('compare');
+        columnConfig.insertToggleUI('.column-config-container');
+    });
+
     // Add event listeners for view switching
     cardBtn.addEventListener('click', function () {
         setView('card');

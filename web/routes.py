@@ -24,6 +24,87 @@ bp = Blueprint('routes', __name__)
 def health():
     return jsonify({'status': 'ok'}), 200
 
+# Autocomplete API endpoints
+@bp.route('/api/autocomplete/titles')
+@login_required    # pragma: no cover
+def autocomplete_titles():
+    """API endpoint for trial title autocomplete suggestions"""
+    query = request.args.get('q', '').strip()
+    if len(query) < 2:
+        return jsonify([])
+    
+    from .db import query as db_query
+    sql = '''
+    SELECT DISTINCT t.title
+    FROM trial t
+    WHERE t.title ILIKE %s
+    ORDER BY t.title ASC
+    LIMIT 10
+    '''
+    results = db_query(sql, [f"%{query}%"])
+    suggestions = [row['title'] for row in results if row['title']]
+    return jsonify(suggestions)
+
+@bp.route('/api/autocomplete/organizations')
+@login_required    # pragma: no cover
+def autocomplete_organizations():
+    """API endpoint for organization name autocomplete suggestions"""
+    query = request.args.get('q', '').strip()
+    if len(query) < 2:
+        return jsonify([])
+    
+    from .db import query as db_query
+    sql = '''
+    SELECT DISTINCT o.name
+    FROM organization o
+    WHERE o.name ILIKE %s
+    ORDER BY o.name ASC
+    LIMIT 10
+    '''
+    results = db_query(sql, [f"%{query}%"])
+    suggestions = [row['name'] for row in results if row['name']]
+    return jsonify(suggestions)
+
+@bp.route('/api/autocomplete/nct_ids')
+@login_required    # pragma: no cover
+def autocomplete_nct_ids():
+    """API endpoint for NCT ID autocomplete suggestions"""
+    query = request.args.get('q', '').strip()
+    if len(query) < 3:
+        return jsonify([])
+    
+    from .db import query as db_query
+    sql = '''
+    SELECT DISTINCT t.nct_id
+    FROM trial t
+    WHERE t.nct_id ILIKE %s
+    ORDER BY t.nct_id ASC
+    LIMIT 10
+    '''
+    results = db_query(sql, [f"%{query}%"])
+    suggestions = [row['nct_id'] for row in results if row['nct_id']]
+    return jsonify(suggestions)
+
+@bp.route('/api/autocomplete/user_emails')
+@login_required    # pragma: no cover
+def autocomplete_user_emails():
+    """API endpoint for user email autocomplete suggestions"""
+    query = request.args.get('q', '').strip()
+    if len(query) < 2:
+        return jsonify([])
+    
+    from .db import query as db_query
+    sql = '''
+    SELECT DISTINCT u.email
+    FROM ctgov_user u
+    WHERE u.email ILIKE %s
+    ORDER BY u.email ASC
+    LIMIT 10
+    '''
+    results = db_query(sql, [f"%{query}%"])
+    suggestions = [row['email'] for row in results if row['email']]
+    return jsonify(suggestions)
+
 @bp.route('/')
 @login_required    # pragma: no cover
 def index():

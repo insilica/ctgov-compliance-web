@@ -70,6 +70,12 @@ My Organizations - CTGov Compliance
     }
     updatePaginationLinks(initialView);
 
+    // Initialize column configuration for the trials table
+    document.addEventListener('DOMContentLoaded', () => {
+        const columnConfig = new TableColumnConfig('trials');
+        columnConfig.insertToggleUI('.column-config-container');
+    });
+
     // Print Report Functionality
     document.addEventListener('DOMContentLoaded', function () {
         const printReportBtn = document.getElementById('print-report-btn');
