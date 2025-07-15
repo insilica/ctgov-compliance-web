@@ -16,9 +16,16 @@ def get_all_trials_count():
     return result[0]['count'] if result else 0
 
 
-def get_all_trials(page=None, per_page=None):
-    sql = '''
-    SELECT
+def get_all_trials(page=None, per_page=None, count_only=False):
+    if count_only:
+        select_columns = '''
+        SUM(CASE WHEN tc.status = 'Compliant' THEN 1 ELSE 0 END) as compliant_count,
+        SUM(CASE WHEN tc.status = 'Incompliant' THEN 1 ELSE 0 END) as incompliant_count,
+        SUM(CASE WHEN tc.status IS NULL THEN 1 ELSE 0 END) as pending_count
+        '''
+        order_by = ''
+    else:
+        select_columns = '''
         t.nct_id,
         t.title,
         o.name,
@@ -32,19 +39,25 @@ def get_all_trials(page=None, per_page=None):
         t.user_id,
         o.created_at as org_created_at,
         uo.role as user_role
+        '''
+        order_by = 'ORDER BY t.title ASC'
+
+    sql = f'''
+    SELECT
+        {select_columns}
     FROM trial t
     LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
     LEFT JOIN organization o ON o.id = t.organization_id
     LEFT JOIN ctgov_user u ON u.id = t.user_id
     LEFT JOIN user_organization uo ON u.id = uo.user_id AND o.id = uo.organization_id
-    ORDER BY t.title ASC
+    {order_by}
     '''
-    
-    # Add LIMIT and OFFSET if pagination parameters are provided
-    if page is not None and per_page is not None:
+
+    # Add LIMIT and OFFSET if pagination parameters are provided (but not for count queries)
+    if not count_only and page is not None and per_page is not None:
         offset = (page - 1) * per_page
         sql += f' LIMIT {per_page} OFFSET {offset}'
-    
+
     return query(sql)
 
 
@@ -223,11 +236,17 @@ def search_trials_count(params):
     return result[0]['count'] if result else 0
 
 
-def search_trials(params, page=None, per_page=None):
-
-    
-    base_sql = '''
-    SELECT DISTINCT
+def search_trials(params, page=None, per_page=None, count_only=False):
+    if count_only:
+        select_columns = '''
+        SUM(CASE WHEN tc.status = 'Compliant' THEN 1 ELSE 0 END) as compliant_count,
+        SUM(CASE WHEN tc.status = 'Incompliant' THEN 1 ELSE 0 END) as incompliant_count,
+        SUM(CASE WHEN tc.status IS NULL THEN 1 ELSE 0 END) as pending_count
+        '''
+        distinct_clause = ''
+        order_by = ''
+    else:
+        select_columns = '''
         t.nct_id,
         t.title,
         o.name,
@@ -241,6 +260,13 @@ def search_trials(params, page=None, per_page=None):
         t.user_id,
         o.created_at as org_created_at,
         uo.role as user_role
+        '''
+        distinct_clause = 'DISTINCT'
+        order_by = ' ORDER BY t.title ASC'
+
+    base_sql = f'''
+    SELECT {distinct_clause}
+        {select_columns}
     FROM trial t
     LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
     LEFT JOIN organization o ON o.id = t.organization_id
@@ -308,17 +334,17 @@ def search_trials(params, page=None, per_page=None):
                 status_conditions.append("tc.status IS NULL")
         if status_conditions:
             conditions.append(f"({' OR '.join(status_conditions)})")
-    
+
     if conditions:
         base_sql += " AND " + " AND ".join(conditions)
-    
-    base_sql += " ORDER BY t.title ASC"
-    
-    # Add LIMIT and OFFSET if pagination parameters are provided
-    if page is not None and per_page is not None:
+
+    base_sql += order_by
+
+    # Add LIMIT and OFFSET if pagination parameters are provided (but not for count queries)
+    if not count_only and page is not None and per_page is not None:
         offset = (page - 1) * per_page
         base_sql += f' LIMIT {per_page} OFFSET {offset}'
-    
+
     return query(base_sql, values)
 
 

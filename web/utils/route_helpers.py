@@ -37,18 +37,19 @@ def process_index_request(page=None, per_page=None):
     # Get pagination parameters from request if not provided
     if page is None or per_page is None:
         page, per_page = get_pagination_args()
-    
+
     # Get paginated trials and total count
     trials = get_all_trials(page=page, per_page=per_page)
     total_count = get_all_trials_count()
-    
-    # Get all trials for compliance counts (we need the full dataset for this)
-    all_trials = get_all_trials()
-    
+
+    # Get compliance counts using SQL aggregation
+    count_results = get_all_trials(count_only=True)
+    counts = count_results[0] if count_results else {}
+    on_time_count = counts.get('compliant_count', 0)
+    late_count = counts.get('incompliant_count', 0)
+
     pagination, per_page = paginate(trials, total_entries=total_count)
-    
-    on_time_count, late_count = compliance_counts(all_trials)
-    
+
     return {
         'template': 'dashboards/home.html',
         'trials': pagination.items_page,
@@ -66,18 +67,19 @@ def process_search_request(search_params, compliance_status_list, page=None, per
         # Get pagination parameters from request if not provided
         if page is None or per_page is None:
             page, per_page = get_pagination_args()
-        
+
         # Get paginated search results and total count
         search_results = search_trials(search_params, page=page, per_page=per_page)
         total_count = search_trials_count(search_params)
-        
-        # Get all search results for compliance counts
-        all_search_results = search_trials(search_params)
-        
+
+        # Get compliance counts using SQL aggregation
+        count_results = search_trials(search_params, count_only=True)
+        counts = count_results[0] if count_results else {}
+        on_time_count = counts.get('compliant_count', 0)
+        late_count = counts.get('incompliant_count', 0)
+
         pagination, per_page = paginate(search_results, total_entries=total_count)
-        
-        on_time_count, late_count = compliance_counts(all_search_results)
-        
+
         return {
             'template': 'dashboards/home.html',
             'trials': pagination.items_page,
@@ -224,4 +226,4 @@ def process_user_dashboard_request(user_id, current_user_getter=None, page=None,
             'per_page': per_page if per_page is not None else 25,
             'user_id': user_id,
             'user_email': user_email
-        } 
+        }

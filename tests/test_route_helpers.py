@@ -94,9 +94,16 @@ class TestProcessIndexRequest:
         """Test processing index request."""
         # Setup mocks
         sample_trials = [{'nct_id': 'NCT001', 'status': 'Compliant'}]
-        mock_get_all_trials.side_effect = [sample_trials, sample_trials]  # Called twice: once for paginated, once for all
+        count_results = [{'compliant_count': 5, 'incompliant_count': 3, 'pending_count': 2}]
+
+        def mock_get_all_trials_side_effect(**kwargs):
+            if kwargs.get('count_only'):
+                return count_results
+            return sample_trials
+
+        mock_get_all_trials.side_effect = mock_get_all_trials_side_effect
         mock_get_all_trials_count.return_value = 100
-        
+
         mock_pagination = MagicMock()
         mock_pagination.items_page = sample_trials
         mock_paginate.return_value = (mock_pagination, 10)
@@ -116,16 +123,17 @@ class TestProcessIndexRequest:
             'late_count': 3
         }
         assert result == expected
-        
+
         # Verify mocks were called correctly
         assert mock_get_all_trials.call_count == 2
         # First call with pagination parameters
         mock_get_all_trials.assert_any_call(page=1, per_page=10)
-        # Second call without pagination parameters (for compliance counts)
-        mock_get_all_trials.assert_any_call()
+        # Second call with count_only=True
+        mock_get_all_trials.assert_any_call(count_only=True)
         mock_get_all_trials_count.assert_called_once()
         mock_paginate.assert_called_once_with(sample_trials, total_entries=100)
-        mock_compliance_counts.assert_called_once_with(sample_trials)
+        # compliance_counts should no longer be called
+        mock_compliance_counts.assert_not_called()
 
 
 class TestProcessSearchRequest:
@@ -140,11 +148,18 @@ class TestProcessSearchRequest:
         # Setup mocks
         search_params = {'title': 'Cancer', 'nct_id': None}
         compliance_status_list = []
-        
+
         search_results = [{'nct_id': 'NCT001', 'status': 'Compliant'}]
-        mock_search_trials.side_effect = [search_results, search_results]  # Called twice
+        count_results = [{'compliant_count': 1, 'incompliant_count': 0, 'pending_count': 0}]
+
+        def mock_search_trials_side_effect(*args, **kwargs):
+            if kwargs.get('count_only'):
+                return count_results
+            return search_results
+
+        mock_search_trials.side_effect = mock_search_trials_side_effect
         mock_search_trials_count.return_value = 50
-        
+
         mock_pagination = MagicMock()
         mock_pagination.items_page = search_results
         mock_paginate.return_value = (mock_pagination, 10)
@@ -165,14 +180,15 @@ class TestProcessSearchRequest:
             'is_search': True
         }
         assert result == expected
-        
+
         # Verify mocks were called correctly
         assert mock_search_trials.call_count == 2
         mock_search_trials.assert_any_call(search_params, page=1, per_page=10)
-        mock_search_trials.assert_any_call(search_params)
+        mock_search_trials.assert_any_call(search_params, count_only=True)
         mock_search_trials_count.assert_called_once_with(search_params)
         mock_paginate.assert_called_once_with(search_results, total_entries=50)
-        mock_compliance_counts.assert_called_once_with(search_results)
+        # compliance_counts should no longer be called
+        mock_compliance_counts.assert_not_called()
 
     def test_process_search_request_with_compliance_status(self):
         """Test processing search request with compliance status only."""
@@ -185,9 +201,16 @@ class TestProcessSearchRequest:
              patch('web.utils.route_helpers.compliance_counts') as mock_compliance_counts:
             
             search_results = [{'nct_id': 'NCT001', 'status': 'Compliant'}]
-            mock_search_trials.side_effect = [search_results, search_results]
+            count_results = [{'compliant_count': 1, 'incompliant_count': 0, 'pending_count': 0}]
+
+            def mock_search_trials_side_effect(*args, **kwargs):
+                if kwargs.get('count_only'):
+                    return count_results
+                return search_results
+
+            mock_search_trials.side_effect = mock_search_trials_side_effect
             mock_search_trials_count.return_value = 25
-            
+
             mock_pagination = MagicMock()
             mock_pagination.items_page = search_results
             mock_paginate.return_value = (mock_pagination, 10)
@@ -211,9 +234,12 @@ class TestProcessSearchRequest:
             
             # Verify mocks were called correctly
             assert mock_search_trials.call_count == 2
+            mock_search_trials.assert_any_call(search_params, page=1, per_page=10)
+            mock_search_trials.assert_any_call(search_params, count_only=True)
             mock_search_trials_count.assert_called_once_with(search_params)
             mock_paginate.assert_called_once_with(search_results, total_entries=25)
-            mock_compliance_counts.assert_called_once_with(search_results)
+            # compliance_counts should no longer be called
+            mock_compliance_counts.assert_not_called()
 
     def test_process_search_request_no_params(self):
         """Test processing search request with no parameters."""
