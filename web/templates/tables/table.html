@@ -1,6 +1,6 @@
 {% block content %}
 <div class="table-container">
-    <table class="usa-table usa-table--sticky-header compare-table" data-table-type="trials">
+    <table class="usa-table usa-table--sticky-header compare-table" data-table-type="trials" aria-label="Trials Table">
         <thead class="bg-primary-lighter text-ink">
             <tr>
                 <th data-sortable scope="col" role="columnheader" data-column="title">Title</th>
@@ -20,7 +20,7 @@
         <tbody>
             {% for trial in trials %}
             <tr>
-                <td scope="row" role="rowheader" data-column="title">
+                <td data-column="title">
                     <a href="https://clinicaltrials.gov/study/{{ trial.nct_id }}" class="usa-link">{{ trial.title }}</a>
                 </td>
                 <td data-column="nct_id">{{ trial.nct_id }}</td>
