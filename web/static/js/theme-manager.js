@@ -103,11 +103,13 @@ class ThemeManager {
     applyTheme(theme) {
         const effectiveTheme = theme === this.themes.auto ? this.getSystemPreference() : theme;
         
-        // Apply theme to document
-        if (effectiveTheme === this.themes.dark) {
+        // Apply theme to document - always set explicit theme attribute
+        if (theme === this.themes.auto) {
+            document.documentElement.setAttribute('data-theme', 'auto');
+        } else if (theme === this.themes.dark) {
             document.documentElement.setAttribute('data-theme', 'dark');
         } else {
-            document.documentElement.removeAttribute('data-theme');
+            document.documentElement.setAttribute('data-theme', 'light');
         }
 
         // Update active control indicators
@@ -299,6 +301,20 @@ class ThemeManager {
         localStorage.removeItem(this.storageKey);
         this.applyTheme(this.themes.auto);
     }
+
+    /**
+     * Debug function to log current theme state
+     */
+    debugTheme() {
+        const info = this.getThemeInfo();
+        console.log('Theme Debug Info:', {
+            current: info.current,
+            effective: info.effective,
+            system: info.system,
+            documentAttribute: document.documentElement.getAttribute('data-theme'),
+            localStorage: localStorage.getItem(this.storageKey)
+        });
+    }
 }
 
 // Initialize theme manager when DOM is ready
@@ -314,6 +330,7 @@ function initializeTheme() {
     window.setTheme = (theme) => themeManager.setTheme(theme);
     window.toggleTheme = () => themeManager.toggleTheme();
     window.getThemeInfo = () => themeManager.getThemeInfo();
+    window.debugTheme = () => themeManager.debugTheme();
 }
 
 // Initialize immediately if DOM is already ready, otherwise wait for DOMContentLoaded

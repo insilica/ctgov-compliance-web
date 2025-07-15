@@ -61,6 +61,65 @@
     --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
+/* Light Theme Colors - Explicit override */
+[data-theme="light"] {
+    --primary-color: #005ea2;
+    --primary-dark: #1a4480;
+    --primary-light: #d9e8f6;
+    --primary-lighter: #e6f1fa;
+    
+    --secondary-color: #00bde3;
+    --secondary-dark: #0099b8;
+    --secondary-light: #7dd3ed;
+    --secondary-lighter: #e1f3f8;
+    
+    --accent-color: #ffbc78;
+    --accent-dark: #e6965d;
+    --accent-light: #ffd19e;
+    --accent-lighter: #fff2e6;
+    
+    --success-color: #198a00;
+    --success-dark: #0d5f0d;
+    --success-light: #4dbd33;
+    --success-lighter: #e6f7e1;
+    
+    --error-color: #d83933;
+    --error-dark: #b52d25;
+    --error-light: #e85d55;
+    --error-lighter: #f8e6e5;
+    
+    --warning-color: #ffbc78;
+    --warning-dark: #e6965d;
+    --warning-light: #ffd19e;
+    --warning-lighter: #fff2e6;
+    
+    /* Neutral Colors - Light Mode */
+    --background-color: #EFF6FB;
+    --surface-color: #ffffff;
+    --surface-variant: #f8f9fa;
+    --surface-dark: #f0f0f0;
+    
+    --text-primary: #1b1b1b;
+    --text-secondary: #5d5d5d;
+    --text-tertiary: #757575;
+    --text-inverse: #ffffff;
+    
+    --border-color: #dfe1e2;
+    --border-dark: #c9c9c9;
+    --border-light: #f1f1f1;
+    
+    /* Interactive States */
+    --hover-overlay: rgba(0, 0, 0, 0.04);
+    --active-overlay: rgba(0, 0, 0, 0.08);
+    --focus-color: #2491ff;
+    --focus-outline: 0.25rem solid var(--focus-color);
+    
+    /* Shadow Variables */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
 /* Dark Theme Colors */
 [data-theme="dark"] {
     --primary-color: #4A90E2;
@@ -119,9 +178,9 @@
     --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.48);
 }
 
-/* System preference detection */
+/* System preference detection - only applies when theme is set to auto */
 @media (prefers-color-scheme: dark) {
-    :root:not([data-theme]) {
+    :root[data-theme="auto"] {
         --primary-color: #4A90E2;
         --primary-dark: #2E5C8A;
         --primary-light: #7DB2E8;
