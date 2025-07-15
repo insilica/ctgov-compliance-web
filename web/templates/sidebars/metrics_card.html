@@ -5,7 +5,11 @@
             <div class="display-flex flex-justify-between margin-bottom-1">
                 <span class="font-sans-md">Compliance Rate</span>
                 <span class="usa-tag bg-primary text-white font-sans-md margin-left-auto metric-value">
-                    {{ ((on_time_count / (on_time_count + late_count)) * 100) | round(2) }}%
+                    {% if (on_time_count + late_count) > 0 %}
+                        {{ ((on_time_count / (on_time_count + late_count)) * 100) | round(2) }}%
+                    {% else %}
+                        0%
+                    {% endif %}
                 </span>
             </div>
             <div class="display-flex flex-justify-between margin-bottom-1">
