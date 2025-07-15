@@ -201,6 +201,18 @@ body {
 }
 
 /* Theme-aware USWDS overrides */
+.usa-pagination__button, 
+.usa-pagination__item {
+    background-color: var(--surface-color);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+    text-decoration: none;
+}
+
+.usa-pagination {
+    background-color: var(--surface-color) !important;
+}
+
 .usa-footer__primary-container {
     background-color: var(--surface-dark);
     color: var(--text-primary);
@@ -756,6 +768,7 @@ td {
 /* Fix USWDS checkbox styling in dropdown */
 .column-config-dropdown .usa-checkbox {
     border-bottom: 1px solid var(--border-light);
+    background-color: var(--surface-color);
     padding-bottom: 0.75rem;
     margin-bottom: 0.75rem;
     position: relative;
