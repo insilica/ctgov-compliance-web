@@ -196,7 +196,16 @@ body {
                 stroke 0.3s ease;
 }
 
+.stats-label {
+    color: var(--text-inverse);
+}
+
 /* Theme-aware USWDS overrides */
+.usa-footer__primary-container {
+    background-color: var(--surface-dark);
+    color: var(--text-primary);
+}
+
 .usa-date-picker__button {
     background-color: var(--surface-color);
 }
@@ -542,9 +551,9 @@ td {
     align-items: center;
 }
 
-/* Active preset button styling */
+/* Active button styling */
 .preset-btn.preset-active {
-    background-color: var(--primary-color) !important;
+    background-color: var(--primary-dark) !important;
     color: var(--text-inverse) !important;
     border-color: var(--primary-color) !important;
 }

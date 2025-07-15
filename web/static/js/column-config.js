@@ -19,7 +19,7 @@ class TableColumnConfig {
      */
     getDefaultColumns() {
         const defaults = {
-            'trials': ['title', 'nct_id', 'organization', 'user', 'status', 'start_date', 'end_date', 'reporting_due_date'],
+            'trials': ['title', 'nct_id', 'organization', 'status', 'start_date', 'end_date', 'reporting_due_date'],
             'compare': ['sponsor', 'total_trials', 'compliant_trials', 'late_submissions', 'compliance_rate']
         };
         return defaults[this.tableType] || defaults['trials'];

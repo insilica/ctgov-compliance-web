@@ -40,7 +40,7 @@ def get_all_trials(page=None, per_page=None, count_only=False):
         o.created_at as org_created_at,
         uo.role as user_role
         '''
-        order_by = 'ORDER BY t.title ASC'
+        order_by = 'ORDER BY t.start_date DESC'
 
     sql = f'''
     SELECT
