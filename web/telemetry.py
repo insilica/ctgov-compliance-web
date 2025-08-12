@@ -1,5 +1,6 @@
 import os
 import socket
+import time
 from typing import Optional
 
 from opentelemetry import metrics, trace
@@ -24,7 +25,7 @@ _initialized = False
 def _build_resource() -> Resource:
     service_name = os.environ.get("SERVICE_NAME", "ctgov-compliance-web")
     service_namespace = os.environ.get("SERVICE_NAMESPACE", "ctgov")
-    instance_id = os.environ.get("SERVICE_INSTANCE_ID") or f"{socket.gethostname()}-{os.getpid()}"
+    instance_id = os.environ.get("SERVICE_INSTANCE_ID", f"{round(time.time())}-{os.getpid()}")
     return Resource.create(
         {
             "service.name": service_name,
