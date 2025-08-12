@@ -260,6 +260,9 @@ body {
 }
 
 /* Theme-aware USWDS overrides */
+.usa-nav-link {
+    color: var(--text-secondary) !important;
+}
 
 .usa-radio {
     background-color: var(--surface-variant);
@@ -592,10 +595,6 @@ td {
 
 .bg-success-dark {
     background: var(--success-color);
-}
-
-.text-white {
-    color: var(--text-inverse) !important;
 }
 
 .text-ink {
