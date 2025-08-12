@@ -139,80 +139,55 @@ def get_user_trials(user_id, page=None, per_page=None):
 
 def search_trials_count(params):
     """Get total count of search results"""
-    base_sql = '''
-    SELECT COUNT(DISTINCT t.id)
-    FROM trial t
-    LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
-    LEFT JOIN organization o ON o.id = t.organization_id
-    LEFT JOIN ctgov_user u ON u.id = t.user_id
-    LEFT JOIN user_organization uo ON u.id = uo.user_id AND o.id = uo.organization_id
-    WHERE 1=1
-    '''
-    
-    conditions = []
+    joins = ['FROM trial t']
+    where = ['1=1']
     values = []
-    
-    if params.get('title'):
-        conditions.append("t.title ILIKE %s")
-        values.append(f"%{params['title']}%")
-        
-    if params.get('nct_id'):
-        conditions.append("t.nct_id ILIKE %s")
-        values.append(f"%{params['nct_id']}%")
-        
+
     if params.get('organization'):
-        conditions.append("o.name ILIKE %s")
+        joins.append('LEFT JOIN organization o ON o.id = t.organization_id')
+        where.append('o.name ILIKE %s')
         values.append(f"%{params['organization']}%")
-        
-    if params.get('status'):
-        conditions.append("t.status = %s")
-        values.append(params['status'])
-    
+
     if params.get('user_email'):
-        conditions.append("u.email ILIKE %s")
+        joins.append('LEFT JOIN ctgov_user u ON u.id = t.user_id')
+        where.append('u.email ILIKE %s')
         values.append(f"%{params['user_email']}%")
-    
-    # Handle date range
+
+    # Compliance filter only if requested
+    compliance_status = params.get('compliance_status_list') or []
+    if compliance_status:
+        joins.append('LEFT JOIN trial_compliance tc ON t.id = tc.trial_id')
+        status_clauses = []
+        for s in compliance_status:
+            if s == 'compliant':
+                status_clauses.append("tc.status = 'Compliant'")
+            elif s == 'incompliant':
+                status_clauses.append("tc.status = 'Incompliant'")
+            elif s == 'pending':
+                status_clauses.append("tc.status IS NULL")
+        if status_clauses:
+            where.append(f"({' OR '.join(status_clauses)})")
+
+    if params.get('title'):
+        where.append('t.title ILIKE %s')
+        values.append(f"%{params['title']}%")
+
+    if params.get('nct_id'):
+        where.append('t.nct_id ILIKE %s')
+        values.append(f"%{params['nct_id']}%")
+
+    # date filters
     date_type = params.get('date_type', 'completion')
     date_from = params.get('date_from')
     date_to = params.get('date_to')
-    
+    col = {'completion': 't.completion_date', 'start': 't.start_date', 'due': 't.reporting_due_date'}[date_type]
     if date_from:
-        if date_type == 'completion':
-            conditions.append("t.completion_date >= %s")
-        elif date_type == 'start':
-            conditions.append("t.start_date >= %s")
-        elif date_type == 'due':
-            conditions.append("t.reporting_due_date >= %s")
-        values.append(date_from)
-    
+        where.append(f'{col} >= %s'); values.append(date_from)
     if date_to:
-        if date_type == 'completion':
-            conditions.append("t.completion_date <= %s")
-        elif date_type == 'start':
-            conditions.append("t.start_date <= %s")
-        elif date_type == 'due':
-            conditions.append("t.reporting_due_date <= %s")
-        values.append(date_to)
-    
-    # Handle compliance status
-    compliance_status = request.args.getlist('compliance_status[]')
-    if compliance_status:
-        status_conditions = []
-        for status in compliance_status:
-            if status == 'compliant':
-                status_conditions.append("tc.status = 'Compliant'")
-            elif status == 'incompliant':
-                status_conditions.append("tc.status = 'Incompliant'")
-            elif status == 'pending':
-                status_conditions.append("tc.status IS NULL")
-        if status_conditions:
-            conditions.append(f"({' OR '.join(status_conditions)})")
-    
-    if conditions:
-        base_sql += " AND " + " AND ".join(conditions)
-    
-    result = query(base_sql, values)
+        where.append(f'{col} <= %s'); values.append(date_to)
+
+    sql = f"SELECT COUNT(DISTINCT t.id) {' '.join(joins)} WHERE {' AND '.join(where)}"
+    result = query(sql, values)
     return result[0]['count'] if result else 0
 
 
