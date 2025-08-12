@@ -162,6 +162,7 @@ def populate_postgres(num_orgs: int, num_users: int, num_trials: int) -> None:
     populate_trials_and_compliance(cur, user_ids, org_ids, num_trials)
 
     cur.execute("REFRESH MATERIALIZED VIEW joined_trials;")
+    cur.execute("REFRESH MATERIALIZED VIEW compare_orgs;")
     
     conn.commit()
     cur.close()

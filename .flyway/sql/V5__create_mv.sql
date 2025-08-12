@@ -36,3 +36,32 @@ CREATE INDEX ON joined_trials USING gin (organization_name gin_trgm_ops);
 CREATE INDEX ON joined_trials USING gin (user_email gin_trgm_ops);
 -- Optional for ILIKE on nct_id if you do contains searches:
 CREATE INDEX ON joined_trials USING gin (nct_id gin_trgm_ops);
+
+CREATE MATERIALIZED VIEW compare_orgs AS
+SELECT 
+  o.id,
+  o.name,
+  o.email_domain,
+  o.created_at,
+  COUNT(t.id) AS total_trials,
+  SUM(CASE WHEN tc.status = 'Compliant' THEN 1 ELSE 0 END) AS on_time_count,
+  SUM(CASE WHEN tc.status = 'Incompliant' THEN 1 ELSE 0 END) AS late_count,
+  -- Calculate reporting rate as percentage of trials with status
+  ROUND(
+      (COUNT(CASE WHEN tc.status IS NOT NULL THEN 1 END) * 100.0 / NULLIF(COUNT(t.id), 0)), 
+      1
+  ) AS reporting_rate,
+  -- Placeholder for funding source (would need additional table)
+  NULL AS funding_source,
+  -- Placeholder for Wilson LCB score (would need calculation)
+  NULL AS wilson_lcb_score
+FROM organization o
+LEFT JOIN trial t ON o.id = t.organization_id
+LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
+GROUP BY o.id, o.name, o.email_domain, o.created_at;
+
+-- Indexes to support compare_orgs usage and CONCURRENT refresh
+CREATE UNIQUE INDEX ON compare_orgs (id);
+CREATE INDEX ON compare_orgs (total_trials DESC);
+CREATE INDEX ON compare_orgs (name);
+CREATE INDEX ON compare_orgs (reporting_rate);
