@@ -50,11 +50,7 @@ def get_org_trials_count(org_ids):
     sql = '''
     SELECT COUNT(*)
     FROM trial t
-    LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
-    LEFT JOIN organization o ON o.id = t.organization_id
-    LEFT JOIN ctgov_user u ON u.id = t.user_id
-    LEFT JOIN user_organization uo ON u.id = uo.user_id AND o.id = uo.organization_id
-    WHERE o.id IN %s
+    WHERE t.id IN %s
     '''
     result = query(sql, [org_ids])
     return result[0]['count'] if result else 0
