@@ -14,17 +14,22 @@ database services.
 
 - **NixOS** must be downloaded onto the system
   - Run in Terminal (MacOS):
-    ```
+
+    ```{bash}
     sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install)
     ```
+
   - [Windows Instructions](https://nixos.org/download/#nix-install-windows)
 - **UV** must be downloaded onto the system
   - Run in your CLI with Homebrew:
-    ```
+
+    ```{bash}
     brew install uv
     ```
+
   - Alternatively, you may use the following:
-    ```
+
+    ```{bash}
     curl -LsSf https://astral.sh/uv/install.sh | sh
     ```
 
