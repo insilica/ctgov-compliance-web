@@ -27,7 +27,7 @@ fi
 
 
 # Skip Flyway in CI environment (assuming no migrations needed for tests)
-if [ "${SKIP_POSTGRES_SETUP:-false}" != "true" ]; then
+if [ "${SKIP_POSTGRES_SETUP:-false}" != "true" ] && [ "${SKIP_FLYWAY_SETUP:-false}" != "true" ]; then
   source scripts/flake/run_flyway.sh
 else
   echo "Skipping Flyway (CI environment)"
