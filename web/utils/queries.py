@@ -40,18 +40,33 @@ def get_user_trials_count(user_id):
     return result[0]['count'] if result else 0
 
 
-def get_compliance_rate(column=None, value=None):
+def get_compliance_rate(filter=None, params=None):
     with tracer.start_as_current_span("queries.get_compliance_rate") as span:
         sql = '''
             SELECT
-                status, COUNT(*)
+                COUNT(*) FILTER (WHERE compliance_status = 'Compliant') AS compliant_count,
+                COUNT(*) FILTER (WHERE compliance_status = 'Incompliant') AS incompliant_count
             FROM joined_trials
         '''
-        if column:
-            sql += f"WHERE {column} = {value} GROUP BY status"
-            span.set_attribute("queries.filter.column", column)
-        else:
-            sql += "GROUP BY status"
+        if filter:
+            sql += f"WHERE {filter}"
+            span.set_attribute("queries.filter", filter)
+            return query(sql, [params])
+        return query(sql)
+
+# TODO: implement me
+def get_compliance_rate_compare(filter=None, params=None):
+    with tracer.start_as_current_span("queries.get_compliance_rate") as span:
+        sql = '''
+            SELECT
+                COUNT(*) FILTER (WHERE compliance_status = 'Compliant') AS compliant_count,
+                COUNT(*) FILTER (WHERE compliance_status = 'Incompliant') AS incompliant_count
+            FROM joined_trials
+        '''
+        if filter:
+            sql += f"WHERE {filter}"
+            span.set_attribute("queries.filter", filter)
+            return query(sql, [params])
         return query(sql)
 
 
@@ -281,47 +296,25 @@ def get_org_compliance_count(min_compliance=None, max_compliance=None, min_trial
     with tracer.start_as_current_span("queries.get_org_compliance_count"):
         sql = '''
         SELECT COUNT(*)
-        FROM (
-            SELECT 
-                o.id,
-                o.name,
-                o.email_domain,
-                o.created_at,
-                COUNT(t.id) AS total_trials,
-                SUM(CASE WHEN tc.status = 'Compliant' THEN 1 ELSE 0 END) AS on_time_count,
-                SUM(CASE WHEN tc.status = 'Incompliant' THEN 1 ELSE 0 END) AS late_count,
-                -- Calculate reporting rate as percentage of trials with status
-                ROUND(
-                    (COUNT(CASE WHEN tc.status IS NOT NULL THEN 1 END) * 100.0 / NULLIF(COUNT(t.id), 0)), 
-                    1
-                ) AS reporting_rate,
-                -- Placeholder for funding source (would need additional table)
-                NULL AS funding_source,
-                -- Placeholder for Wilson LCB score (would need calculation)
-                NULL AS wilson_lcb_score
-            FROM organization o
-            LEFT JOIN trial t ON o.id = t.organization_id
-            LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
-            GROUP BY o.id, o.name, o.email_domain, o.created_at
+        FROM compare_orgs
         '''
-        having_clauses = []
+        where_clauses = []
         params = []
         # Compliance rate is calculated as (on_time_count / total_trials) * 100
         if min_compliance is not None:
-            having_clauses.append('(SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) >= %s')
+            where_clauses.append('(on_time_count * 100.0 / NULLIF(total_trials,0)) >= %s')
             params.append(min_compliance)
         if max_compliance is not None:
-            having_clauses.append('(SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) <= %s')
+            where_clauses.append('(on_time_count * 100.0 / NULLIF(total_trials,0)) <= %s')
             params.append(max_compliance)
         if min_trials is not None:
-            having_clauses.append('COUNT(t.id) >= %s')
+            where_clauses.append('total_trials >= %s')
             params.append(min_trials)
         if max_trials is not None:
-            having_clauses.append('COUNT(t.id) <= %s')
+            where_clauses.append('total_trials <= %s')
             params.append(max_trials)
-        if having_clauses:
-            sql += ' HAVING ' + ' AND '.join(having_clauses)
-        sql += '\n    ) AS subquery'
+        if where_clauses:
+            sql += ' WHERE ' + ' AND '.join(where_clauses)
         
         result = query(sql, params)
         return result[0]['count'] if result else 0
@@ -330,46 +323,37 @@ def get_org_compliance_count(min_compliance=None, max_compliance=None, min_trial
 def get_org_compliance(min_compliance=None, max_compliance=None, min_trials=None, max_trials=None, page=None, per_page=None):
     with tracer.start_as_current_span("queries.get_org_compliance") as span:
         sql = '''
-        SELECT 
-            o.id,
-            o.name,
-            o.email_domain,
-            o.created_at,
-            COUNT(t.id) AS total_trials,
-            SUM(CASE WHEN tc.status = 'Compliant' THEN 1 ELSE 0 END) AS on_time_count,
-            SUM(CASE WHEN tc.status = 'Incompliant' THEN 1 ELSE 0 END) AS late_count,
-            -- Calculate reporting rate as percentage of trials with status
-            ROUND(
-                (COUNT(CASE WHEN tc.status IS NOT NULL THEN 1 END) * 100.0 / NULLIF(COUNT(t.id), 0)), 
-                1
-            ) AS reporting_rate,
-            -- Placeholder for funding source (would need additional table)
-            NULL AS funding_source,
-            -- Placeholder for Wilson LCB score (would need calculation)
-            NULL AS wilson_lcb_score
-        FROM organization o
-        LEFT JOIN trial t ON o.id = t.organization_id
-        LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
-        GROUP BY o.id, o.name, o.email_domain, o.created_at
+            SELECT 
+                id,
+                name,
+                email_domain,
+                created_at,
+                total_trials,
+                on_time_count,
+                late_count,
+                reporting_rate,
+                funding_source,
+                wilson_lcb_score
+            FROM compare_orgs
         '''
-        having_clauses = []
+        where_clauses = []
         params = []
         # Compliance rate is calculated as (on_time_count / total_trials) * 100
         if min_compliance is not None:
-            having_clauses.append('(SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) >= %s')
+            where_clauses.append('(on_time_count * 100.0 / NULLIF(total_trials,0)) >= %s')
             params.append(min_compliance)
         if max_compliance is not None:
-            having_clauses.append('(SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) <= %s')
+            where_clauses.append('(on_time_count * 100.0 / NULLIF(total_trials,0)) <= %s')
             params.append(max_compliance)
         if min_trials is not None:
-            having_clauses.append('COUNT(t.id) >= %s')
+            where_clauses.append('total_trials >= %s')
             params.append(min_trials)
         if max_trials is not None:
-            having_clauses.append('COUNT(t.id) <= %s')
+            where_clauses.append('total_trials <= %s')
             params.append(max_trials)
-        if having_clauses:
-            sql += ' HAVING ' + ' AND '.join(having_clauses)
-        sql += '\nORDER BY total_trials DESC, o.name ASC'
+        if where_clauses:
+            sql += ' WHERE ' + ' AND '.join(where_clauses)
+        sql += '\nORDER BY total_trials DESC, name ASC'
         
         # Add LIMIT and OFFSET if pagination parameters are provided
         if page is not None and per_page is not None:

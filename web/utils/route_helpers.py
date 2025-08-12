@@ -11,25 +11,17 @@ from .queries import (
     get_org_trials, get_org_trials_count,
     get_org_compliance, get_org_compliance_count,
     get_user_trials, get_user_trials_count,
-    search_trials, search_trials_count
+    search_trials, search_trials_count, get_compliance_rate
 )
 from .pagination import paginate, get_pagination_args
 
 
-def compliance_counts(trials):
+def compliance_counts(rates):
     """Calculate compliance counts from trials data using pandas."""
     # Defer pandas import to function level
-    import pandas as pd
-    
-    # Convert to DataFrame for status counts
-    df = pd.DataFrame(trials)
-    
-    # Count statuses
-    status_counts = df['status'].value_counts() if not df.empty else pd.Series()
-    on_time_count = status_counts.get('Compliant', 0)
-    late_count = status_counts.get('Incompliant', 0)
-
-    return on_time_count, late_count
+    c = rates[0]['compliant_count']
+    ic = rates[0]['incompliant_count']
+    return c, ic
 
 
 def process_index_request(page=None, per_page=None):
@@ -43,10 +35,8 @@ def process_index_request(page=None, per_page=None):
     total_count = get_all_trials_count()
 
     # Get compliance counts using SQL aggregation
-    count_results = get_all_trials(count_only=True)
-    counts = count_results[0] if count_results else {}
-    on_time_count = counts.get('compliant_count', 0)
-    late_count = counts.get('incompliant_count', 0)
+    rates = get_compliance_rate()
+    on_time_count, late_count = compliance_counts(rates)
 
     pagination, per_page = paginate(trials, total_entries=total_count)
 
@@ -111,11 +101,11 @@ def process_organization_dashboard_request(org_ids, page=None, per_page=None):
     total_count = get_org_trials_count(org_list)
     
     # Get all organization trials for compliance counts
-    all_org_trials = get_org_trials(org_list)
+    compliance_rates = get_compliance_rate("organization_id IN %s", org_list)
     
     pagination, per_page = paginate(org_trials, total_entries=total_count)
     
-    on_time_count, late_count = compliance_counts(all_org_trials)
+    on_time_count, late_count = compliance_counts(compliance_rates)
 
     return {
         'template': 'dashboards/organization.html',
