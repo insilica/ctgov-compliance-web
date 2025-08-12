@@ -18,42 +18,31 @@ def get_all_trials(page=None, per_page=None, count_only=False):
         SUM(CASE WHEN tc.status = 'Incompliant' THEN 1 ELSE 0 END) as incompliant_count,
         SUM(CASE WHEN tc.status IS NULL THEN 1 ELSE 0 END) as pending_count
         '''
-        order_by = ''
+        sql = f'''
+            SELECT {select_columns}
+            FROM trial t
+            LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
+        '''
+        return query(sql)
     else:
         select_columns = '''
-        t.nct_id,
-        t.title,
-        o.name,
-        u.email,
-        tc.status,
-        t.start_date,
-        t.completion_date,
-        t.reporting_due_date,
-        tc.last_checked,
-        o.id,
-        t.user_id,
-        o.created_at as org_created_at,
-        uo.role as user_role
+        t.nct_id, t.title, o.name, u.email, tc.status,
+        t.start_date, t.completion_date, t.reporting_due_date,
+        tc.last_checked, o.id, t.user_id, o.created_at as org_created_at, uo.role as user_role
         '''
-        order_by = 'ORDER BY t.start_date DESC'
-
-    sql = f'''
-        SELECT
-            {select_columns}
-        FROM trial t
-        LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
-        LEFT JOIN organization o ON o.id = t.organization_id
-        LEFT JOIN ctgov_user u ON u.id = t.user_id
-        LEFT JOIN user_organization uo ON u.id = uo.user_id AND o.id = uo.organization_id
-        {order_by}
-    '''
-
-    # Add LIMIT and OFFSET if pagination parameters are provided (but not for count queries)
-    if not count_only and page is not None and per_page is not None:
-        offset = (page - 1) * per_page
-        sql += f' LIMIT {per_page} OFFSET {offset}'
-
-    return query(sql)
+        sql = f'''
+            SELECT {select_columns}
+            FROM trial t
+            LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
+            LEFT JOIN organization o ON o.id = t.organization_id
+            LEFT JOIN ctgov_user u ON u.id = t.user_id
+            LEFT JOIN user_organization uo ON u.id = uo.user_id AND o.id = uo.organization_id
+            ORDER BY t.start_date DESC
+        '''
+        if page is not None and per_page is not None:
+            offset = (page - 1) * per_page
+            sql += f' LIMIT {per_page} OFFSET {offset}'
+        return query(sql)
 
 
 def get_org_trials_count(org_ids):
