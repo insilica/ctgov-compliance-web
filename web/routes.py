@@ -111,7 +111,7 @@ def index():
     template_data = process_index_request()
     return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
 
-@bp.route('/home')
+@bp.route('/')
 @login_required    # pragma: no cover
 def search():
     # Get search parameters from request

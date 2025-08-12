@@ -4,6 +4,7 @@ from flask_wtf import CSRFProtect
 from flask_login import current_user, login_user
 from .auth import bp as auth_bp, login_manager
 from .routes import bp as routes_bp
+from .telemetry import init_telemetry, instrument_flask_app
 
 csrf = CSRFProtect()
 
@@ -18,6 +19,10 @@ def create_app(test_config=None):
     # Override with test config if provided
     if test_config is not None:
         app.config.update(test_config)
+    
+    # Initialize OpenTelemetry before registering blueprints
+    init_telemetry()
+    instrument_flask_app(app)
     
     # Add Jinja2 extensions
     app.jinja_env.add_extension('jinja2.ext.do')
