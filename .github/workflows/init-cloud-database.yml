@@ -119,7 +119,6 @@ jobs:
           ENV_VARS="${ENV_VARS},NUM_ORGS=${{ github.event.inputs.organizations }}"
           ENV_VARS="${ENV_VARS},NUM_USERS=${{ github.event.inputs.users }}"
           ENV_VARS="${ENV_VARS},NUM_TRIALS=${{ github.event.inputs.trials }}"
-          ENV_VARS="${ENV_VARS},SKIP_BLAZEGRAPH=true"
           
           if [ "${{ github.event.inputs.force }}" = "true" ]; then
             ENV_VARS="${ENV_VARS},FORCE_REPOPULATE=true"

@@ -22,24 +22,15 @@ targets=(
   "build"
   "ctgov_compliance_web.egg-info"
   ".env"
-  "blazegraph.jar"
-  ".blazegraph.pid"
-  "blazegraph.jnl"
   "report.html"
   "report.json"
   "rules.log"
-  # Redis files
-  "dump.rdb"
   # Python cache files
   "**/__pycache__"
   "**/*.pyc"
   "**/*.pyo"
   "**/*.pyd"
   ".pytest_cache"
-  # AWS temporary files
-  ".aws-profile"
-  ".aws/credentials"
-  ".aws/config"
 )
 
 # Function to count total files to be deleted
@@ -130,51 +121,7 @@ else
     echo "No Postgres processes found on port 5464"
   fi
 
-  # Find and kill Java process listening on port 9999
-  echo "Checking for Java processes on port 9999..."
-  JAVA_PIDS=$(lsof -t -i :9999 -sTCP:LISTEN -a -c java 2>/dev/null || true)
-  if [ -n "$JAVA_PIDS" ]; then
-    JAVA_PROCESS=$(lsof -i :9999 -sTCP:LISTEN -a -c java | head -n 2)
-    echo "Killing Java processes on port 9999 with PID $JAVA_PIDS:"
-    echo -e "Full entry info:\n$JAVA_PROCESS"
-    if kill $JAVA_PIDS 2>/dev/null; then
-      for pid in $JAVA_PIDS; do
-        while kill -0 $pid 2>/dev/null; do
-          echo "Waiting for Java process $pid to terminate..."
-          sleep 1
-        done
-      done
-      echo "Java processes terminated successfully"
-    else
-      echo "Failed to kill Java processes"
-    fi
-  else
-    echo "No Java processes found on port 9999"
-  fi
-fi
-
-# Find and kill Redis server if running
-echo "Checking for Redis server processes..."
-if command -v pgrep >/dev/null 2>&1; then
-  REDIS_PIDS=$(pgrep redis-server 2>/dev/null || true)
-  if [ -n "$REDIS_PIDS" ]; then
-    echo "Killing Redis server processes with PID $REDIS_PIDS"
-    if kill $REDIS_PIDS 2>/dev/null; then
-      for pid in $REDIS_PIDS; do
-        while kill -0 $pid 2>/dev/null; do
-          echo "Waiting for Redis process $pid to terminate..."
-          sleep 1
-        done
-      done
-      echo "Redis processes terminated successfully"
-    else
-      echo "Failed to kill Redis processes"
-    fi
-  else
-    echo "No Redis server processes found"
-  fi
-else
-  echo "Warning: pgrep not found, skipping Redis cleanup"
+  # No additional processes to clean
 fi
 
 echo -e "\nCleanup complete. You can now run 'nix develop' for a fresh environment."
