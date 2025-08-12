@@ -5,12 +5,7 @@ from flask import request
 def get_all_trials_count():
     """Get total count of all trials"""
     sql = '''
-    SELECT COUNT(*)
-    FROM trial t
-    LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
-    LEFT JOIN organization o ON o.id = t.organization_id
-    LEFT JOIN ctgov_user u ON u.id = t.user_id
-    LEFT JOIN user_organization uo ON u.id = uo.user_id AND o.id = uo.organization_id
+    SELECT COUNT(*) FROM trial
     '''
     result = query(sql)
     return result[0]['count'] if result else 0
@@ -43,14 +38,14 @@ def get_all_trials(page=None, per_page=None, count_only=False):
         order_by = 'ORDER BY t.start_date DESC'
 
     sql = f'''
-    SELECT
-        {select_columns}
-    FROM trial t
-    LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
-    LEFT JOIN organization o ON o.id = t.organization_id
-    LEFT JOIN ctgov_user u ON u.id = t.user_id
-    LEFT JOIN user_organization uo ON u.id = uo.user_id AND o.id = uo.organization_id
-    {order_by}
+        SELECT
+            {select_columns}
+        FROM trial t
+        LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
+        LEFT JOIN organization o ON o.id = t.organization_id
+        LEFT JOIN ctgov_user u ON u.id = t.user_id
+        LEFT JOIN user_organization uo ON u.id = uo.user_id AND o.id = uo.organization_id
+        {order_by}
     '''
 
     # Add LIMIT and OFFSET if pagination parameters are provided (but not for count queries)

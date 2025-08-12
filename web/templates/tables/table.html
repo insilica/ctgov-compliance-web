@@ -37,6 +37,8 @@
                     <span class="badge badge-success">{{ trial.status }}</span>
                     {% elif trial.status|lower == 'incompliant' or trial.status|lower == 'not compliant' %}
                     <span class="badge badge-error">{{ trial.status }}</span>
+                    {% else %}
+                    <span class="">{{ trial.status }}</span>
                     {% endif %}
                 </td>
                 <td class="date-column" data-column="start_date">
