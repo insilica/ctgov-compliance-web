@@ -2,17 +2,17 @@ CREATE MATERIALIZED VIEW joined_trials AS
 SELECT
   t.id AS trial_id,
   t.nct_id,
+  o.id AS organization_id,
+  u.id AS user_id,
   t.title,
   t.start_date,
   t.completion_date,
   t.reporting_due_date,
-  o.id AS organization_id,
-  o.name AS organization_name,
-  o.created_at AS organization_created_at,
-  u.id AS user_id,
-  u.email AS user_email,
   tc.status AS compliance_status,
   tc.last_checked,
+  o.name AS organization_name,
+  o.created_at AS organization_created_at,
+  u.email AS user_email,
   uo.role AS user_role
 FROM trial t
 LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
