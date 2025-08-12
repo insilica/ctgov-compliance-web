@@ -87,9 +87,9 @@ PROCESS=$(lsof -i :5464 -sTCP:LISTEN -a -c postgres | head -n 2)
 if [ -n "$PIDS" ]; then
   echo "Killing Postgres processes on port 5464 with PID $PIDS: "
   echo "$PROCESS"
-  kill $PIDS
+  kill "$PIDS"
   for pid in $PIDS; do
-    while kill -0 $pid 2>/dev/null; do
+    while kill -0 "$pid" 2>/dev/null; do
       echo "Waiting for Postgres process $pid to terminate..."
       sleep 1
     done
