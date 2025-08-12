@@ -46,8 +46,6 @@ count_total_files() {
 # Function to safely delete a target
 delete_target() {
   local target=$1
-  local current_count=$2
-  local total_count=$3
   
   if [ -e "$target" ] || [ -L "$target" ]; then  # Added -L to check for symlinks
     echo -e "\nDeleting: $target"
