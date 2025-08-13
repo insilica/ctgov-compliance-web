@@ -166,7 +166,6 @@ class QueryManager:
         with tracer.start_as_current_span("queries.get_all_trials") as span:
             sql = f'''
                 SELECT * FROM joined_trials
-                ORDER BY start_date DESC
             '''
             if page is not None and per_page is not None:
                 offset = (page - 1) * per_page
@@ -187,7 +186,6 @@ class QueryManager:
             sql = '''
             SELECT * FROM joined_trials
             WHERE organization_id IN %s
-            ORDER BY start_date DESC
             '''
             
             # Add LIMIT and OFFSET if pagination parameters are provided
@@ -209,7 +207,6 @@ class QueryManager:
             sql = '''
             SELECT * FROM joined_trials
             WHERE user_id = %s
-            ORDER BY start_date DESC
             '''
             
             # Add LIMIT and OFFSET if pagination parameters are provided
@@ -236,10 +233,10 @@ class QueryManager:
         params = self._from_hashable(key_params)
         compliance_status = self._from_hashable(key_status) if key_status is not None else None
         with tracer.start_as_current_span("queries.search_trials_count") as span:
-            base_sql = f'''
-            SELECT COUNT(*)
+            # Use parameterized query, avoid f-string for SQL, and remove unnecessary WHERE 1=1
+            base_sql = '''
+            SELECT COUNT(trial_id)
             FROM joined_trials
-            WHERE 1=1
             '''
             
             conditions = []
@@ -299,10 +296,11 @@ class QueryManager:
                     elif status == 'pending':
                         status_conditions.append("compliance_status IS NULL")
                 if status_conditions:
+                    # Use parameterized query for status if possible, but here it's safe as it's controlled
                     conditions.append(f"({' OR '.join(status_conditions)})")
 
             if conditions:
-                base_sql += " AND " + " AND ".join(conditions)
+                base_sql += " WHERE " + " AND ".join(conditions)
 
             result = query(base_sql, values)
             return result[0]['count'] if result else 0
@@ -318,8 +316,6 @@ class QueryManager:
         params = self._from_hashable(key_params)
         compliance_status = self._from_hashable(key_status) if key_status is not None else None
         with tracer.start_as_current_span("queries.search_trials") as span:
-            order_by = ' ORDER BY start_date ASC'
-
             base_sql = f'''
             SELECT *
             FROM joined_trials
@@ -387,8 +383,6 @@ class QueryManager:
 
             if conditions:
                 base_sql += " AND " + " AND ".join(conditions)
-
-            base_sql += order_by
 
             # Add LIMIT and OFFSET if pagination parameters are provided (but not for count queries)
             if page is not None and per_page is not None:
@@ -459,7 +453,6 @@ class QueryManager:
                 where_clauses.append('total_trials <= %s')
                 params.append(max_trials)
                 sql += ' WHERE ' + ' AND '.join(where_clauses)
-            sql += '\nORDER BY name DESC'
             
             # Add LIMIT and OFFSET if pagination parameters are provided
             if page is not None and per_page is not None:
