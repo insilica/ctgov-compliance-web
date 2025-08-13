@@ -3,6 +3,9 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from psycopg2 import pool
 from contextlib import contextmanager
+from opentelemetry import trace
+
+tracer = trace.get_tracer(__name__)
 
 
 _POOL = None
@@ -39,36 +42,48 @@ def _get_pool():
         except (ValueError, TypeError):
             pool_size = 5  # Default fallback
         
-        _POOL = pool.SimpleConnectionPool(
-            1,
-            pool_size,
-            **connection_kwargs
-        )
+        with tracer.start_as_current_span("db.init_pool") as span:
+            span.set_attribute("db.pool.size", pool_size)
+            span.set_attribute("db.host", connection_kwargs.get('host', ''))
+            _POOL = pool.SimpleConnectionPool(
+                1,
+                pool_size,
+                **connection_kwargs
+            )
     return _POOL
 
 
 @contextmanager
 def get_conn():
-    conn = _get_pool().getconn()
-    try:
-        yield conn
-    finally:
-        _get_pool().putconn(conn)
+    with tracer.start_as_current_span("db.get_conn"):
+        conn = _get_pool().getconn()
+        try:
+            yield conn
+        finally:
+            _get_pool().putconn(conn)
 
 
 def query(sql, params=None, fetchone=False):
-    with get_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql, params or [])
-            data = cur.fetchone() if fetchone else cur.fetchall()
+    with tracer.start_as_current_span("db.query") as span:
+        span.set_attribute("db.query.fetchone", bool(fetchone))
+        # Avoid recording full SQL/params to reduce PII; include lengths only
+        span.set_attribute("db.query.sql_length", len(sql) if isinstance(sql, str) else 0)
+        span.set_attribute("db.query.params_count", len(params) if isinstance(params, (list, tuple)) else (1 if params is not None else 0))
+        with get_conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(sql, params or [])
+                data = cur.fetchone() if fetchone else cur.fetchall()
     return data
 
 
 def execute(sql, params=None):
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql, params or [])
-            conn.commit()
+    with tracer.start_as_current_span("db.execute") as span:
+        span.set_attribute("db.execute.sql_length", len(sql) if isinstance(sql, str) else 0)
+        span.set_attribute("db.execute.params_count", len(params) if isinstance(params, (list, tuple)) else (1 if params is not None else 0))
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, params or [])
+                conn.commit()
 
 
 def check_data_population():
