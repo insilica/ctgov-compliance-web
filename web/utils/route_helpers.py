@@ -55,7 +55,6 @@ def process_search_request(search_params, compliance_status_list, page=None, per
         # Get paginated search results and total count
         search_results = QueryManager.search_trials(search_params, page=page, per_page=per_page)
         total_count = QueryManager.search_trials_count(search_params)
-        print(total_count)
 
 
         # Get compliance counts using SQL aggregation
