@@ -26,19 +26,20 @@
                 <td data-column="nct_id">{{ trial.nct_id }}</td>
                 <td data-column="organization">
                     <a href="{{ url_for('routes.show_organization_dashboard', org_ids=trial.id) }}" class="usa-link">{{
-                        trial.name }}</a>
+                        trial.organization_name }}</a>
                 </td>
                 <td data-column="user">
                     <a href="{{ url_for('routes.show_user_dashboard', user_id=trial.user_id) }}" class="usa-link">{{
-                        trial.email }}</a>
+                        trial.user_email }}</a>
                 </td>
                 <td data-column="status">
-                    {% if trial.status|lower == 'compliant' %}
-                    <span class="badge badge-success">{{ trial.status }}</span>
-                    {% elif trial.status|lower == 'incompliant' or trial.status|lower == 'not compliant' %}
-                    <span class="badge badge-error">{{ trial.status }}</span>
+                    {% if trial.compliance_status|lower == 'compliant' %}
+                    <span class="badge badge-success">{{ trial.compliance_status }}</span>
+                    {% elif trial.compliance_status|lower == 'incompliant' or trial.compliance_status|lower == 'not
+                    compliant' %}
+                    <span class="badge badge-error">{{ trial.compliance_status }}</span>
                     {% else %}
-                    <span class="">{{ trial.status }}</span>
+                    <span class="">{{ trial.compliance_status }}</span>
                     {% endif %}
                 </td>
                 <td class="date-column" data-column="start_date">
@@ -61,7 +62,8 @@
                     {{ trial.user_role|title if trial.user_role else '-' }}
                 </td>
                 <td class="date-column" data-column="org_created_at">
-                    <span class="date-mobile">{{ trial.org_created_at.strftime("%m/%d/%y") if trial.org_created_at else
+                    <span class="date-mobile">{{ trial.organization_created_at.strftime("%m/%d/%y") if
+                        trial.organization_created_at else
                         '-' }}</span>
                 </td>
             </tr>
