@@ -25,7 +25,7 @@ _initialized = False
 def _build_resource() -> Resource:
     service_name = os.environ.get("SERVICE_NAME", "ctgov-compliance-web")
     service_namespace = os.environ.get("SERVICE_NAMESPACE", "ctgov")
-    instance_id = os.environ.get("SERVICE_INSTANCE_ID", f"{round(time.time())}-{os.getpid()}")
+    instance_id = os.environ.get("SERVICE_INSTANCE_ID") or f"{socket.gethostname()}-{os.getpid()}"
     return Resource.create(
         {
             "service.name": service_name,
@@ -38,6 +38,11 @@ def _build_resource() -> Resource:
 def init_telemetry(enable_metrics: Optional[bool] = None) -> None:
     global _initialized
     if _initialized:
+        return
+
+    # Avoid double-initialization under Flask debug reloader: run only in the reloader child
+    if os.environ.get("FLASK_DEBUG") in ("1", "true", "True") and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        _initialized = True
         return
 
     # Disabled by default; enable via OTEL_ENABLED=true
@@ -65,10 +70,17 @@ def init_telemetry(enable_metrics: Optional[bool] = None) -> None:
                 CloudMonitoringMetricsExporter,
             )
 
+            # Allow tuning the export interval to satisfy Cloud Monitoring sampling constraints
+            interval_ms_env = os.environ.get("OTEL_METRIC_EXPORT_INTERVAL_MILLIS") or os.environ.get("OTEL_METRICS_EXPORT_INTERVAL_MILLIS")
+            try:
+                export_interval_millis = int(interval_ms_env) if interval_ms_env else 60000
+            except Exception:
+                export_interval_millis = 60000
+
             meter_provider = MeterProvider(
                 metric_readers=[
                     PeriodicExportingMetricReader(
-                        CloudMonitoringMetricsExporter(), export_interval_millis=5000
+                        CloudMonitoringMetricsExporter(), export_interval_millis=export_interval_millis
                     )
                 ],
                 resource=resource,
