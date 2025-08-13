@@ -64,7 +64,7 @@ class QueryManager:
     def get_all_trials_count(self):
         """Get total count of all trials (cached property)."""
         sql = '''
-        SELECT COUNT(*) FROM trial
+        SELECT COUNT(trial_id) FROM joined_trials
         '''
         result = query(sql)
         return result[0]['count'] if result else 0
@@ -77,9 +77,8 @@ class QueryManager:
     def _get_org_trials_count_cached(self, key_org_ids):
         org_ids = self._from_hashable(key_org_ids)
         sql = '''
-        SELECT COUNT(*)
-        FROM trial t
-        WHERE t.id IN %s
+        SELECT COUNT(trial_id) FROM joined_trials
+        WHERE organization_id IN %s
         '''
         result = query(sql, [tuple(org_ids)])
         return result[0]['count'] if result else 0
@@ -90,9 +89,8 @@ class QueryManager:
     @cache
     def _get_user_trials_count_cached(self, user_id):
         sql = '''
-        SELECT COUNT(*)
-        FROM trial t
-        WHERE t.id = %s
+        SELECT COUNT(trial_id) FROM joined_trials
+        WHERE user_id = %s
         '''
         result = query(sql, [user_id])
         return result[0]['count'] if result else 0
@@ -111,8 +109,8 @@ class QueryManager:
         with tracer.start_as_current_span("queries.get_compliance_rate") as span:
             sql = '''
                 SELECT
-                    COUNT(*) FILTER (WHERE compliance_status = 'Compliant') AS compliant_count,
-                    COUNT(*) FILTER (WHERE compliance_status = 'Incompliant') AS incompliant_count
+                    COUNT(trial_id) FILTER (WHERE compliance_status = 'Compliant') AS compliant_count,
+                    COUNT(trial_id) FILTER (WHERE compliance_status = 'Incompliant') AS incompliant_count
                 FROM joined_trials
             '''
             if filter:
@@ -158,11 +156,11 @@ class QueryManager:
     # TRIAL RETRIEVAL QUERIES
     # ============================================================================
     
-    def get_all_trials(self, page=None, per_page=None, count_only=False):
-        return self._get_all_trials_cached(page, per_page, count_only)
+    def get_all_trials(self, page=None, per_page=None):
+        return self._get_all_trials_cached(page, per_page)
 
     @cache
-    def _get_all_trials_cached(self, page=None, per_page=None, count_only=False):
+    def _get_all_trials_cached(self, page=None, per_page=None):
         with tracer.start_as_current_span("queries.get_all_trials") as span:
             sql = f'''
                 SELECT * FROM joined_trials

@@ -4,6 +4,7 @@ CREATE TABLE organization (
     email_domain VARCHAR(255) NOT NULL UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX ON organization (id);
 
 CREATE TABLE user_organization (
     user_id INTEGER NOT NULL REFERENCES ctgov_user(id) ON DELETE CASCADE,
@@ -23,6 +24,9 @@ CREATE TABLE trial (
     completion_date DATE,
     reporting_due_date DATE
 );
+CREATE INDEX ON trial (id);
+CREATE INDEX ON trial (organization_id);
+CREATE INDEX ON trial (user_id);
 
 CREATE TABLE trial_compliance (
     id SERIAL PRIMARY KEY,
@@ -30,3 +34,5 @@ CREATE TABLE trial_compliance (
     status VARCHAR(20) NOT NULL,
     last_checked TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX ON trial_compliance (id);
+CREATE INDEX ON trial_compliance (trial_id);
