@@ -7,27 +7,40 @@
             <div class="display-flex flex-justify-between margin-bottom-1">
                 <span class="font-sans-md stats-label">Avg Compliance Rate</span>
                 <span class="usa-tag bg-primary text-white font-sans-md margin-left-auto">
+                    {% if on_time_count is not none and late_count is not none and (on_time_count + late_count) > 0 %}
                     {{ ((on_time_count / (on_time_count + late_count)) * 100) | round(2) }}%
+                    {% else %}
+                    0%
+                    {% endif %}
                 </span>
             </div>
             <div class="display-flex flex-justify-between margin-bottom-1">
                 <span class="font-sans-md stats-label">Compliant Trials</span>
-                <span class="usa-tag bg-success-dark text-white font-sans-md margin-left-auto">{{ on_time_count
-                    }}</span>
+                <span class="usa-tag bg-success-dark text-white font-sans-md margin-left-auto">
+                    {{ on_time_count if on_time_count is not none else 0 }}
+                </span>
             </div>
             <div class="display-flex flex-justify-between margin-bottom-1">
                 <span class="font-sans-md stats-label">Incompliant submissions</span>
-                <span class="usa-tag bg-accent-warm text-white font-sans-md margin-left-auto">{{ late_count }}</span>
+                <span class="usa-tag bg-accent-warm text-white font-sans-md margin-left-auto">
+                    {{ late_count if late_count is not none else 0 }}
+                </span>
             </div>
             <div class="display-flex margin-bottom-1">
                 <span class="font-sans-md stats-label">Total Organizations</span>
-                <span class="usa-tag bg-primary-lighter text-ink font-sans-md margin-left-auto">{{ total_organizations
-                    }}</span>
+                <span class="usa-tag bg-primary-lighter text-ink font-sans-md margin-left-auto">
+                    {{ total_organizations if total_organizations is not none else 0 }}
+                </span>
             </div>
             <div class="display-flex flex-justify-between">
                 <span class="font-sans-md stats-label">Total trials</span>
-                <span class="usa-tag bg-primary-lighter text-ink font-sans-md margin-left-auto">{{ on_time_count +
-                    late_count }}</span>
+                <span class="usa-tag bg-primary-lighter text-ink font-sans-md margin-left-auto">
+                    {% if on_time_count is not none and late_count is not none %}
+                    {{ on_time_count + late_count }}
+                    {% else %}
+                    0
+                    {% endif %}
+                </span>
             </div>
         </div>
     </div>
@@ -44,13 +57,13 @@
                         <div class="grid-col-5">
                             <input class="usa-input" placeholder="Min" type="number" id="min-compliance"
                                 name="min_compliance" min="0" max="100"
-                                value="{{ request.args.get('min_compliance', '') }}">
+                                value="{{ request.args.get('min_compliance', '0') }}">
                         </div>
                         <div class="grid-col-2 display-flex flex-align-center flex-justify-center">—</div>
                         <div class="grid-col-5">
                             <input class="usa-input" placeholder="Max" type="number" id="max-compliance"
                                 name="max_compliance" min="0" max="100"
-                                value="{{ request.args.get('max_compliance', '') }}">
+                                value="{{ request.args.get('max_compliance', '100') }}">
                         </div>
                     </div>
                 </div>
@@ -61,12 +74,12 @@
                     <div class="grid-row">
                         <div class="grid-col-5">
                             <input class="usa-input" placeholder="Min" type="number" id="min-trials" name="min_trials"
-                                min="0" value="{{ request.args.get('min_trials', '') }}">
+                                min="0" value="{{ request.args.get('min_trials', '0') }}">
                         </div>
                         <div class="grid-col-2 display-flex flex-align-center flex-justify-center">—</div>
                         <div class="grid-col-5">
                             <input class="usa-input" placeholder="Max" type="number" id="max-trials" name="max_trials"
-                                min="0" value="{{ request.args.get('max_trials', '') }}">
+                                min="0" value="{{ request.args.get('max_trials', '10000') }}">
                         </div>
                     </div>
                 </div>
