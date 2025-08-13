@@ -9,9 +9,9 @@ from .utils.route_helpers import (
     process_organization_dashboard_request,
     process_compare_organizations_request,
     process_user_dashboard_request,
-    compliance_counts
 )
 from .utils.queries import (
+    QueryManager,
     get_enhanced_trial_analytics,
     get_compliance_summary_stats,
     get_critical_issues,
@@ -19,6 +19,7 @@ from .utils.queries import (
 )
 
 bp = Blueprint('routes', __name__)
+qm = QueryManager()
 
 @bp.route('/health')
 def health():
@@ -108,31 +109,28 @@ def autocomplete_user_emails():
 @bp.route('/')
 @login_required    # pragma: no cover
 def index():
-    template_data = process_index_request()
-    return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
+    if request.args:
+        search_params = {
+            'title': request.args.get('title'),
+            'nct_id': request.args.get('nct_id'),
+            'organization': request.args.get('organization'),
+            'user_email': request.args.get('user_email'),
+            'date_type': request.args.get('date_type'),
+            'date_from': request.args.get('date_from'),
+            'date_to': request.args.get('date_to')
+        }
+        
+        compliance_status_list = request.args.getlist('compliance_status[]')
+        template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
+        return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
 
-@bp.route('/')
-@login_required    # pragma: no cover
-def search():
-    # Get search parameters from request
-    search_params = {
-        'title': request.args.get('title'),
-        'nct_id': request.args.get('nct_id'),
-        'organization': request.args.get('organization'),
-        'user_email': request.args.get('user_email'),
-        'date_type': request.args.get('date_type'),
-        'date_from': request.args.get('date_from'),
-        'date_to': request.args.get('date_to')
-    }
+    template_data = process_index_request(QueryManager==qm)
+    return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
     
-    compliance_status_list = request.args.getlist('compliance_status[]')
-    template_data = process_search_request(search_params, compliance_status_list)
-    return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
-
 @bp.route('/organization/<org_ids>')
 @login_required    # pragma: no cover
 def show_organization_dashboard(org_ids):
-    template_data = process_organization_dashboard_request(org_ids)
+    template_data = process_organization_dashboard_request(org_ids, QueryManager=qm)
     return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
 
 @bp.route('/compare')
@@ -143,7 +141,7 @@ def show_compare_organizations_dashboard():
     min_trials = request.args.get('min_trials')
     max_trials = request.args.get('max_trials')
 
-    template_data = process_compare_organizations_request(min_compliance, max_compliance, min_trials, max_trials)
+    template_data = process_compare_organizations_request(min_compliance, max_compliance, min_trials, max_trials, QueryManager=qm)
     return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
 
 @bp.route('/user/<int:user_id>')
@@ -152,7 +150,7 @@ def show_user_dashboard(user_id):
     def current_user_getter(uid):
         return current_user.get(uid)
     
-    template_data = process_user_dashboard_request(user_id, current_user_getter)
+    template_data = process_user_dashboard_request(user_id, current_user_getter, QueryManager=qm)
     return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
 
 # CSV Export Route
@@ -219,20 +217,20 @@ def export_csv():
         if user_id:
             def current_user_getter(uid):
                 return current_user.get(uid)
-            template_data = process_user_dashboard_request(int(user_id), current_user_getter)
+            template_data = process_user_dashboard_request(int(user_id), current_user_getter, QueryManager=qm)
             data = template_data.get('trials', [])
             filename = f'user_{user_id}_trials_export'
         else:
-            template_data = process_search_request(search_params, compliance_status_list)
+            template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
             data = template_data.get('trials', [])
             filename = 'trials_export'
             
     else:
         # Default to trials export
         if any(search_params.values()) or compliance_status_list:
-            template_data = process_search_request(search_params, compliance_status_list)
+            template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
         else:
-            template_data = process_index_request()
+            template_data = process_index_request(QueryManager=qm)
             
         data = template_data.get('trials', [])
         filename = 'trials_export'
@@ -342,9 +340,9 @@ def print_report():
         if user_id:
             def current_user_getter(uid):
                 return current_user.get(uid)
-            template_data = process_user_dashboard_request(int(user_id), current_user_getter)
+            template_data = process_user_dashboard_request(int(user_id), current_user_getter, QueryManager=qm)
         else:
-            template_data = process_search_request(search_params, compliance_status_list)
+            template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
             
         # Get enhanced analytics for user data
         if template_data.get('trials'):
@@ -354,9 +352,9 @@ def print_report():
     else:
         # Default to trials report with enhanced analytics
         if any(search_params.values()) or compliance_status_list:
-            template_data = process_search_request(search_params, compliance_status_list)
+            template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
         else:
-            template_data = process_index_request()
+            template_data = process_index_request(QueryManager=qm)
         
         # Get enhanced trial analytics
         enhanced_trials = get_enhanced_trial_analytics(search_params, compliance_status_list)
