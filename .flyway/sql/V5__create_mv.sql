@@ -43,6 +43,7 @@ SELECT
   o.name,
   o.email_domain,
   o.created_at,
+  COUNT(t.id) AS total_trials,
   SUM(CASE WHEN tc.status = 'Compliant' THEN 1 ELSE 0 END) AS on_time_count,
   SUM(CASE WHEN tc.status = 'Incompliant' THEN 1 ELSE 0 END) AS late_count,
   -- Calculate reporting rate as percentage of trials with status
