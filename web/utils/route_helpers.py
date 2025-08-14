@@ -20,8 +20,8 @@ def compliance_counts(rates):
     # Defer pandas import to function level
     c = rates[0]['compliant_count']
     ic = rates[0]['incompliant_count']
-    current_span.set_attribute("compliance.compliant_count", c)
-    current_span.set_attribute("compliance.incompliant_count", ic)
+    current_span.set_attribute("compliance.compliant_count", str(c))
+    current_span.set_attribute("compliance.incompliant_count", str(ic))
     return c, ic
 
 
@@ -44,7 +44,7 @@ def process_index_request(page=None, per_page=None, QueryManager=QueryManager())
     rates = QueryManager.get_compliance_rate()
     on_time_count, late_count = compliance_counts(rates)
     current_span.set_attribute("compliance.on_time_count", str(on_time_count))
-    current_span.set_attribute("compliance.late_count", late_count)
+    current_span.set_attribute("compliance.late_count", str(late_count))
 
     pagination, per_page = paginate(trials, total_entries=total_count)
 
@@ -78,8 +78,8 @@ def process_search_request(search_params, compliance_status_list, page=None, per
         # Get compliance counts using SQL aggregation
         rates = QueryManager.get_compliance_rate()
         on_time_count, late_count = compliance_counts(rates)
-        current_span.set_attribute("compliance.on_time_count", on_time_count)
-        current_span.set_attribute("compliance.late_count", late_count)
+        current_span.set_attribute("compliance.on_time_count", str(on_time_count))
+        current_span.set_attribute("compliance.late_count", str(late_count))
 
         pagination, per_page = paginate(search_results, total_entries=total_count)
 
@@ -125,8 +125,8 @@ def process_organization_dashboard_request(org_ids, page=None, per_page=None, Qu
     pagination, per_page = paginate(org_trials, total_entries=total_count)
     
     on_time_count, late_count = compliance_counts(compliance_rates)
-    current_span.set_attribute("compliance.on_time_count", on_time_count)
-    current_span.set_attribute("compliance.late_count", late_count)
+    current_span.set_attribute("compliance.on_time_count", str(on_time_count))
+    current_span.set_attribute("compliance.late_count", str(late_count))
 
     return {
         'template': 'dashboards/organization.html',
@@ -194,8 +194,8 @@ def process_compare_organizations_request(min_compliance, max_compliance, min_tr
     pagination, per_page = paginate(org_compliance, total_entries=total_count)
 
     on_time_count, late_count = compliance_counts(all_org_compliance)
-    current_span.set_attribute("compliance.on_time_count", on_time_count)
-    current_span.set_attribute("compliance.late_count", late_count)
+    current_span.set_attribute("compliance.on_time_count", str(on_time_count))
+    current_span.set_attribute("compliance.late_count", str(late_count))
 
     return {
         'template': 'dashboards/compare.html',
@@ -233,8 +233,8 @@ def process_user_dashboard_request(user_id, current_user_getter=None, page=None,
         pagination, per_page = paginate(user_trials, total_entries=total_count)
 
         on_time_count, late_count = compliance_counts(all_user_trials)
-        current_span.set_attribute("compliance.on_time_count", on_time_count)
-        current_span.set_attribute("compliance.late_count", late_count)
+        current_span.set_attribute("compliance.on_time_count", str(on_time_count))
+        current_span.set_attribute("compliance.late_count", str(late_count))
 
         return {
             'template': 'dashboards/user.html',

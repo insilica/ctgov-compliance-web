@@ -20,7 +20,7 @@ class QueryManager:
     def get_compliance_rate(self, filter=None, params=None):
         current_span = trace.get_current_span()
         if filter: current_span.set_attribute("filter", filter)
-        if params: current_span.set_attribute("params", params)
+        if params: current_span.set_attribute("params", str(params))
             
         sql = '''
             SELECT
@@ -31,7 +31,7 @@ class QueryManager:
         if filter:
             sql += f"WHERE {filter}"
             current_span.set_attribute("sql", sql)
-            current_span.set_attribute("[params]", [params])
+            current_span.set_attribute("[params]", str([params]))
             return query(sql, [params])
         current_span.set_attribute("sql", sql)
         return query(sql)
@@ -68,7 +68,7 @@ class QueryManager:
         if where_clauses:
             sql += ' WHERE ' + ' AND '.join(where_clauses)
         current_span.set_attribute("sql", sql)
-        current_span.set_attribute("params", params)
+        current_span.set_attribute("params", str(params))
         return query(sql, params)
     
     # ============================================================================
@@ -110,7 +110,7 @@ class QueryManager:
             offset = (page - 1) * per_page
             sql += f' LIMIT {per_page} OFFSET {offset}'
         current_span.set_attribute("sql", sql)
-        current_span.set_attribute("[tuple(org_ids)]", [tuple(org_ids)])
+        current_span.set_attribute("[tuple(org_ids)]", str([tuple(org_ids)]))
         return query(sql, [tuple(org_ids)])
 
 
@@ -142,7 +142,7 @@ class QueryManager:
     @tracer.start_as_current_span("queries.search_trials")
     def search_trials(self, params, page=None, per_page=None, count='*'):
         current_span = trace.get_current_span()
-        current_span.set_attribute("params", params)
+        current_span.set_attribute("params", str(params))
         if page: current_span.set_attribute("page", page)
         if per_page: current_span.set_attribute("per_page", per_page)
         current_span.set_attribute("count", count)
@@ -269,7 +269,7 @@ class QueryManager:
             sql += f' LIMIT {per_page} OFFSET {offset}'
         
         current_span.set_attribute("sql", sql)
-        current_span.set_attribute("params", params)
+        current_span.set_attribute("params", str(params))
         return query(sql, params)
     
     # ============================================================================

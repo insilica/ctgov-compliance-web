@@ -37,7 +37,7 @@ class User(UserMixin):
         if self._organizations is None:
             rows = query(sql, [self.id])
             self._organizations = rows
-        current_span.set_attribute("self._organizations", self._organizations)
+        current_span.set_attribute("self._organizations", str(self._organizations))
         return self._organizations
 
     @property
