@@ -221,7 +221,6 @@ class QueryManager:
             base_sql += f' LIMIT {per_page} OFFSET {offset}'
 
         current_span.set_attribute("sql", base_sql)
-        print(base_sql)
         current_span.set_attribute("values", values)
         return query(base_sql, values)
     
