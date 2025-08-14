@@ -125,6 +125,12 @@ jobs:
             --service-account=${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
             --add-cloudsql-instances=${{ steps.get-sql-instance.outputs.instance_connection }}
           env_vars: |
+            OTEL_ENABLED=true
+            SERVICE_NAME=ctgov-compliance-web
+            SERVICE_NAMESPACE=ctgov
+            OTEL_METRICS_ENABLED=true
+            OTEL_METRIC_EXPORT_INTERVAL_MILLIS=60000
+            GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }}
             ENVIRONMENT=preview
             PR_NUMBER=${{ github.event.pull_request.number }}
             DB_HOST=/cloudsql/${{ steps.get-sql-instance.outputs.instance_connection }}
