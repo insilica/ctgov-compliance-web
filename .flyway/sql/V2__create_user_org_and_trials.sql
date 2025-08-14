@@ -18,9 +18,9 @@ CREATE TABLE trial (
     id SERIAL PRIMARY KEY,
     nct_id VARCHAR(20) NOT NULL UNIQUE,
     organization_id INTEGER NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
-    user_id INTEGER NOT NULL REFERENCES ctgov_user(id) ON DELETE CASCADE,
     title VARCHAR(255),
     start_date DATE,
+    user_id INTEGER NOT NULL REFERENCES ctgov_user(id) ON DELETE CASCADE,
     completion_date DATE,
     reporting_due_date DATE
 );
