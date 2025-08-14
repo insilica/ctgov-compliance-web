@@ -42,7 +42,8 @@ class ThemeManager {
             return stored;
         }
         // Default to auto if no preference is stored
-        return this.themes.auto;
+        // return this.themes.auto;
+        return this.themes.dark;
     }
 
     /**
@@ -192,12 +193,12 @@ class ThemeManager {
         });
 
         // Keyboard shortcut (Ctrl/Cmd + Shift + T)
-        document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
-                e.preventDefault();
-                this.toggleTheme();
-            }
-        });
+        // document.addEventListener('keydown', (e) => {
+        //     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
+        //         e.preventDefault();
+        //         this.toggleTheme();
+        //     }
+        // });
     }
 
     /**

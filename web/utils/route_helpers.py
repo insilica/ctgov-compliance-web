@@ -225,14 +225,14 @@ def process_user_dashboard_request(user_id, current_user_getter=None, page=None,
     current_span.set_attribute("trials.total_count", total_count)
     
     if user_trials:
-        user_email = user_trials[0]['email']
+        user_email = user_trials[0]['user_email']
         
         # Get all user trials for compliance counts
-        all_user_trials = QueryManager.get_user_trials(user_id)
-        
+        compliance_rates = QueryManager.get_compliance_rate("user_id = %s", user_id)
+
         pagination, per_page = paginate(user_trials, total_entries=total_count)
 
-        on_time_count, late_count = compliance_counts(all_user_trials)
+        on_time_count, late_count = compliance_counts(compliance_rates)
         current_span.set_attribute("compliance.on_time_count", str(on_time_count))
         current_span.set_attribute("compliance.late_count", str(late_count))
 

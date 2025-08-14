@@ -25,7 +25,8 @@
                 </td>
                 <td data-column="nct_id">{{ trial.nct_id }}</td>
                 <td data-column="organization">
-                    <a href="{{ url_for('routes.show_organization_dashboard', org_ids=trial.id) }}" class="usa-link">{{
+                    <a href="{{ url_for('routes.show_organization_dashboard', org_ids=trial.organization_id) }}"
+                        class="usa-link">{{
                         trial.organization_name }}</a>
                 </td>
                 <td data-column="user">
