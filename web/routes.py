@@ -9,16 +9,16 @@ from .utils.route_helpers import (
     process_organization_dashboard_request,
     process_compare_organizations_request,
     process_user_dashboard_request,
-    compliance_counts
 )
 from .utils.queries import (
-    get_enhanced_trial_analytics,
-    get_compliance_summary_stats,
-    get_critical_issues,
-    get_organization_risk_analysis
+    QueryManager,
 )
+from opentelemetry import trace
+
+tracer = trace.get_tracer(__name__)
 
 bp = Blueprint('routes', __name__)
+qm = QueryManager()
 
 @bp.route('/health')
 def health():
@@ -27,94 +27,105 @@ def health():
 # Autocomplete API endpoints
 @bp.route('/api/autocomplete/titles')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.autocomplete_titles")
 def autocomplete_titles():
     """API endpoint for trial title autocomplete suggestions"""
+    current_span = trace.get_current_span()
     query = request.args.get('q', '').strip()
+    current_span.set_attribute("query.length", len(query))
     if len(query) < 2:
         return jsonify([])
     
     from .db import query as db_query
     sql = '''
-    SELECT DISTINCT t.title
-    FROM trial t
-    WHERE t.title ILIKE %s
-    ORDER BY t.title ASC
-    LIMIT 10
-    '''
+        SELECT DISTINCT t.title
+        FROM trial t
+        WHERE t.title ILIKE %s
+        ORDER BY t.title ASC
+        LIMIT 10
+        '''
     results = db_query(sql, [f"%{query}%"])
     suggestions = [row['title'] for row in results if row['title']]
+    current_span.set_attribute("results.count", len(suggestions))
     return jsonify(suggestions)
 
 @bp.route('/api/autocomplete/organizations')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.autocomplete_organizations")
 def autocomplete_organizations():
     """API endpoint for organization name autocomplete suggestions"""
+    current_span = trace.get_current_span()
     query = request.args.get('q', '').strip()
+    current_span.set_attribute("query.length", len(query))
     if len(query) < 2:
         return jsonify([])
     
     from .db import query as db_query
     sql = '''
-    SELECT DISTINCT o.name
-    FROM organization o
-    WHERE o.name ILIKE %s
-    ORDER BY o.name ASC
-    LIMIT 10
-    '''
+        SELECT DISTINCT o.name
+        FROM organization o
+        WHERE o.name ILIKE %s
+        ORDER BY o.name ASC
+        LIMIT 10
+        '''
     results = db_query(sql, [f"%{query}%"])
     suggestions = [row['name'] for row in results if row['name']]
+    current_span.set_attribute("results.count", len(suggestions))
     return jsonify(suggestions)
 
 @bp.route('/api/autocomplete/nct_ids')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.autocomplete_nct_ids")
 def autocomplete_nct_ids():
     """API endpoint for NCT ID autocomplete suggestions"""
+    current_span = trace.get_current_span()
     query = request.args.get('q', '').strip()
+    current_span.set_attribute("query.length", len(query))
     if len(query) < 3:
         return jsonify([])
     
     from .db import query as db_query
     sql = '''
-    SELECT DISTINCT t.nct_id
-    FROM trial t
-    WHERE t.nct_id ILIKE %s
-    ORDER BY t.nct_id ASC
-    LIMIT 10
-    '''
+        SELECT DISTINCT t.nct_id
+        FROM trial t
+        WHERE t.nct_id ILIKE %s
+        ORDER BY t.nct_id ASC
+        LIMIT 10
+        '''
     results = db_query(sql, [f"%{query}%"])
     suggestions = [row['nct_id'] for row in results if row['nct_id']]
+    current_span.set_attribute("results.count", len(suggestions))
     return jsonify(suggestions)
 
 @bp.route('/api/autocomplete/user_emails')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.autocomplete_user_emails")
 def autocomplete_user_emails():
     """API endpoint for user email autocomplete suggestions"""
+    current_span = trace.get_current_span()
     query = request.args.get('q', '').strip()
+    current_span.set_attribute("query.length", len(query))
     if len(query) < 2:
         return jsonify([])
     
     from .db import query as db_query
     sql = '''
-    SELECT DISTINCT u.email
-    FROM ctgov_user u
-    WHERE u.email ILIKE %s
-    ORDER BY u.email ASC
-    LIMIT 10
-    '''
+        SELECT DISTINCT u.email
+        FROM ctgov_user u
+        WHERE u.email ILIKE %s
+        ORDER BY u.email ASC
+        LIMIT 10
+        '''
     results = db_query(sql, [f"%{query}%"])
     suggestions = [row['email'] for row in results if row['email']]
+    current_span.set_attribute("results.count", len(suggestions))
     return jsonify(suggestions)
 
 @bp.route('/')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.index")
 def index():
-    template_data = process_index_request()
-    return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
-
-@bp.route('/home')
-@login_required    # pragma: no cover
-def search():
-    # Get search parameters from request
+    current_span = trace.get_current_span()
     search_params = {
         'title': request.args.get('title'),
         'nct_id': request.args.get('nct_id'),
@@ -122,44 +133,60 @@ def search():
         'user_email': request.args.get('user_email'),
         'date_type': request.args.get('date_type'),
         'date_from': request.args.get('date_from'),
-        'date_to': request.args.get('date_to')
+        'date_to': request.args.get('date_to'),
+        'compliance_status': request.args.getlist('compliance_status[]')
     }
-    
-    compliance_status_list = request.args.getlist('compliance_status[]')
-    template_data = process_search_request(search_params, compliance_status_list)
+    if any(search_params.values()):
+        current_span.set_attribute("params.count", sum(1 for v in search_params.values() if v))
+        
+        compliance_status_list = request.args.getlist('compliance_status[]')
+        current_span.set_attribute("params.compliance_status_count", len(compliance_status_list))
+        template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
+        return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
+    template_data = process_index_request(QueryManager=qm)
     return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
-
+    
 @bp.route('/organization/<org_ids>')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.show_organization_dashboard")
 def show_organization_dashboard(org_ids):
-    template_data = process_organization_dashboard_request(org_ids)
+    current_span = trace.get_current_span()
+    current_span.set_attribute("org_ids.length", len(org_ids))
+    template_data = process_organization_dashboard_request(org_ids, QueryManager=qm)
     return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
 
 @bp.route('/compare')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.show_compare_organizations_dashboard")
 def show_compare_organizations_dashboard():
+    current_span = trace.get_current_span()
     min_compliance = request.args.get('min_compliance')
     max_compliance = request.args.get('max_compliance')
     min_trials = request.args.get('min_trials')
     max_trials = request.args.get('max_trials')
-
-    template_data = process_compare_organizations_request(min_compliance, max_compliance, min_trials, max_trials)
+    
+    template_data = process_compare_organizations_request(min_compliance, max_compliance, min_trials, max_trials, QueryManager=qm)
     return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
 
 @bp.route('/user/<int:user_id>')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.show_user_dashboard")
 def show_user_dashboard(user_id):
+    current_span = trace.get_current_span()
+    current_span.set_attribute("user.id", int(user_id))
     def current_user_getter(uid):
         return current_user.get(uid)
     
-    template_data = process_user_dashboard_request(user_id, current_user_getter)
+    template_data = process_user_dashboard_request(user_id, current_user_getter, QueryManager=qm)
     return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
 
 # CSV Export Route
 @bp.route('/export/csv')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.export_csv")
 def export_csv():
     """Export current filtered data to CSV"""
+    current_span = trace.get_current_span()
     # Get the same parameters as other routes
     search_params = {
         'title': request.args.get('title'),
@@ -170,9 +197,12 @@ def export_csv():
         'date_from': request.args.get('date_from'),
         'date_to': request.args.get('date_to')
     }
+    current_span.set_attribute("params.count", sum(1 for v in search_params.values() if v))
     
     compliance_status_list = request.args.getlist('compliance_status[]')
     export_type = request.args.get('type', 'trials')  # Default to trials export
+    current_span.set_attribute("export.type", export_type)
+    current_span.set_attribute("params.compliance_status_count", len(compliance_status_list))
     
     # Get data based on export type
     if export_type == 'organizations':
@@ -219,20 +249,20 @@ def export_csv():
         if user_id:
             def current_user_getter(uid):
                 return current_user.get(uid)
-            template_data = process_user_dashboard_request(int(user_id), current_user_getter)
+            template_data = process_user_dashboard_request(int(user_id), current_user_getter, QueryManager=qm)
             data = template_data.get('trials', [])
             filename = f'user_{user_id}_trials_export'
         else:
-            template_data = process_search_request(search_params, compliance_status_list)
+            template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
             data = template_data.get('trials', [])
             filename = 'trials_export'
             
     else:
         # Default to trials export
         if any(search_params.values()) or compliance_status_list:
-            template_data = process_search_request(search_params, compliance_status_list)
+            template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
         else:
-            template_data = process_index_request()
+            template_data = process_index_request(QueryManager=qm)
             
         data = template_data.get('trials', [])
         filename = 'trials_export'
@@ -283,6 +313,7 @@ def export_csv():
     # Generate filename with timestamp
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename_with_timestamp = f"{filename}_{timestamp}.csv"
+    current_span.set_attribute("export.rows", len(csv_data))
     
     # Create response with proper headers
     response = make_response(csv_content)
@@ -294,8 +325,10 @@ def export_csv():
 # Print Report Routes
 @bp.route('/report/print')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.print_report")
 def print_report():
     """Generate a printable report based on current search/filter criteria"""
+    current_span = trace.get_current_span()
     # Get search parameters from request (same as search route)
     search_params = {
         'title': request.args.get('title'),
@@ -309,6 +342,7 @@ def print_report():
     
     compliance_status_list = request.args.getlist('compliance_status[]')
     report_type = request.args.get('type', 'trials')  # Default to trials report
+    current_span.set_attribute("report.type", report_type)
     
     # Process based on report type with enhanced analytics
     if report_type == 'organizations':
@@ -342,9 +376,9 @@ def print_report():
         if user_id:
             def current_user_getter(uid):
                 return current_user.get(uid)
-            template_data = process_user_dashboard_request(int(user_id), current_user_getter)
+            template_data = process_user_dashboard_request(int(user_id), current_user_getter, QueryManager=qm)
         else:
-            template_data = process_search_request(search_params, compliance_status_list)
+            template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
             
         # Get enhanced analytics for user data
         if template_data.get('trials'):
@@ -354,9 +388,9 @@ def print_report():
     else:
         # Default to trials report with enhanced analytics
         if any(search_params.values()) or compliance_status_list:
-            template_data = process_search_request(search_params, compliance_status_list)
+            template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
         else:
-            template_data = process_index_request()
+            template_data = process_index_request(QueryManager=qm)
         
         # Get enhanced trial analytics
         enhanced_trials = get_enhanced_trial_analytics(search_params, compliance_status_list)

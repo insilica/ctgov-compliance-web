@@ -23,9 +23,6 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 # Import the database module
 from web.db import get_conn, is_data_populated, mark_data_populated
 
-# Import mock data population for Blazegraph
-sys.path.append(str(pathlib.Path(__file__).parent))
-from populate_blazegraph import insert_mock_data
 
 # --- Configuration ---
 NUM_ORGANIZATIONS = 5
@@ -322,11 +319,6 @@ def main():
         action='store_true', 
         help='Only check if database has been populated'
     )
-    parser.add_argument(
-        '--skip-blazegraph', 
-        action='store_true', 
-        help='Skip populating Blazegraph'
-    )
     
     args = parser.parse_args()
 
@@ -337,7 +329,6 @@ def main():
     trials = int(os.environ.get('NUM_TRIALS', args.trials))
     force = os.environ.get('FORCE_REPOPULATE', '').lower() in ('true', '1', 'yes') or args.force
     check_status = os.environ.get('CHECK_STATUS', '').lower() in ('true', '1', 'yes') or args.check_status
-    skip_blazegraph = os.environ.get('SKIP_BLAZEGRAPH', '').lower() in ('true', '1', 'yes') or args.skip_blazegraph
 
     print(f"Configuration:")
     print(f"  Organizations: {orgs}")
@@ -345,7 +336,6 @@ def main():
     print(f"  Trials: {trials}")
     print(f"  Force: {force}")
     print(f"  Check Status: {check_status}")
-    print(f"  Skip Blazegraph: {skip_blazegraph}")
 
     if check_status:
         check_database_status()
@@ -353,13 +343,6 @@ def main():
 
     success = populate_database_safely(orgs, users, trials, force)
     
-    if success and not skip_blazegraph:
-        print("\n=== Populating Blazegraph ===\n")
-        try:
-            insert_mock_data()
-            print("✅ Blazegraph populated successfully.")
-        except Exception as e:
-            print(f"⚠️  Warning: Failed to populate Blazegraph: {e}")
     
     if success:
         print(f"\n🎉 Cloud database setup complete!")

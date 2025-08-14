@@ -365,6 +365,7 @@ Dashboard - CTGov Compliance
                     e.preventDefault();
                     const preset = button.getAttribute('data-preset');
                     this.applyPreset(preset);
+                    button.classList.add('usa-button--active');
                 });
             });
         }
@@ -493,7 +494,7 @@ Dashboard - CTGov Compliance
             }
 
             // Check for presets with date ranges
-            if (dateFrom && dateTo) {
+            if (dateFrom || dateTo) {
                 const fromDate = new Date(dateFrom);
                 const toDate = new Date(dateTo);
                 const today = new Date();
@@ -503,6 +504,8 @@ Dashboard - CTGov Compliance
                     // Check for overdue trials preset
                     const yesterday = new Date(today);
                     yesterday.setDate(yesterday.getDate() - 1);
+
+                    console.log(toDate, yesterday, complianceStatus.length, complianceStatus[0]);
 
                     if (toDate <= yesterday && complianceStatus.length === 1 && complianceStatus[0] === 'incompliant') {
                         this.setActivePreset('overdue-trials');
@@ -539,6 +542,7 @@ Dashboard - CTGov Compliance
         }
 
         setActivePreset(presetName) {
+            console.log('setting active preset', presetName);
             this.clearActiveStates();
             const button = document.querySelector(`[data-preset="${presetName}"]`);
             if (button) {

@@ -23,10 +23,7 @@ def test_get_all_trials(mock_query):
     mock_query.assert_called_once()
     # Verify SQL contains expected tables
     sql = mock_query.call_args[0][0]
-    assert 'trial t' in sql
-    assert 'trial_compliance tc' in sql
-    assert 'organization o' in sql
-    assert 'ctgov_user u' in sql
+    assert 'joined_trials' in sql
 
 
 def test_get_all_trials_empty_result(mock_query):
@@ -49,7 +46,7 @@ def test_get_org_trials(mock_query):
     mock_query.assert_called_once()
     # Verify SQL and parameters
     sql, params = mock_query.call_args[0]
-    assert 'o.id IN %s' in sql
+    assert 'organization_id IN %s' in sql
     assert params == [(1, 2)]
 
 
@@ -89,7 +86,7 @@ def test_get_user_trials(mock_query):
     mock_query.assert_called_once()
     # Verify SQL and parameters
     sql, params = mock_query.call_args[0]
-    assert 'u.id = %s' in sql
+    assert 'user_id = %s' in sql
     assert params == [1]
 
 

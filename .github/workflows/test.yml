@@ -25,15 +25,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-      redis:
-        image: redis
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -47,9 +38,6 @@ jobs:
           # CI flag to prevent PostgreSQL setup conflicts
           CI: true
           SKIP_POSTGRES_SETUP: true
-          SKIP_REDIS_SETUP: true
-          SKIP_BLAZEGRAPH_SETUP: true
-          SKIP_AWS_SECRET_LOADING: true
           # Flask configuration
           FLASK_APP: web.app
           FLASK_ENV: development

@@ -4,6 +4,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime, timedelta, timezone
 import secrets
 from .db import query, execute
+from opentelemetry import trace
+
+tracer = trace.get_tracer(__name__)
 
 bp = Blueprint('auth', __name__)
 login_manager = LoginManager()
@@ -18,15 +21,23 @@ class User(UserMixin):
         self._organizations = None
 
     @property
+    @tracer.start_as_current_span("auth.user.organizations")
     def organizations(self):
+        current_span = trace.get_current_span()
+
+        sql = '''
+            SELECT o.id, o.name, uo.role 
+            FROM organization o 
+            JOIN user_organization uo ON o.id = uo.organization_id 
+            WHERE uo.user_id = %s
+        '''
+
+        current_span.set_attribute("sql", sql)
+        current_span.set_attribute("[self.id]", [self.id])
         if self._organizations is None:
-            rows = query('''
-                SELECT o.id, o.name, uo.role 
-                FROM organization o 
-                JOIN user_organization uo ON o.id = uo.organization_id 
-                WHERE uo.user_id = %s
-            ''', [self.id])
+            rows = query(sql, [self.id])
             self._organizations = rows
+        current_span.set_attribute("self._organizations", str(self._organizations))
         return self._organizations
 
     @property
@@ -34,18 +45,30 @@ class User(UserMixin):
         return ','.join(str(org['id']) for org in self.organizations)
     
     @property
+    @tracer.start_as_current_span("auth.user.trials")
     def trials(self):
         return query('SELECT id FROM trial WHERE user_id = %s', [self.id])
 
     @staticmethod
+    @tracer.start_as_current_span("auth.user.get")
     def get(user_id):
-        row = query('SELECT id, email, password_hash FROM ctgov_user WHERE id=%s', [user_id], fetchone=True)
+        current_span = trace.get_current_span()
+        current_span.set_attribute("user_id", user_id)
+
+        sql = 'SELECT id, email, password_hash FROM ctgov_user WHERE id=%s'
+
+        current_span.set_attribute("sql", sql)
+
+        row = query(sql, [user_id], fetchone=True)
         if row:
             return User(row['id'], row['email'], row['password_hash'])
         return None
 
     @staticmethod
+    @tracer.start_as_current_span("auth.user.get_by_email")
     def get_by_email(email):
+        current_span = trace.get_current_span()
+        current_span.set_attribute("user.email_length", len(email) if email else 0)
         row = query('SELECT id, email, password_hash FROM ctgov_user WHERE email=%s', [email], fetchone=True)
         if row:
             return User(row['id'], row['email'], row['password_hash'])
@@ -57,10 +80,13 @@ def load_user(user_id):
 
 
 @bp.route('/login', methods=['GET', 'POST'])
+@tracer.start_as_current_span("auth.login")
 def login():
+    current_span = trace.get_current_span()
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+        current_span.set_attribute("user.email_length", len(email) if email else 0)
         row = query('SELECT id, email, password_hash FROM ctgov_user WHERE email=%s', [email], fetchone=True)
         if row and check_password_hash(row['password_hash'], password):
             user = User(row['id'], row['email'], row['password_hash'])
@@ -73,10 +99,13 @@ def login():
 
 
 @bp.route('/register', methods=['GET', 'POST'])
+@tracer.start_as_current_span("auth.register")
 def register():
+    current_span = trace.get_current_span()
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+        current_span.set_attribute("user.email_length", len(email) if email else 0)
         existing = query('SELECT id FROM ctgov_user WHERE email=%s', [email], fetchone=True)
         
         if existing:
@@ -96,15 +125,19 @@ def register():
 
 @bp.route('/logout')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("auth.logout")
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))
 
 
 @bp.route('/reset', methods=['GET', 'POST'])
+@tracer.start_as_current_span("auth.reset_request")
 def reset_request():
+    current_span = trace.get_current_span()
     if request.method == 'POST':
         email = request.form['email']
+        current_span.set_attribute("user.email_length", len(email) if email else 0)
         user = query('SELECT id FROM ctgov_user WHERE email=%s', [email], fetchone=True)
         if user:
             token = secrets.token_urlsafe(32)
@@ -123,7 +156,9 @@ def reset_request():
 
 
 @bp.route('/reset/<token>', methods=['GET', 'POST'])
+@tracer.start_as_current_span("auth.reset_password")
 def reset_password(token):
+    current_span = trace.get_current_span()
     row = query('SELECT id, user_id, expires_at FROM password_reset WHERE token=%s', [token], fetchone=True)
     if not row or row['expires_at'] < datetime.now(timezone.utc):
         flash('Invalid or expired token.', 'error')

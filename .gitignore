@@ -22,19 +22,10 @@ __pycache__/*
 
 pgdata/
 
-.aws-profile
 
 # celery
 celery_tasks.db
-dump.rdb
 
-# redis
-redis-server.log
-
-# blazegraph
-*.jar
-.blazegraph.pid
-blazegraph.*
 
 # build files
 /build

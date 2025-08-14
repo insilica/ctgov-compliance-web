@@ -7,9 +7,6 @@ targets=(
   "ctgov_compliance_web.egg-info"
   ".env"
   ".postgres"
-  "blazegraph.jar"
-  ".blazegraph.pid"
-  "blazegraph.jnl"
   "report.html"
   "report.json"
   "rules.log"
@@ -18,8 +15,6 @@ targets=(
   ".envrc"
   "result"
   "result-*"
-  # Redis files
-  "dump.rdb"
   # Python cache files
   "**/__pycache__"
   "**/*.pyc"
@@ -51,8 +46,6 @@ count_total_files() {
 # Function to safely delete a target
 delete_target() {
   local target=$1
-  local current_count=$2
-  local total_count=$3
   
   if [ -e "$target" ] || [ -L "$target" ]; then  # Added -L to check for symlinks
     echo -e "\nDeleting: $target"
@@ -104,36 +97,6 @@ else
   echo "No Postgres processes found on port 5464"
 fi
 
-# Find and kill Java process listening on port 9999
-JAVA_PIDS=$(lsof -t -i :9999 -sTCP:LISTEN -a -c java)
-JAVA_PROCESS=$(lsof -i :9999 -sTCP:LISTEN -a -c java | head -n 2)
-if [ -n "$JAVA_PIDS" ]; then
-  echo "Killing Java processes on port 9999 with PID $JAVA_PIDS:"
-  echo -e "Full entry info:\n$JAVA_PROCESS"
-  kill $JAVA_PIDS
-  for pid in $JAVA_PIDS; do
-    while kill -0 $pid 2>/dev/null; do
-      echo "Waiting for Java process $pid to terminate..."
-      sleep 1
-    done
-  done
-else
-  echo "No Java processes found on port 9999"
-fi
-
-# Find and kill Redis server if running
-REDIS_PIDS=$(pgrep redis-server)
-if [ -n "$REDIS_PIDS" ]; then
-  echo "Killing Redis server processes with PID $REDIS_PIDS"
-  kill $REDIS_PIDS
-  for pid in $REDIS_PIDS; do
-    while kill -0 $pid 2>/dev/null; do
-      echo "Waiting for Redis process $pid to terminate..."
-      sleep 1
-    done
-  done
-else
-  echo "No Redis server processes found"
-fi
+# No additional processes to clean
 
 echo -e "\nCleanup complete. You can now run 'nix develop' for a fresh environment." 

@@ -10,9 +10,6 @@ import random
 # Optional: CLI for flexibility
 import argparse
 
-# Import mock data population for Blazegraph
-sys.path.append(str(pathlib.Path(__file__).parent))
-from populate_blazegraph import insert_mock_data
 
 # --- Configuration ---
 NUM_ORGANIZATIONS = 5
@@ -164,6 +161,9 @@ def populate_postgres(num_orgs: int, num_users: int, num_trials: int) -> None:
     populate_user_organizations(cur, user_ids, org_ids)
     populate_trials_and_compliance(cur, user_ids, org_ids, num_trials)
 
+    cur.execute("REFRESH MATERIALIZED VIEW joined_trials;")
+    cur.execute("REFRESH MATERIALIZED VIEW compare_orgs;")
+    
     conn.commit()
     cur.close()
     conn.close()
@@ -171,16 +171,15 @@ def populate_postgres(num_orgs: int, num_users: int, num_trials: int) -> None:
 
 # --- CLI Entrypoint ---
 def main():
-    parser = argparse.ArgumentParser(description="Populate Postgres and Blazegraph with mock data.")
+    parser = argparse.ArgumentParser(description="Populate Postgres with mock data.")
     parser.add_argument('--orgs', type=int, default=NUM_ORGANIZATIONS, help='Number of organizations to create')
     parser.add_argument('--users', type=int, default=NUM_USERS, help='Number of users to create')
     parser.add_argument('--trials', type=int, default=NUM_TRIALS, help='Number of trials to create')
-    parser.add_argument('--skip-blazegraph', action='store_true', help='Skip populating Blazegraph')
     args = parser.parse_args()
 
     populate_postgres(args.orgs, args.users, args.trials)
-    if not args.skip_blazegraph:
-        insert_mock_data()
+
+
 
 if __name__ == "__main__":
     main()

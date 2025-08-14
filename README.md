@@ -9,24 +9,27 @@ database services.
 - **Flask** application located in `web/`.
 - **PostgreSQL** for application data.
 - **Flyway** for database migrations.
-- **Blazegraph** for graph data with a script to load mock trials.
-- Connection placeholders for **AWS Neptune**.
 
 ## Requirements
 
 - **NixOS** must be downloaded onto the system
   - Run in Terminal (MacOS):
-    ```
+
+    ```{bash}
     sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install)
     ```
+
   - [Windows Instructions](https://nixos.org/download/#nix-install-windows)
 - **UV** must be downloaded onto the system
   - Run in your CLI with Homebrew:
-    ```
+
+    ```{bash}
     brew install uv
     ```
+
   - Alternatively, you may use the following:
-    ```
+
+    ```{bash}
     curl -LsSf https://astral.sh/uv/install.sh | sh
     ```
 
@@ -36,7 +39,7 @@ database services.
 nix develop
 ```
 
-This command will download all dependencies, setup your AWS profile onto the system,
+This command will download all dependencies and set up the development environment.
 
 ### File Cleanup
 
@@ -51,7 +54,7 @@ source scripts/flake/clean.sh
 _Not required; ran using `nix develop`_
 
 For convenience a helper script is included to load mock organizations,
-users, trials and compliance information into both PostgreSQL and Blazegraph.
+users, trials and compliance information into PostgreSQL.
 
 ```bash
 python scripts/init_mock_data.py
