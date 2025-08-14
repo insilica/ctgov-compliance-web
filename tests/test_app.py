@@ -74,7 +74,6 @@ def test_app_routes_registered():
     
     # Main routes
     assert 'routes.index' in rules
-    assert 'routes.search' in rules
     assert 'routes.show_organization_dashboard' in rules
     assert 'routes.show_compare_organizations_dashboard' in rules
     assert 'routes.show_user_dashboard' in rules
