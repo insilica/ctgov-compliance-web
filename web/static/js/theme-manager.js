@@ -43,7 +43,7 @@ class ThemeManager {
         }
         // Default to auto if no preference is stored
         // return this.themes.auto;
-        return this.themes.dark;
+        return this.themes.light;
     }
 
     /**
