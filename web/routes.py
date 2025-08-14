@@ -12,10 +12,6 @@ from .utils.route_helpers import (
 )
 from .utils.queries import (
     QueryManager,
-    get_enhanced_trial_analytics,
-    get_compliance_summary_stats,
-    get_critical_issues,
-    get_organization_risk_analysis
 )
 from opentelemetry import trace
 
@@ -31,376 +27,386 @@ def health():
 # Autocomplete API endpoints
 @bp.route('/api/autocomplete/titles')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.autocomplete_titles")
 def autocomplete_titles():
-    with tracer.start_as_current_span("routes.autocomplete_titles") as span:
-        """API endpoint for trial title autocomplete suggestions"""
-        query = request.args.get('q', '').strip()
-        span.set_attribute("query.length", len(query))
-        if len(query) < 2:
-            return jsonify([])
-        
-        from .db import query as db_query
-        sql = '''
+    """API endpoint for trial title autocomplete suggestions"""
+    current_span = trace.get_current_span()
+    query = request.args.get('q', '').strip()
+    current_span.set_attribute("query.length", len(query))
+    if len(query) < 2:
+        return jsonify([])
+    
+    from .db import query as db_query
+    sql = '''
         SELECT DISTINCT t.title
         FROM trial t
         WHERE t.title ILIKE %s
         ORDER BY t.title ASC
         LIMIT 10
         '''
-        results = db_query(sql, [f"%{query}%"])
-        suggestions = [row['title'] for row in results if row['title']]
-        span.set_attribute("results.count", len(suggestions))
-        return jsonify(suggestions)
+    results = db_query(sql, [f"%{query}%"])
+    suggestions = [row['title'] for row in results if row['title']]
+    current_span.set_attribute("results.count", len(suggestions))
+    return jsonify(suggestions)
 
 @bp.route('/api/autocomplete/organizations')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.autocomplete_organizations")
 def autocomplete_organizations():
-    with tracer.start_as_current_span("routes.autocomplete_organizations") as span:
-        """API endpoint for organization name autocomplete suggestions"""
-        query = request.args.get('q', '').strip()
-        span.set_attribute("query.length", len(query))
-        if len(query) < 2:
-            return jsonify([])
-        
-        from .db import query as db_query
-        sql = '''
+    """API endpoint for organization name autocomplete suggestions"""
+    current_span = trace.get_current_span()
+    query = request.args.get('q', '').strip()
+    current_span.set_attribute("query.length", len(query))
+    if len(query) < 2:
+        return jsonify([])
+    
+    from .db import query as db_query
+    sql = '''
         SELECT DISTINCT o.name
         FROM organization o
         WHERE o.name ILIKE %s
         ORDER BY o.name ASC
         LIMIT 10
         '''
-        results = db_query(sql, [f"%{query}%"])
-        suggestions = [row['name'] for row in results if row['name']]
-        span.set_attribute("results.count", len(suggestions))
-        return jsonify(suggestions)
+    results = db_query(sql, [f"%{query}%"])
+    suggestions = [row['name'] for row in results if row['name']]
+    current_span.set_attribute("results.count", len(suggestions))
+    return jsonify(suggestions)
 
 @bp.route('/api/autocomplete/nct_ids')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.autocomplete_nct_ids")
 def autocomplete_nct_ids():
-    with tracer.start_as_current_span("routes.autocomplete_nct_ids") as span:
-        """API endpoint for NCT ID autocomplete suggestions"""
-        query = request.args.get('q', '').strip()
-        span.set_attribute("query.length", len(query))
-        if len(query) < 3:
-            return jsonify([])
-        
-        from .db import query as db_query
-        sql = '''
+    """API endpoint for NCT ID autocomplete suggestions"""
+    current_span = trace.get_current_span()
+    query = request.args.get('q', '').strip()
+    current_span.set_attribute("query.length", len(query))
+    if len(query) < 3:
+        return jsonify([])
+    
+    from .db import query as db_query
+    sql = '''
         SELECT DISTINCT t.nct_id
         FROM trial t
         WHERE t.nct_id ILIKE %s
         ORDER BY t.nct_id ASC
         LIMIT 10
         '''
-        results = db_query(sql, [f"%{query}%"])
-        suggestions = [row['nct_id'] for row in results if row['nct_id']]
-        span.set_attribute("results.count", len(suggestions))
-        return jsonify(suggestions)
+    results = db_query(sql, [f"%{query}%"])
+    suggestions = [row['nct_id'] for row in results if row['nct_id']]
+    current_span.set_attribute("results.count", len(suggestions))
+    return jsonify(suggestions)
 
 @bp.route('/api/autocomplete/user_emails')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.autocomplete_user_emails")
 def autocomplete_user_emails():
-    with tracer.start_as_current_span("routes.autocomplete_user_emails") as span:
-        """API endpoint for user email autocomplete suggestions"""
-        query = request.args.get('q', '').strip()
-        span.set_attribute("query.length", len(query))
-        if len(query) < 2:
-            return jsonify([])
-        
-        from .db import query as db_query
-        sql = '''
+    """API endpoint for user email autocomplete suggestions"""
+    current_span = trace.get_current_span()
+    query = request.args.get('q', '').strip()
+    current_span.set_attribute("query.length", len(query))
+    if len(query) < 2:
+        return jsonify([])
+    
+    from .db import query as db_query
+    sql = '''
         SELECT DISTINCT u.email
         FROM ctgov_user u
         WHERE u.email ILIKE %s
         ORDER BY u.email ASC
         LIMIT 10
         '''
-        results = db_query(sql, [f"%{query}%"])
-        suggestions = [row['email'] for row in results if row['email']]
-        span.set_attribute("results.count", len(suggestions))
-        return jsonify(suggestions)
+    results = db_query(sql, [f"%{query}%"])
+    suggestions = [row['email'] for row in results if row['email']]
+    current_span.set_attribute("results.count", len(suggestions))
+    return jsonify(suggestions)
 
 @bp.route('/')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.index")
 def index():
-    with tracer.start_as_current_span("routes.index") as span:
-        search_params = {
-            'title': request.args.get('title'),
-            'nct_id': request.args.get('nct_id'),
-            'organization': request.args.get('organization'),
-            'user_email': request.args.get('user_email'),
-            'date_type': request.args.get('date_type'),
-            'date_from': request.args.get('date_from'),
-            'date_to': request.args.get('date_to')
-        }
-        if all(search_params.values()):
-            span.set_attribute("params.count", sum(1 for v in search_params.values() if v))
-            
-            compliance_status_list = request.args.getlist('compliance_status[]')
-            span.set_attribute("params.compliance_status_count", len(compliance_status_list))
-            template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
-            return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
-
-        template_data = process_index_request(QueryManager=qm)
+    current_span = trace.get_current_span()
+    search_params = {
+        'title': request.args.get('title'),
+        'nct_id': request.args.get('nct_id'),
+        'organization': request.args.get('organization'),
+        'user_email': request.args.get('user_email'),
+        'date_type': request.args.get('date_type'),
+        'date_from': request.args.get('date_from'),
+        'date_to': request.args.get('date_to'),
+        'compliance_status': request.args.getlist('compliance_status[]')
+    }
+    if any(search_params.values()):
+        current_span.set_attribute("params.count", sum(1 for v in search_params.values() if v))
+        
+        compliance_status_list = request.args.getlist('compliance_status[]')
+        current_span.set_attribute("params.compliance_status_count", len(compliance_status_list))
+        template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
         return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
+    template_data = process_index_request(QueryManager=qm)
+    return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
     
 @bp.route('/organization/<org_ids>')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.show_organization_dashboard")
 def show_organization_dashboard(org_ids):
-    with tracer.start_as_current_span("routes.show_organization_dashboard") as span:
-        span.set_attribute("org_ids.length", len(org_ids))
-        template_data = process_organization_dashboard_request(org_ids, QueryManager=qm)
-        return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
+    current_span = trace.get_current_span()
+    current_span.set_attribute("org_ids.length", len(org_ids))
+    template_data = process_organization_dashboard_request(org_ids, QueryManager=qm)
+    return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
 
 @bp.route('/compare')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.show_compare_organizations_dashboard")
 def show_compare_organizations_dashboard():
-    with tracer.start_as_current_span("routes.show_compare_organizations_dashboard") as span:
+    current_span = trace.get_current_span()
+    min_compliance = request.args.get('min_compliance')
+    max_compliance = request.args.get('max_compliance')
+    min_trials = request.args.get('min_trials')
+    max_trials = request.args.get('max_trials')
+    
+    template_data = process_compare_organizations_request(min_compliance, max_compliance, min_trials, max_trials, QueryManager=qm)
+    return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
+
+@bp.route('/user/<int:user_id>')
+@login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.show_user_dashboard")
+def show_user_dashboard(user_id):
+    current_span = trace.get_current_span()
+    current_span.set_attribute("user.id", int(user_id))
+    def current_user_getter(uid):
+        return current_user.get(uid)
+    
+    template_data = process_user_dashboard_request(user_id, current_user_getter, QueryManager=qm)
+    return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
+
+# CSV Export Route
+@bp.route('/export/csv')
+@login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.export_csv")
+def export_csv():
+    """Export current filtered data to CSV"""
+    current_span = trace.get_current_span()
+    # Get the same parameters as other routes
+    search_params = {
+        'title': request.args.get('title'),
+        'nct_id': request.args.get('nct_id'),
+        'organization': request.args.get('organization'),
+        'user_email': request.args.get('user_email'),
+        'date_type': request.args.get('date_type'),
+        'date_from': request.args.get('date_from'),
+        'date_to': request.args.get('date_to')
+    }
+    current_span.set_attribute("params.count", sum(1 for v in search_params.values() if v))
+    
+    compliance_status_list = request.args.getlist('compliance_status[]')
+    export_type = request.args.get('type', 'trials')  # Default to trials export
+    current_span.set_attribute("export.type", export_type)
+    current_span.set_attribute("params.compliance_status_count", len(compliance_status_list))
+    
+    # Get data based on export type
+    if export_type == 'organizations':
         min_compliance = request.args.get('min_compliance')
         max_compliance = request.args.get('max_compliance')
         min_trials = request.args.get('min_trials')
         max_trials = request.args.get('max_trials')
         
-        template_data = process_compare_organizations_request(min_compliance, max_compliance, min_trials, max_trials, QueryManager=qm)
-        return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
-
-@bp.route('/user/<int:user_id>')
-@login_required    # pragma: no cover
-def show_user_dashboard(user_id):
-    with tracer.start_as_current_span("routes.show_user_dashboard") as span:
-        span.set_attribute("user.id", int(user_id))
-        def current_user_getter(uid):
-            return current_user.get(uid)
+        org_compliance = get_organization_risk_analysis(min_compliance, max_compliance, min_trials, max_trials)
+        data = org_compliance
+        filename = 'organizations_compliance_export'
         
-        template_data = process_user_dashboard_request(user_id, current_user_getter, QueryManager=qm)
-        return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
-
-# CSV Export Route
-@bp.route('/export/csv')
-@login_required    # pragma: no cover
-def export_csv():
-    with tracer.start_as_current_span("routes.export_csv") as span:
-        """Export current filtered data to CSV"""
-        # Get the same parameters as other routes
-        search_params = {
-            'title': request.args.get('title'),
-            'nct_id': request.args.get('nct_id'),
-            'organization': request.args.get('organization'),
-            'user_email': request.args.get('user_email'),
-            'date_type': request.args.get('date_type'),
-            'date_from': request.args.get('date_from'),
-            'date_to': request.args.get('date_to')
-        }
-        span.set_attribute("params.count", sum(1 for v in search_params.values() if v))
+        # Define CSV headers for organizations
+        headers = [
+            'Organization Name',
+            'Total Trials',
+            'Compliant Trials',
+            'Non-Compliant Trials',
+            'Pending Trials',
+            'Compliance Rate (%)',
+            'High Risk Trials',
+            'Average Days Overdue'
+        ]
         
-        compliance_status_list = request.args.getlist('compliance_status[]')
-        export_type = request.args.get('type', 'trials')  # Default to trials export
-        span.set_attribute("export.type", export_type)
-        span.set_attribute("params.compliance_status_count", len(compliance_status_list))
-        
-        # Get data based on export type
-        if export_type == 'organizations':
-            min_compliance = request.args.get('min_compliance')
-            max_compliance = request.args.get('max_compliance')
-            min_trials = request.args.get('min_trials')
-            max_trials = request.args.get('max_trials')
+        # Format data for CSV
+        csv_data = []
+        for org in data:
+            compliance_rate = ((org.get('on_time_count', 0) / org.get('total_trials', 1) * 100) if org.get('total_trials', 0) > 0 else 0)
+            avg_days_overdue = ((org.get('total_overdue_days', 0) / org.get('late_count', 1)) if org.get('late_count', 0) > 0 else 0)
             
-            org_compliance = get_organization_risk_analysis(min_compliance, max_compliance, min_trials, max_trials)
-            data = org_compliance
-            filename = 'organizations_compliance_export'
+            csv_data.append([
+                org.get('name', ''),
+                org.get('total_trials', 0),
+                org.get('on_time_count', 0),
+                org.get('late_count', 0),
+                org.get('pending_count', 0),
+                round(compliance_rate, 1),
+                org.get('high_risk_trials', 0),
+                round(avg_days_overdue, 1) if avg_days_overdue > 0 else 0
+            ])
             
-            # Define CSV headers for organizations
-            headers = [
-                'Organization Name',
-                'Total Trials',
-                'Compliant Trials',
-                'Non-Compliant Trials',
-                'Pending Trials',
-                'Compliance Rate (%)',
-                'High Risk Trials',
-                'Average Days Overdue'
-            ]
-            
-            # Format data for CSV
-            csv_data = []
-            for org in data:
-                compliance_rate = ((org.get('on_time_count', 0) / org.get('total_trials', 1) * 100) if org.get('total_trials', 0) > 0 else 0)
-                avg_days_overdue = ((org.get('total_overdue_days', 0) / org.get('late_count', 1)) if org.get('late_count', 0) > 0 else 0)
-                
-                csv_data.append([
-                    org.get('name', ''),
-                    org.get('total_trials', 0),
-                    org.get('on_time_count', 0),
-                    org.get('late_count', 0),
-                    org.get('pending_count', 0),
-                    round(compliance_rate, 1),
-                    org.get('high_risk_trials', 0),
-                    round(avg_days_overdue, 1) if avg_days_overdue > 0 else 0
-                ])
-                
-        elif export_type == 'user':
-            user_id = request.args.get('user_id')
-            if user_id:
-                def current_user_getter(uid):
-                    return current_user.get(uid)
-                template_data = process_user_dashboard_request(int(user_id), current_user_getter, QueryManager=qm)
-                data = template_data.get('trials', [])
-                filename = f'user_{user_id}_trials_export'
-            else:
-                template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
-                data = template_data.get('trials', [])
-                filename = 'trials_export'
-                
+    elif export_type == 'user':
+        user_id = request.args.get('user_id')
+        if user_id:
+            def current_user_getter(uid):
+                return current_user.get(uid)
+            template_data = process_user_dashboard_request(int(user_id), current_user_getter, QueryManager=qm)
+            data = template_data.get('trials', [])
+            filename = f'user_{user_id}_trials_export'
         else:
-            # Default to trials export
-            if any(search_params.values()) or compliance_status_list:
-                template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
-            else:
-                template_data = process_index_request(QueryManager=qm)
-                
+            template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
             data = template_data.get('trials', [])
             filename = 'trials_export'
-        
-        # For trials data (default case and user case)
-        if export_type != 'organizations':
-            # Define CSV headers for trials
-            headers = [
-                'Title',
-                'NCT ID',
-                'Organization',
-                'User Email',
-                'Status',
-                'Start Date',
-                'End Date',
-                'Reporting Due Date'
-            ]
             
-            # Format data for CSV
-            csv_data = []
-            for trial in data:
-                csv_data.append([
-                    trial.get('title', ''),
-                    trial.get('nct_id', ''),
-                    trial.get('name', ''),
-                    trial.get('email', ''),
-                    trial.get('status', ''),
-                    trial.get('start_date').strftime('%m/%d/%Y') if trial.get('start_date') else '',
-                    trial.get('completion_date').strftime('%m/%d/%Y') if trial.get('completion_date') else '',
-                    trial.get('reporting_due_date').strftime('%m/%d/%Y') if trial.get('reporting_due_date') else ''
-                ])
+    else:
+        # Default to trials export
+        if any(search_params.values()) or compliance_status_list:
+            template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
+        else:
+            template_data = process_index_request(QueryManager=qm)
+            
+        data = template_data.get('trials', [])
+        filename = 'trials_export'
+    
+    # For trials data (default case and user case)
+    if export_type != 'organizations':
+        # Define CSV headers for trials
+        headers = [
+            'Title',
+            'NCT ID',
+            'Organization',
+            'User Email',
+            'Status',
+            'Start Date',
+            'End Date',
+            'Reporting Due Date'
+        ]
         
-        # Create CSV in memory
-        output = io.StringIO()
-        writer = csv.writer(output)
-        
-        # Write headers
-        writer.writerow(headers)
-        
-        # Write data
-        for row in csv_data:
-            writer.writerow(row)
-        
-        # Create response
-        csv_content = output.getvalue()
-        output.close()
-        
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename_with_timestamp = f"{filename}_{timestamp}.csv"
-        span.set_attribute("export.rows", len(csv_data))
-        
-        # Create response with proper headers
-        response = make_response(csv_content)
-        response.headers['Content-Type'] = 'text/csv'
-        response.headers['Content-Disposition'] = f'attachment; filename="{filename_with_timestamp}"'
-        
-        return response
+        # Format data for CSV
+        csv_data = []
+        for trial in data:
+            csv_data.append([
+                trial.get('title', ''),
+                trial.get('nct_id', ''),
+                trial.get('name', ''),
+                trial.get('email', ''),
+                trial.get('status', ''),
+                trial.get('start_date').strftime('%m/%d/%Y') if trial.get('start_date') else '',
+                trial.get('completion_date').strftime('%m/%d/%Y') if trial.get('completion_date') else '',
+                trial.get('reporting_due_date').strftime('%m/%d/%Y') if trial.get('reporting_due_date') else ''
+            ])
+    
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write headers
+    writer.writerow(headers)
+    
+    # Write data
+    for row in csv_data:
+        writer.writerow(row)
+    
+    # Create response
+    csv_content = output.getvalue()
+    output.close()
+    
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename_with_timestamp = f"{filename}_{timestamp}.csv"
+    current_span.set_attribute("export.rows", len(csv_data))
+    
+    # Create response with proper headers
+    response = make_response(csv_content)
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = f'attachment; filename="{filename_with_timestamp}"'
+    
+    return response
 
 # Print Report Routes
 @bp.route('/report/print')
 @login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.print_report")
 def print_report():
-    with tracer.start_as_current_span("routes.print_report") as span:
-        """Generate a printable report based on current search/filter criteria"""
-        # Get search parameters from request (same as search route)
-        search_params = {
-            'title': request.args.get('title'),
-            'nct_id': request.args.get('nct_id'),
-            'organization': request.args.get('organization'),
-            'user_email': request.args.get('user_email'),
-            'date_type': request.args.get('date_type'),
-            'date_from': request.args.get('date_from'),
-            'date_to': request.args.get('date_to')
+    """Generate a printable report based on current search/filter criteria"""
+    current_span = trace.get_current_span()
+    # Get search parameters from request (same as search route)
+    search_params = {
+        'title': request.args.get('title'),
+        'nct_id': request.args.get('nct_id'),
+        'organization': request.args.get('organization'),
+        'user_email': request.args.get('user_email'),
+        'date_type': request.args.get('date_type'),
+        'date_from': request.args.get('date_from'),
+        'date_to': request.args.get('date_to')
+    }
+    
+    compliance_status_list = request.args.getlist('compliance_status[]')
+    report_type = request.args.get('type', 'trials')  # Default to trials report
+    current_span.set_attribute("report.type", report_type)
+    
+    # Process based on report type with enhanced analytics
+    if report_type == 'organizations':
+        min_compliance = request.args.get('min_compliance')
+        max_compliance = request.args.get('max_compliance')
+        min_trials = request.args.get('min_trials')
+        max_trials = request.args.get('max_trials')
+        
+        # Use enhanced organization analysis
+        org_compliance = get_organization_risk_analysis(min_compliance, max_compliance, min_trials, max_trials)
+        template_data = {
+            'org_compliance': org_compliance,
+            'on_time_count': sum(org.get('on_time_count', 0) for org in org_compliance),
+            'late_count': sum(org.get('late_count', 0) for org in org_compliance),
         }
         
-        compliance_status_list = request.args.getlist('compliance_status[]')
-        report_type = request.args.get('type', 'trials')  # Default to trials report
-        span.set_attribute("report.type", report_type)
+        # Get organization-level critical issues
+        template_data['critical_issues'] = []
+        for org in org_compliance:
+            if org.get('high_risk_trials', 0) > 0:
+                template_data['critical_issues'].append({
+                    'type': 'High Risk Organization',
+                    'priority': 'High',
+                    'organization': org.get('name'),
+                    'high_risk_trials': org.get('high_risk_trials'),
+                    'description': f"{org.get('name')} has {org.get('high_risk_trials')} high-risk trials requiring attention"
+                })
         
-        # Process based on report type with enhanced analytics
-        if report_type == 'organizations':
-            min_compliance = request.args.get('min_compliance')
-            max_compliance = request.args.get('max_compliance')
-            min_trials = request.args.get('min_trials')
-            max_trials = request.args.get('max_trials')
-            
-            # Use enhanced organization analysis
-            org_compliance = get_organization_risk_analysis(min_compliance, max_compliance, min_trials, max_trials)
-            template_data = {
-                'org_compliance': org_compliance,
-                'on_time_count': sum(org.get('on_time_count', 0) for org in org_compliance),
-                'late_count': sum(org.get('late_count', 0) for org in org_compliance),
-            }
-            
-            # Get organization-level critical issues
-            template_data['critical_issues'] = []
-            for org in org_compliance:
-                if org.get('high_risk_trials', 0) > 0:
-                    template_data['critical_issues'].append({
-                        'type': 'High Risk Organization',
-                        'priority': 'High',
-                        'organization': org.get('name'),
-                        'high_risk_trials': org.get('high_risk_trials'),
-                        'description': f"{org.get('name')} has {org.get('high_risk_trials')} high-risk trials requiring attention"
-                    })
-            
-        elif report_type == 'user':
-            user_id = request.args.get('user_id')
-            if user_id:
-                def current_user_getter(uid):
-                    return current_user.get(uid)
-                template_data = process_user_dashboard_request(int(user_id), current_user_getter, QueryManager=qm)
-            else:
-                template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
-                
-            # Get enhanced analytics for user data
-            if template_data.get('trials'):
-                enhanced_stats = get_compliance_summary_stats(search_params, compliance_status_list)
-                template_data.update(enhanced_stats)
-                template_data['critical_issues'] = get_critical_issues(search_params, compliance_status_list)
+    elif report_type == 'user':
+        user_id = request.args.get('user_id')
+        if user_id:
+            def current_user_getter(uid):
+                return current_user.get(uid)
+            template_data = process_user_dashboard_request(int(user_id), current_user_getter, QueryManager=qm)
         else:
-            # Default to trials report with enhanced analytics
-            if any(search_params.values()) or compliance_status_list:
-                template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
-            else:
-                template_data = process_index_request(QueryManager=qm)
+            template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
             
-            # Get enhanced trial analytics
-            enhanced_trials = get_enhanced_trial_analytics(search_params, compliance_status_list)
+        # Get enhanced analytics for user data
+        if template_data.get('trials'):
             enhanced_stats = get_compliance_summary_stats(search_params, compliance_status_list)
-            critical_issues = get_critical_issues(search_params, compliance_status_list)
-            
-            # Update template data with enhanced information
             template_data.update(enhanced_stats)
-            template_data['enhanced_trials'] = enhanced_trials
-            template_data['critical_issues'] = critical_issues
+            template_data['critical_issues'] = get_critical_issues(search_params, compliance_status_list)
+    else:
+        # Default to trials report with enhanced analytics
+        if any(search_params.values()) or compliance_status_list:
+            template_data = process_search_request(search_params, compliance_status_list, QueryManager=qm)
+        else:
+            template_data = process_index_request(QueryManager=qm)
         
-        # Add report metadata
-        from datetime import datetime
-        template_data['report_generated'] = datetime.now()
-        template_data['report_type'] = report_type
-        template_data['search_params'] = search_params
-        template_data['compliance_status_list'] = compliance_status_list
+        # Get enhanced trial analytics
+        enhanced_trials = get_enhanced_trial_analytics(search_params, compliance_status_list)
+        enhanced_stats = get_compliance_summary_stats(search_params, compliance_status_list)
+        critical_issues = get_critical_issues(search_params, compliance_status_list)
         
-        return render_template('reports/print_report.html', **{k: v for k, v in template_data.items() if k != 'template'})
+        # Update template data with enhanced information
+        template_data.update(enhanced_stats)
+        template_data['enhanced_trials'] = enhanced_trials
+        template_data['critical_issues'] = critical_issues
+    
+    # Add report metadata
+    from datetime import datetime
+    template_data['report_generated'] = datetime.now()
+    template_data['report_type'] = report_type
+    template_data['search_params'] = search_params
+    template_data['compliance_status_list'] = compliance_status_list
+    
+    return render_template('reports/print_report.html', **{k: v for k, v in template_data.items() if k != 'template'})
