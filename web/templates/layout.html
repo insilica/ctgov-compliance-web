@@ -43,6 +43,7 @@
                         <div class="usa-nav margin-left-auto">
                             <ul
                                 class="usa-nav__links padding-y-2 display-flex flex-row flex-align-center usa-list--unstyled">
+                                {% if current_user.is_authenticated %}
                                 <li class="usa-nav__item margin-x-1">
                                     <span class="font-ui-md">{{ current_user.email.split('@')[0] }}</span>
                                 </li>
@@ -55,6 +56,7 @@
                                         <i class="ri-logout-box-line margin-right-1"></i>
                                     </a>
                                 </li>
+                                {% endif %}
                             </ul>
                         </div>
                     </div>
