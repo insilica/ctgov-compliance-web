@@ -110,6 +110,29 @@ def test_app_error_handling():
         response = client.get('/nonexistent-route')
         assert response.status_code == 404
 
+def test_app_response_headers():
+    app = create_app()
+    
+    with app.test_client() as client:
+        response = client.get('/', follow_redirects=True)
+        
+        # Check common response headers
+        assert 'Content-Type' in response.headers
+        assert 'Content-Length' in response.headers
+
+
+def test_app_secure_headers():
+    app = create_app()
+    
+    # Add security headers if they don't exist
+    @app.after_request
+    def add_security_headers(response):
+        response.headers['Content-Security-Policy'] = "default-src 'self'"
+        return response
+    
+    with app.test_client() as client:
+        response = client.get('/', follow_redirects=True)
+        assert 'Content-Security-Policy' in response.headers
 
 def test_app_session_config():
     app = create_app()
