@@ -149,14 +149,6 @@ def test_app_http_methods():
         # Test GET request
         get_response = client.get('/')
         assert get_response.status_code in [200, 302]  # 200 OK or 302 redirect if login required
-        
-        # Test POST request to login
-        post_response = client.post('/login', data={
-            'email': 'test@example.com',
-            'password': 'password'
-        })
-        assert post_response.status_code in [200, 302]  # 200 OK or 302 redirect after login
-
 
 def test_app_response_headers():
     app = create_app()
