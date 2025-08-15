@@ -44,26 +44,26 @@
                     {% endif %}
                 </td>
                 <td class="date-column" data-column="start_date">
-                    <span class="date-mobile">{{ trial.start_date.strftime("%m/%d/%y") if trial.start_date else '-'
+                    <span class="date-mobile">{{ trial.start_date.strftime("%Y/%m/%d") if trial.start_date else '-'
                         }}</span>
                 </td>
                 <td class="date-column" data-column="end_date">
-                    <span class="date-mobile">{{ trial.completion_date.strftime("%m/%d/%y") if trial.completion_date
+                    <span class="date-mobile">{{ trial.completion_date.strftime("%Y/%m/%d") if trial.completion_date
                         else '-' }}</span>
                 </td>
                 <td class="date-column" data-column="reporting_due_date">
-                    <span class="date-mobile">{{ trial.reporting_due_date.strftime("%m/%d/%y") if
+                    <span class="date-mobile">{{ trial.reporting_due_date.strftime("%Y/%m/%d") if
                         trial.reporting_due_date else '-' }}</span>
                 </td>
                 <td class="date-column" data-column="last_checked">
-                    <span class="date-mobile">{{ trial.last_checked.strftime("%m/%d/%y") if trial.last_checked else '-'
+                    <span class="date-mobile">{{ trial.last_checked.strftime("%Y/%m/%d") if trial.last_checked else '-'
                         }}</span>
                 </td>
                 <td data-column="user_role">
                     {{ trial.user_role|title if trial.user_role else '-' }}
                 </td>
                 <td class="date-column" data-column="org_created_at">
-                    <span class="date-mobile">{{ trial.organization_created_at.strftime("%m/%d/%y") if
+                    <span class="date-mobile">{{ trial.organization_created_at.strftime("%Y/%m/%d") if
                         trial.organization_created_at else
                         '-' }}</span>
                 </td>
