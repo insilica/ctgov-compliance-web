@@ -41,7 +41,7 @@
                 <td scope="row" data-column="wilson_lcb_score">{{ org.wilson_lcb_score or '-' }}</td>
                 <td scope="row" data-column="email_domain">{{ org.email_domain or '-' }}</td>
                 <td scope="row" data-column="created_at">
-                    <span class="date-mobile">{{ org.created_at.strftime("%m/%d/%y") if org.created_at else '-'
+                    <span class="date-mobile">{{ org.created_at.strftime("%Y-%m-%d") if org.created_at else '-'
                         }}</span>
                 </td>
             </tr>

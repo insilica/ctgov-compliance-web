@@ -256,7 +256,7 @@ body {
 }
 
 .stats-label {
-    color: var(--text-inverse);
+    color: var(--text-primary);
 }
 
 /* Theme-aware USWDS overrides */
@@ -265,7 +265,7 @@ body {
 }
 
 .usa-radio {
-    background-color: var(--surface-variant);
+    background-color: transparent;
 }
 
 .usa-pagination__button, 
@@ -318,9 +318,26 @@ body {
 
 .usa-card {
     background-color: var(--surface-color) !important;
-    border: 1px solid var(--border-color) !important;
     transition: background-color 0.3s ease, border-color 0.3s ease;
     margin: 0 !important;
+}
+
+.usa-card__body {
+    border: 1px solid var(--border-color);
+}
+
+.usa-current {
+    background-color: transparent !important;
+    border: 2px solid var(--primary-dark) !important;
+    border-radius: 0.30rem;
+}
+
+.usa-pagination__button {
+    padding: 0 !important;
+}
+
+.usa-current > .usa-pagination__button {
+    border: none !important;
 }
 
 .usa-alert {
@@ -474,7 +491,7 @@ html {
 }
 
 .metric-value {
-    color: var(--primary-dark);
+    color: var(--primary-lighter);
 }
 
 .metric-details {
@@ -1218,25 +1235,24 @@ td {
 
 .theme-options .usa-radio__label {
     display: flex;
-    align-items: center;
+    align-items: start;
     position: relative;
-    padding-left: 1.5rem;
+    padding-left: 1.6rem;
     cursor: pointer;
     color: var(--text-primary);
     transition: color 0.2s ease;
+    line-height: normal !important;
 }
 
 .theme-options .usa-radio__label::before {
     content: '';
     display: block;
     position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
+    left: 1%;
+    top: 3%;
     width: 1rem;
     height: 1rem;
     background: var(--surface-color);
-    border: 2px solid var(--border-dark);
     border-radius: 50%;
     transition: all 0.2s ease;
 }

@@ -114,21 +114,23 @@
                                     </div>
                                 </div>
                                 <div class="grid-row margin-y-1 grid-gap-1">
-                                    <div class="desktop:grid-col-6">
+                                    <div class="desktop:grid-col-12">
                                         <div class="usa-form-group margin-top-0">
-                                            <label class="usa-label margin-top-0" for="date-from">From</label>
+                                            <label class="usa-label margin-top-0" id="date-from-label"
+                                                for="date-from">From</label>
                                             <div class="usa-date-picker">
-                                                <input class="usa-input" id="date-from" name="date_from" type="text"
+                                                <input class="usa-input" id="date-from" name="date_from"
                                                     value="{{ request.args.get('date_from', '') }}"
                                                     placeholder="MM/DD/YYYY" />
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="desktop:grid-col-6">
+                                    <div class="desktop:grid-col-12">
                                         <div class="usa-form-group margin-top-0">
-                                            <label class="usa-label margin-top-0" for="date-to">To</label>
+                                            <label class="usa-label margin-top-0" id="date-to-label"
+                                                for="date-to">To</label>
                                             <div class="usa-date-picker">
-                                                <input class="usa-input" id="date-to" name="date_to" type="text"
+                                                <input class="usa-input" id="date-to" name="date_to"
                                                     value="{{ request.args.get('date_to', '') }}"
                                                     placeholder="MM/DD/YYYY" />
                                             </div>

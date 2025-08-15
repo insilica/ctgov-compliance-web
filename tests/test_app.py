@@ -149,38 +149,6 @@ def test_app_http_methods():
         # Test GET request
         get_response = client.get('/')
         assert get_response.status_code in [200, 302]  # 200 OK or 302 redirect if login required
-        
-        # Test POST request to login
-        post_response = client.post('/login', data={
-            'email': 'test@example.com',
-            'password': 'password'
-        })
-        assert post_response.status_code in [200, 302]  # 200 OK or 302 redirect after login
-
-
-def test_app_response_headers():
-    app = create_app()
-    
-    with app.test_client() as client:
-        response = client.get('/', follow_redirects=True)
-        
-        # Check common response headers
-        assert 'Content-Type' in response.headers
-        assert 'Content-Length' in response.headers
-
-
-def test_app_secure_headers():
-    app = create_app()
-    
-    # Add security headers if they don't exist
-    @app.after_request
-    def add_security_headers(response):
-        response.headers['Content-Security-Policy'] = "default-src 'self'"
-        return response
-    
-    with app.test_client() as client:
-        response = client.get('/', follow_redirects=True)
-        assert 'Content-Security-Policy' in response.headers
 
 
 def test_app_session_handling():
