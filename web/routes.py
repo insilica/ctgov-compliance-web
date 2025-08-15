@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, jsonify, make_response
-from flask_login import login_required    # pragma: no cover, current_user
+from flask_login import login_required, current_user    # pragma: no cover, current_user
 import csv
 import io
 from datetime import datetime
@@ -211,7 +211,7 @@ def export_csv():
         min_trials = request.args.get('min_trials')
         max_trials = request.args.get('max_trials')
         
-        org_compliance = get_organization_risk_analysis(min_compliance, max_compliance, min_trials, max_trials)
+        org_compliance = qm.get_organization_risk_analysis(min_compliance, max_compliance, min_trials, max_trials)
         data = org_compliance
         filename = 'organizations_compliance_export'
         
@@ -352,7 +352,7 @@ def print_report():
         max_trials = request.args.get('max_trials')
         
         # Use enhanced organization analysis
-        org_compliance = get_organization_risk_analysis(min_compliance, max_compliance, min_trials, max_trials)
+        org_compliance = qm.get_organization_risk_analysis(min_compliance, max_compliance, min_trials, max_trials)
         template_data = {
             'org_compliance': org_compliance,
             'on_time_count': sum(org.get('on_time_count', 0) for org in org_compliance),
@@ -382,9 +382,9 @@ def print_report():
             
         # Get enhanced analytics for user data
         if template_data.get('trials'):
-            enhanced_stats = get_compliance_summary_stats(search_params, compliance_status_list)
+            enhanced_stats = qm.get_compliance_summary_stats(search_params, compliance_status_list)
             template_data.update(enhanced_stats)
-            template_data['critical_issues'] = get_critical_issues(search_params, compliance_status_list)
+            template_data['critical_issues'] = qm.get_critical_issues(search_params, compliance_status_list)
     else:
         # Default to trials report with enhanced analytics
         if any(search_params.values()) or compliance_status_list:
@@ -393,9 +393,9 @@ def print_report():
             template_data = process_index_request(QueryManager=qm)
         
         # Get enhanced trial analytics
-        enhanced_trials = get_enhanced_trial_analytics(search_params, compliance_status_list)
-        enhanced_stats = get_compliance_summary_stats(search_params, compliance_status_list)
-        critical_issues = get_critical_issues(search_params, compliance_status_list)
+        enhanced_trials = qm.get_enhanced_trial_analytics(search_params, compliance_status_list)
+        enhanced_stats = qm.get_compliance_summary_stats(search_params, compliance_status_list)
+        critical_issues = qm.get_critical_issues(search_params, compliance_status_list)
         
         # Update template data with enhanced information
         template_data.update(enhanced_stats)
