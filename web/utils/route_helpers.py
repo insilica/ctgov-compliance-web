@@ -6,11 +6,14 @@ without Flask context dependencies while maintaining clean separation of concern
 """
 
 from urllib.parse import unquote
+from datetime import date, datetime, timedelta
 from .queries import QueryManager
 from .pagination import paginate, get_pagination_args
 from opentelemetry import trace
 
 tracer = trace.get_tracer(__name__)
+REPORTING_WINDOW_DAYS = 30
+DEFAULT_STATUS_ORDER = ['Compliant', 'Incompliant', 'Pending']
 
 
 @tracer.start_as_current_span("route_helpers.compliance_counts")
@@ -142,6 +145,105 @@ def process_organization_dashboard_request(org_ids, page=None, per_page=None, Qu
 def parse_request_arg(val):
     """Parse a request argument into an integer if valid, otherwise return None."""
     return int(val) if val and val.isdigit() else None
+
+
+def _parse_iso_date(value):
+    """Parse YYYY-MM-DD strings into date objects."""
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, '%Y-%m-%d').date()
+    except ValueError:
+        return None
+
+
+def _coerce_to_date(value):
+    """Attempt to convert incoming values into date objects."""
+    if isinstance(value, date):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, str):
+        try:
+            return datetime.strptime(value, '%Y-%m-%d').date()
+        except ValueError:
+            return None
+    return None
+
+
+@tracer.start_as_current_span("route_helpers.process_reporting_request")
+def process_reporting_request(start_date=None, end_date=None, QueryManager=QueryManager()):
+    """Build template context for the reporting dashboard."""
+    current_span = trace.get_current_span()
+    start_dt = _parse_iso_date(start_date)
+    end_dt = _parse_iso_date(end_date)
+
+    today = date.today()
+    if not end_dt:
+        end_dt = today
+    if not start_dt:
+        start_dt = end_dt - timedelta(days=REPORTING_WINDOW_DAYS - 1)
+
+    if start_dt > end_dt:
+        start_dt, end_dt = end_dt, start_dt
+
+    start_iso = start_dt.isoformat()
+    end_iso = end_dt.isoformat()
+    current_span.set_attribute("reporting.start_date", start_iso)
+    current_span.set_attribute("reporting.end_date", end_iso)
+
+    rows = QueryManager.get_compliance_status_time_series(start_date=start_iso, end_date=end_iso)
+
+    status_order = list(DEFAULT_STATUS_ORDER)
+    for row in rows:
+        status_label = row.get('compliance_status')
+        if status_label and status_label not in status_order:
+            status_order.append(status_label)
+
+    status_keys = {label: label.lower().replace(' ', '_') for label in status_order}
+
+    # Pre-populate every date in range with zeros for each status.
+    date_cursor = start_dt
+    default_counts = {key: 0 for key in status_keys.values()}
+    time_series_lookup = {}
+    while date_cursor <= end_dt:
+        iso_day = date_cursor.isoformat()
+        time_series_lookup[iso_day] = dict(default_counts)
+        date_cursor += timedelta(days=1)
+
+    for row in rows:
+        row_date = _coerce_to_date(row.get('start_date'))
+        if not row_date:
+            continue
+        iso_day = row_date.isoformat()
+        if iso_day not in time_series_lookup:
+            time_series_lookup[iso_day] = dict(default_counts)
+        status_label = row.get('compliance_status') or 'Pending'
+        status_key = status_keys.get(status_label)
+        if not status_key:
+            status_key = status_label.lower().replace(' ', '_')
+            status_keys[status_label] = status_key
+            if status_label not in status_order:
+                status_order.append(status_label)
+            default_counts[status_key] = 0
+            for counts in time_series_lookup.values():
+                counts.setdefault(status_key, 0)
+        time_series_lookup[iso_day][status_key] = row.get('status_count', 0) or 0
+
+    time_series = [
+        {'date': iso_day, **counts}
+        for iso_day, counts in sorted(time_series_lookup.items())
+    ]
+
+    context = {
+        'template': 'reporting.html',
+        'time_series': time_series,
+        'status_keys': [{'label': label, 'key': status_keys[label]} for label in status_order if label in status_keys],
+        'start_date': start_iso,
+        'end_date': end_iso,
+    }
+    current_span.set_attribute("reporting.data_points", len(time_series))
+    return context
 
 
 @tracer.start_as_current_span("route_helpers.process_compare_organizations_request")

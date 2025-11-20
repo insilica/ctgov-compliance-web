@@ -4,8 +4,10 @@ from web.utils.route_helpers import (
     compliance_counts, 
     process_index_request, 
     process_search_request, 
+    process_reporting_request,
     parse_request_arg
 )
+from datetime import date
 
 
 class TestComplianceCounts:
@@ -204,3 +206,62 @@ class TestEdgeCases:
             'template': 'dashboards/home.html'
         }
         assert result == expected 
+
+
+class TestProcessReportingRequest:
+    """Tests for reporting helper."""
+
+    def test_reporting_request_with_range(self):
+        mock_qm = MagicMock()
+        mock_qm.get_compliance_status_time_series.return_value = [
+            {'start_date': date(2024, 1, 1), 'compliance_status': 'Compliant', 'status_count': 2},
+            {'start_date': '2024-01-02', 'compliance_status': 'Incompliant', 'status_count': 1},
+            {'start_date': '2024-01-02', 'compliance_status': 'Compliant', 'status_count': 3},
+        ]
+
+        result = process_reporting_request('2024-01-01', '2024-01-03', QueryManager=mock_qm)
+
+        mock_qm.get_compliance_status_time_series.assert_called_once_with(
+            start_date='2024-01-01',
+            end_date='2024-01-03'
+        )
+        assert result['template'] == 'reporting.html'
+        assert result['start_date'] == '2024-01-01'
+        assert result['end_date'] == '2024-01-03'
+        assert len(result['time_series']) == 3
+        first_day = result['time_series'][0]
+        assert first_day['date'] == '2024-01-01'
+        assert first_day['compliant'] == 2
+        assert first_day['incompliant'] == 0
+        second_day = result['time_series'][1]
+        assert second_day['date'] == '2024-01-02'
+        assert second_day['incompliant'] == 1
+        assert second_day['compliant'] == 3
+
+    @patch('web.utils.route_helpers.date')
+    def test_reporting_request_defaults(self, mock_date_cls):
+        mock_date_cls.today.return_value = date(2024, 4, 30)
+        mock_qm = MagicMock()
+        mock_qm.get_compliance_status_time_series.return_value = []
+
+        result = process_reporting_request(QueryManager=mock_qm)
+
+        assert result['end_date'] == '2024-04-30'
+        assert result['start_date'] == '2024-04-01'
+        mock_qm.get_compliance_status_time_series.assert_called_once_with(
+            start_date='2024-04-01',
+            end_date='2024-04-30'
+        )
+
+    def test_reporting_request_swaps_dates(self):
+        mock_qm = MagicMock()
+        mock_qm.get_compliance_status_time_series.return_value = []
+
+        result = process_reporting_request('2024-03-10', '2024-03-01', QueryManager=mock_qm)
+
+        assert result['start_date'] == '2024-03-01'
+        assert result['end_date'] == '2024-03-10'
+        mock_qm.get_compliance_status_time_series.assert_called_once_with(
+            start_date='2024-03-01',
+            end_date='2024-03-10'
+        )

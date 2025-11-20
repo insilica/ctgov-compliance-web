@@ -704,3 +704,33 @@ def test_search_trials_no_compliance_status_in_request(mock_query):
         assert "tc.status = 'Compliant'" not in sql
         assert "tc.status = 'Incompliant'" not in sql
         assert "tc.status IS NULL" not in sql
+
+
+def test_get_compliance_status_time_series_default(mock_query):
+    expected_data = [
+        {'start_date': '2024-01-01', 'compliance_status': 'Compliant', 'status_count': 3}
+    ]
+    mock_query.return_value = expected_data
+
+    result = qm.get_compliance_status_time_series()
+
+    assert result == expected_data
+    mock_query.assert_called_once()
+    sql, params = mock_query.call_args[0]
+    assert 'FROM trial t' in sql
+    assert 'GROUP BY start_date, compliance_status' in sql
+    assert params == []
+
+
+def test_get_compliance_status_time_series_with_dates(mock_query):
+    expected_data = [{'start_date': '2024-02-01', 'compliance_status': 'Incompliant', 'status_count': 1}]
+    mock_query.return_value = expected_data
+
+    result = qm.get_compliance_status_time_series(start_date='2024-01-01', end_date='2024-03-01')
+
+    assert result == expected_data
+    mock_query.assert_called_once()
+    sql, params = mock_query.call_args[0]
+    assert 'DATE(t.start_date) >= %s' in sql
+    assert 'DATE(t.start_date) <= %s' in sql
+    assert params == ['2024-01-01', '2024-03-01']

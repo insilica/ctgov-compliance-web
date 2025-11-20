@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+{% block title %}Reporting{% endblock title %}
+{% block content %}
+<div class="grid-container padding-y-4">
+    <nav class="usa-breadcrumb margin-bottom-3" aria-label="Breadcrumb">
+        <ol class="usa-breadcrumb__list">
+            <li class="usa-breadcrumb__list-item">
+                <a href="{{ url_for('routes.index') }}" class="usa-breadcrumb__link">Home</a>
+            </li>
+            <li class="usa-breadcrumb__list-item usa-current" aria-current="page">
+                Reporting
+            </li>
+        </ol>
+    </nav>
+
+    <div class="grid-row grid-gap">
+        <div class="grid-col-12">
+            <div class="usa-card bg-base-lightest shadow-2 margin-bottom-3">
+                <div class="usa-card__header">
+                    <h1 class="usa-card__heading margin-0">Reporting Overview</h1>
+                </div>
+                <div class="usa-card__body">
+                    <p class="font-sans-md">
+                        Track how compliance statuses change over time. Counts are grouped by each trial's
+                        <code>start_date</code>.
+                    </p>
+                    <p class="usa-hint margin-0">
+                        Adjust the date range to focus on a specific review window. The chart below reflects the same
+                        time frame exposed via the JSON API at <code>/api/reporting/time-series</code>.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-row grid-gap margin-bottom-2">
+        <div class="grid-col-12">
+            <form method="get" class="usa-form usa-form--large bg-base-lightest padding-3 radius-md shadow-2">
+                <fieldset class="usa-fieldset margin-0">
+                    <legend class="usa-label font-sans-lg">Date range</legend>
+                    <div class="grid-row grid-gap">
+                        <div class="tablet:grid-col-6">
+                            <label class="usa-label" for="start_date">Start date</label>
+                            <input class="usa-input" type="date" id="start_date" name="start_date"
+                                value="{{ start_date }}">
+                        </div>
+                        <div class="tablet:grid-col-6">
+                            <label class="usa-label" for="end_date">End date</label>
+                            <input class="usa-input" type="date" id="end_date" name="end_date" value="{{ end_date }}">
+                        </div>
+                    </div>
+                </fieldset>
+                <div class="display-flex flex-justify-between flex-align-center margin-top-2">
+                    <button class="usa-button" type="submit">
+                        Update range
+                    </button>
+                    <a class="usa-button usa-button--outline" href="{{ url_for('routes.reporting_dashboard') }}">
+                        Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid-row grid-gap">
+        <div class="grid-col-12">
+            <div class="usa-card shadow-2">
+                <div class="usa-card__header">
+                    <h2 class="usa-card__heading margin-0">Compliance status timeline</h2>
+                </div>
+                <div class="usa-card__body">
+                    {% if time_series %}
+                    {% set latest = time_series|last %}
+                    <div class="grid-row grid-gap margin-bottom-3">
+                        {% for status in status_keys %}
+                        <div class="tablet:grid-col-4">
+                            <div class="bg-base-lightest padding-2 radius-md">
+                                <p class="text-uppercase text-semibold margin-0">{{ status.label }}</p>
+                                <p class="font-sans-2xl margin-0">{{ latest[status.key] }}</p>
+                                <p class="usa-hint margin-0">Latest on {{ latest.date }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div id="reporting-chart" class="reporting-chart" role="img"
+                        aria-label="Line chart showing compliance counts over time"></div>
+                    <div id="reporting-chart-legend" class="margin-top-2"></div>
+                    {% if not time_series %}
+                    <p class="usa-hint margin-top-2">No compliance activity found for the selected time range.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    window.reportingData = {
+        time_series: {{ time_series | tojson }},
+        status_keys: {{ status_keys | tojson }}
+    };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="{{ url_for('static', filename='js/reporting.js') }}"></script>
+{% endblock content %}
