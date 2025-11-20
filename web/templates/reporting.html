@@ -21,8 +21,8 @@
                 </div>
                 <div class="usa-card__body">
                     <p class="font-sans-md">
-                        Track how compliance statuses change over time. Counts are grouped by each trial's
-                        <code>start_date</code>.
+                        Track cumulative trial starts over time. Counts are bucketed by the month of each trial's
+                        <code>start_date</code> and displayed as a running total.
                     </p>
                     <p class="usa-hint margin-0">
                         Adjust the date range to focus on a specific review window. The chart below reflects the same
@@ -69,25 +69,58 @@
                     <h2 class="usa-card__heading margin-0">Compliance status timeline</h2>
                 </div>
                 <div class="usa-card__body">
-                    {% if time_series %}
-                    {% set latest = time_series|last %}
+                    {% if latest_point %}
                     <div class="grid-row grid-gap margin-bottom-3">
-                        {% for status in status_keys %}
                         <div class="tablet:grid-col-4">
                             <div class="bg-base-lightest padding-2 radius-md">
-                                <p class="text-uppercase text-semibold margin-0">{{ status.label }}</p>
-                                <p class="font-sans-2xl margin-0">{{ latest[status.key] }}</p>
-                                <p class="usa-hint margin-0">Latest on {{ latest.date }}</p>
+                                <p class="text-uppercase text-semibold margin-0">Cumulative trials</p>
+                                <p class="font-sans-2xl margin-0">{{ latest_point.total_cumulative }}</p>
+                                <p class="usa-hint margin-0">Through {{ latest_point.month_label }}</p>
                             </div>
                         </div>
-                        {% endfor %}
+                        <div class="tablet:grid-col-4">
+                            <div class="bg-base-lightest padding-2 radius-md">
+                                <p class="text-uppercase text-semibold margin-0">New this month</p>
+                                <p class="font-sans-2xl margin-0">{{ latest_point.total_monthly }}</p>
+                                <p class="usa-hint margin-0">{{ latest_point.month_label }}</p>
+                            </div>
+                        </div>
+                        <div class="tablet:grid-col-4">
+                            <div class="bg-base-lightest padding-2 radius-md">
+                                <p class="text-uppercase text-semibold margin-0">Months tracked</p>
+                                <p class="font-sans-2xl margin-0">{{ time_series|length }}</p>
+                                {% if time_series %}
+                                <p class="usa-hint margin-0">Since {{ time_series[0].month_label }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid-row grid-gap margin-bottom-2">
+                        <div class="grid-col-12">
+                            <div class="display-flex flex-wrap gap-2">
+                                {% for status in status_keys %}
+                                {% set status_data = latest_point.statuses[status.key] if latest_point and status.key in latest_point.statuses else None %}
+                                <div class="bg-base-lighter padding-2 radius-md margin-right-2 margin-bottom-2"
+                                    style="min-width: 12rem;">
+                                    <p class="text-uppercase text-semibold margin-0">{{ status.label }}</p>
+                                    <p class="font-sans-xl margin-0">
+                                        {{ status_data.cumulative if status_data else 0 }}
+                                    </p>
+                                    <p class="usa-hint margin-0">
+                                        +{{ status_data.monthly if status_data else 0 }} in {{ latest_point.month_label
+                                        if latest_point else '' }}
+                                    </p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                     {% endif %}
                     <div id="reporting-chart" class="reporting-chart" role="img"
-                        aria-label="Line chart showing compliance counts over time"></div>
+                        aria-label="Line chart showing cumulative trial counts over time"></div>
                     <div id="reporting-chart-legend" class="margin-top-2"></div>
                     {% if not time_series %}
-                    <p class="usa-hint margin-top-2">No compliance activity found for the selected time range.</p>
+                    <p class="usa-hint margin-top-2">No trial starts found for the selected time range.</p>
                     {% endif %}
                 </div>
             </div>

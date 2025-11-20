@@ -213,55 +213,62 @@ class TestProcessReportingRequest:
 
     def test_reporting_request_with_range(self):
         mock_qm = MagicMock()
-        mock_qm.get_compliance_status_time_series.return_value = [
-            {'start_date': date(2024, 1, 1), 'compliance_status': 'Compliant', 'status_count': 2},
-            {'start_date': '2024-01-02', 'compliance_status': 'Incompliant', 'status_count': 1},
-            {'start_date': '2024-01-02', 'compliance_status': 'Compliant', 'status_count': 3},
+        mock_qm.get_trial_cumulative_time_series.return_value = [
+            {'period_start': date(2024, 1, 1), 'compliance_status': 'Compliant', 'trials_in_month': 2, 'cumulative_trials': 2},
+            {'period_start': '2024-02-01', 'compliance_status': 'Incompliant', 'trials_in_month': 1, 'cumulative_trials': 1},
         ]
 
-        result = process_reporting_request('2024-01-01', '2024-01-03', QueryManager=mock_qm)
+        result = process_reporting_request('2024-01-01', '2024-03-15', QueryManager=mock_qm)
 
-        mock_qm.get_compliance_status_time_series.assert_called_once_with(
+        mock_qm.get_trial_cumulative_time_series.assert_called_once_with(
             start_date='2024-01-01',
-            end_date='2024-01-03'
+            end_date='2024-03-15'
         )
         assert result['template'] == 'reporting.html'
         assert result['start_date'] == '2024-01-01'
-        assert result['end_date'] == '2024-01-03'
+        assert result['end_date'] == '2024-03-15'
         assert len(result['time_series']) == 3
-        first_day = result['time_series'][0]
-        assert first_day['date'] == '2024-01-01'
-        assert first_day['compliant'] == 2
-        assert first_day['incompliant'] == 0
-        second_day = result['time_series'][1]
-        assert second_day['date'] == '2024-01-02'
-        assert second_day['incompliant'] == 1
-        assert second_day['compliant'] == 3
+        first_month = result['time_series'][0]
+        assert first_month['date'] == '2024-01-01'
+        assert first_month['statuses']['compliant']['monthly'] == 2
+        assert first_month['statuses']['compliant']['cumulative'] == 2
+        assert first_month['statuses']['incompliant']['monthly'] == 0
+        assert first_month['statuses']['incompliant']['cumulative'] == 0
+        second_month = result['time_series'][1]
+        assert second_month['statuses']['compliant']['cumulative'] == 2
+        assert second_month['statuses']['incompliant']['cumulative'] == 1
+        third_month = result['time_series'][2]
+        assert third_month['statuses']['compliant']['cumulative'] == 2
+        assert third_month['statuses']['incompliant']['cumulative'] == 1
+        assert result['latest_point']['date'] == '2024-03-01'
+        assert result['status_keys']
+        assert 'statuses' in result['latest_point']
 
     @patch('web.utils.route_helpers.date')
     def test_reporting_request_defaults(self, mock_date_cls):
         mock_date_cls.today.return_value = date(2024, 4, 30)
+        mock_date_cls.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
         mock_qm = MagicMock()
-        mock_qm.get_compliance_status_time_series.return_value = []
+        mock_qm.get_trial_cumulative_time_series.return_value = []
 
         result = process_reporting_request(QueryManager=mock_qm)
 
         assert result['end_date'] == '2024-04-30'
         assert result['start_date'] == '2024-04-01'
-        mock_qm.get_compliance_status_time_series.assert_called_once_with(
+        mock_qm.get_trial_cumulative_time_series.assert_called_once_with(
             start_date='2024-04-01',
             end_date='2024-04-30'
         )
 
     def test_reporting_request_swaps_dates(self):
         mock_qm = MagicMock()
-        mock_qm.get_compliance_status_time_series.return_value = []
+        mock_qm.get_trial_cumulative_time_series.return_value = []
 
         result = process_reporting_request('2024-03-10', '2024-03-01', QueryManager=mock_qm)
 
         assert result['start_date'] == '2024-03-01'
         assert result['end_date'] == '2024-03-10'
-        mock_qm.get_compliance_status_time_series.assert_called_once_with(
+        mock_qm.get_trial_cumulative_time_series.assert_called_once_with(
             start_date='2024-03-01',
             end_date='2024-03-10'
         )

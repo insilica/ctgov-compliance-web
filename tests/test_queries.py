@@ -706,27 +706,28 @@ def test_search_trials_no_compliance_status_in_request(mock_query):
         assert "tc.status IS NULL" not in sql
 
 
-def test_get_compliance_status_time_series_default(mock_query):
+def test_get_trial_cumulative_time_series_default(mock_query):
     expected_data = [
-        {'start_date': '2024-01-01', 'compliance_status': 'Compliant', 'status_count': 3}
+        {'period_start': '2024-01-01', 'compliance_status': 'Compliant', 'trials_in_month': 3, 'cumulative_trials': 3}
     ]
     mock_query.return_value = expected_data
 
-    result = qm.get_compliance_status_time_series()
+    result = qm.get_trial_cumulative_time_series()
 
     assert result == expected_data
     mock_query.assert_called_once()
     sql, params = mock_query.call_args[0]
-    assert 'FROM trial t' in sql
-    assert 'GROUP BY start_date, compliance_status' in sql
+    assert 'WITH trials_with_status AS' in sql
+    assert 'PARTITION BY compliance_status' in sql
+    assert 'ORDER BY period_start ASC, compliance_status ASC' in sql
     assert params == []
 
 
-def test_get_compliance_status_time_series_with_dates(mock_query):
-    expected_data = [{'start_date': '2024-02-01', 'compliance_status': 'Incompliant', 'status_count': 1}]
+def test_get_trial_cumulative_time_series_with_dates(mock_query):
+    expected_data = [{'period_start': '2024-02-01', 'compliance_status': 'Incompliant', 'trials_in_month': 5, 'cumulative_trials': 10}]
     mock_query.return_value = expected_data
 
-    result = qm.get_compliance_status_time_series(start_date='2024-01-01', end_date='2024-03-01')
+    result = qm.get_trial_cumulative_time_series(start_date='2024-01-01', end_date='2024-03-01')
 
     assert result == expected_data
     mock_query.assert_called_once()

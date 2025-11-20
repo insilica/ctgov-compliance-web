@@ -16,6 +16,7 @@ REPORTING_WINDOW_DAYS = 30
 DEFAULT_STATUS_ORDER = ['Compliant', 'Incompliant', 'Pending']
 
 
+
 @tracer.start_as_current_span("route_helpers.compliance_counts")
 def compliance_counts(rates):
     """Calculate compliance counts from trials data using pandas."""
@@ -171,6 +172,18 @@ def _coerce_to_date(value):
     return None
 
 
+def _start_of_month(dt):
+    """Return the first day of the month for the given date."""
+    return dt.replace(day=1)
+
+
+def _add_one_month(dt):
+    """Return a date representing the first day of the next month."""
+    if dt.month == 12:
+        return date(dt.year + 1, 1, 1)
+    return date(dt.year, dt.month + 1, 1)
+
+
 @tracer.start_as_current_span("route_helpers.process_reporting_request")
 def process_reporting_request(start_date=None, end_date=None, QueryManager=QueryManager()):
     """Build template context for the reporting dashboard."""
@@ -187,60 +200,77 @@ def process_reporting_request(start_date=None, end_date=None, QueryManager=Query
     if start_dt > end_dt:
         start_dt, end_dt = end_dt, start_dt
 
+    start_of_month = _start_of_month(start_dt)
+    end_of_month = _start_of_month(end_dt)
+
     start_iso = start_dt.isoformat()
     end_iso = end_dt.isoformat()
     current_span.set_attribute("reporting.start_date", start_iso)
     current_span.set_attribute("reporting.end_date", end_iso)
 
-    rows = QueryManager.get_compliance_status_time_series(start_date=start_iso, end_date=end_iso)
+    rows = QueryManager.get_trial_cumulative_time_series(start_date=start_iso, end_date=end_iso)
 
     status_order = list(DEFAULT_STATUS_ORDER)
+    monthly_lookup = {}
     for row in rows:
-        status_label = row.get('compliance_status')
-        if status_label and status_label not in status_order:
+        row_date = _coerce_to_date(row.get('period_start'))
+        status_label = row.get('compliance_status') or 'Pending'
+        if status_label not in status_order:
             status_order.append(status_label)
-
-    status_keys = {label: label.lower().replace(' ', '_') for label in status_order}
-
-    # Pre-populate every date in range with zeros for each status.
-    date_cursor = start_dt
-    default_counts = {key: 0 for key in status_keys.values()}
-    time_series_lookup = {}
-    while date_cursor <= end_dt:
-        iso_day = date_cursor.isoformat()
-        time_series_lookup[iso_day] = dict(default_counts)
-        date_cursor += timedelta(days=1)
-
-    for row in rows:
-        row_date = _coerce_to_date(row.get('start_date'))
         if not row_date:
             continue
         iso_day = row_date.isoformat()
-        if iso_day not in time_series_lookup:
-            time_series_lookup[iso_day] = dict(default_counts)
-        status_label = row.get('compliance_status') or 'Pending'
-        status_key = status_keys.get(status_label)
-        if not status_key:
-            status_key = status_label.lower().replace(' ', '_')
-            status_keys[status_label] = status_key
-            if status_label not in status_order:
-                status_order.append(status_label)
-            default_counts[status_key] = 0
-            for counts in time_series_lookup.values():
-                counts.setdefault(status_key, 0)
-        time_series_lookup[iso_day][status_key] = row.get('status_count', 0) or 0
+        monthly_lookup.setdefault(iso_day, {})[status_label] = {
+            'trials_in_month': row.get('trials_in_month', 0) or 0,
+            'cumulative_trials': row.get('cumulative_trials', 0) or 0
+        }
 
-    time_series = [
-        {'date': iso_day, **counts}
-        for iso_day, counts in sorted(time_series_lookup.items())
-    ]
+    status_keys = {label: label.lower().replace(' ', '_') for label in status_order}
+    cumulative_tracker = {status_keys[label]: 0 for label in status_order}
+
+    time_series = []
+    month_cursor = start_of_month
+    while month_cursor <= end_of_month:
+        iso_day = month_cursor.isoformat()
+        label = month_cursor.strftime('%B %Y')
+        month_data = monthly_lookup.get(iso_day, {})
+        status_payload = {}
+        total_monthly = 0
+        total_cumulative = 0
+
+        for status_label in status_order:
+            status_key = status_keys[status_label]
+            stats = month_data.get(status_label, {})
+            monthly_count = stats.get('trials_in_month', 0) or 0
+            cumulative_count = stats.get('cumulative_trials')
+            if cumulative_count is None:
+                cumulative_count = cumulative_tracker[status_key]
+            status_payload[status_key] = {
+                'label': status_label,
+                'monthly': monthly_count,
+                'cumulative': cumulative_count
+            }
+            cumulative_tracker[status_key] = cumulative_count
+            total_monthly += monthly_count
+            total_cumulative += cumulative_count
+
+        entry = {
+            'date': iso_day,
+            'month_label': label,
+            'statuses': status_payload,
+            'total_monthly': total_monthly,
+            'total_cumulative': total_cumulative
+        }
+        time_series.append(entry)
+        month_cursor = _add_one_month(month_cursor)
 
     context = {
         'template': 'reporting.html',
         'time_series': time_series,
-        'status_keys': [{'label': label, 'key': status_keys[label]} for label in status_order if label in status_keys],
+        'status_keys': [{'label': label, 'key': status_keys[label]} for label in status_order],
         'start_date': start_iso,
         'end_date': end_iso,
+        'latest_point': time_series[-1] if time_series else None
     }
     current_span.set_attribute("reporting.data_points", len(time_series))
     return context

@@ -1483,8 +1483,15 @@ def test_reporting_dashboard_route(auth_client):
     """Ensure reporting route renders template with helper context."""
     template_payload = {
         'template': 'reporting.html',
-        'time_series': [{'date': '2024-01-01', 'compliant': 1}],
+        'time_series': [{'date': '2024-01-01', 'statuses': {'compliant': {'cumulative': 5, 'monthly': 2}}, 'total_cumulative': 5, 'total_monthly': 2}],
         'status_keys': [{'label': 'Compliant', 'key': 'compliant'}],
+        'latest_point': {
+            'date': '2024-01-01',
+            'month_label': 'January 2024',
+            'total_cumulative': 5,
+            'total_monthly': 2,
+            'statuses': {'compliant': {'cumulative': 5, 'monthly': 2}}
+        },
         'start_date': '2024-01-01',
         'end_date': '2024-01-05',
     }
@@ -1502,6 +1509,7 @@ def test_reporting_dashboard_route(auth_client):
             'reporting.html',
             time_series=template_payload['time_series'],
             status_keys=template_payload['status_keys'],
+            latest_point=template_payload['latest_point'],
             start_date='2024-01-01',
             end_date='2024-01-05'
         )
@@ -1511,8 +1519,15 @@ def test_reporting_time_series_api(auth_client):
     """Ensure reporting API returns helper data as JSON."""
     helper_payload = {
         'template': 'reporting.html',
-        'time_series': [{'date': '2024-02-01', 'compliant': 3}],
+        'time_series': [{'date': '2024-02-01', 'statuses': {'compliant': {'cumulative': 10, 'monthly': 3}}, 'total_cumulative': 10}],
         'status_keys': [{'label': 'Compliant', 'key': 'compliant'}],
+        'latest_point': {
+            'date': '2024-02-01',
+            'month_label': 'February 2024',
+            'total_cumulative': 10,
+            'total_monthly': 3,
+            'statuses': {'compliant': {'cumulative': 10, 'monthly': 3}}
+        },
         'start_date': '2024-02-01',
         'end_date': '2024-02-10',
     }

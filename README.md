@@ -73,9 +73,10 @@ flask run --host 0.0.0.0 --port 6525
 
 ### Reporting Landing Page
 
-The reporting dashboard lives at `/reporting` and surfaces compliance trends over
-time. It renders a D3.js chart that visualizes daily `compliance_status` counts
-bucketed by each trial's `start_date` using the server-provided dataset.
+The reporting dashboard lives at `/reporting` and surfaces cumulative trial
+starts over time. It renders a D3.js chart that visualizes running totals
+bucketed by each trial's `start_date` month, differentiated by compliance
+status (Compliant, Incompliant, Pending) using the server-provided dataset.
 
 - Adjust the `start_date` and `end_date` query parameters (or use the built-in
   form) to focus on a specific window.

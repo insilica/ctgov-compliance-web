@@ -553,26 +553,16 @@ class QueryManager:
         
         return query(sql, params)
 
-    @tracer.start_as_current_span("queries.get_compliance_status_time_series")
-    def get_compliance_status_time_series(self, start_date=None, end_date=None):
-        """Return compliance status counts grouped by trial start_date and status."""
+    @tracer.start_as_current_span("queries.get_trial_cumulative_time_series")
+    def get_trial_cumulative_time_series(self, start_date=None, end_date=None):
+        """Return monthly trial counts plus cumulative totals grouped by start_date and status."""
         current_span = trace.get_current_span()
         if start_date:
             current_span.set_attribute("start_date", str(start_date))
         if end_date:
             current_span.set_attribute("end_date", str(end_date))
 
-        sql = '''
-            SELECT
-                DATE(t.start_date) AS start_date,
-                COALESCE(tc.status, 'Pending') AS compliance_status,
-                COUNT(*) AS status_count
-            FROM trial t
-            LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
-            WHERE t.start_date IS NOT NULL
-        '''
-
-        where_clauses = []
+        where_clauses = ['t.start_date IS NOT NULL']
         params = []
 
         if start_date:
@@ -583,12 +573,36 @@ class QueryManager:
             where_clauses.append('DATE(t.start_date) <= %s')
             params.append(end_date)
 
-        if where_clauses:
-            sql += ' AND ' + ' AND '.join(where_clauses)
+        where_sql = ' AND '.join(where_clauses)
 
-        sql += '''
-            GROUP BY start_date, compliance_status
-            ORDER BY start_date ASC, compliance_status ASC
+        sql = f'''
+            WITH trials_with_status AS (
+                SELECT
+                    DATE_TRUNC('month', t.start_date)::date AS period_start,
+                    COALESCE(tc.status, 'Pending') AS compliance_status
+                FROM trial t
+                LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
+                WHERE {where_sql}
+            ),
+            monthly_counts AS (
+                SELECT
+                    period_start,
+                    compliance_status,
+                    COUNT(*) AS trials_in_month
+                FROM trials_with_status
+                GROUP BY period_start, compliance_status
+            )
+            SELECT
+                period_start,
+                compliance_status,
+                trials_in_month,
+                SUM(trials_in_month) OVER (
+                    PARTITION BY compliance_status
+                    ORDER BY period_start ASC
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                ) AS cumulative_trials
+            FROM monthly_counts
+            ORDER BY period_start ASC, compliance_status ASC
         '''
 
         current_span.set_attribute("sql", sql)
