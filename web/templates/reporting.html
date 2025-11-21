@@ -14,37 +14,19 @@
     </nav>
 
     <div class="grid-row grid-gap">
-        <div class="grid-col-12">
-            <div class="usa-card bg-base-lightest shadow-2 margin-bottom-3">
-                <div class="usa-card__header">
-                    <h1 class="usa-card__heading margin-0">Reporting Overview</h1>
-                </div>
-                <div class="usa-card__body">
-                    <p class="font-sans-md">
-                        Track cumulative trial starts over time. Counts are bucketed by the month of each trial's
-                        <code>start_date</code> and displayed as a running total.
-                    </p>
-                    <p class="usa-hint margin-0">
-                        Adjust the date range to focus on a specific review window. The chart below reflects the same
-                        time frame exposed via the JSON API at <code>/api/reporting/time-series</code>.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="grid-row grid-gap margin-bottom-2">
-        <div class="grid-col-12">
-            <form method="get" class="usa-form usa-form--large bg-base-lightest padding-3 radius-md shadow-2">
+        <!-- Sidebar -->
+        <div class="desktop:grid-col-3">
+            <form method="get"
+                class="usa-form usa-form--large bg-base-lightest padding-3 radius-md shadow-2 margin-bottom-3">
                 <fieldset class="usa-fieldset margin-0">
                     <legend class="usa-label font-sans-lg">Date range</legend>
                     <div class="grid-row grid-gap">
-                        <div class="tablet:grid-col-6">
+                        <div class="grid-col-12">
                             <label class="usa-label" for="start_date">Start date</label>
                             <input class="usa-input" type="date" id="start_date" name="start_date"
                                 value="{{ start_date }}">
                         </div>
-                        <div class="tablet:grid-col-6">
+                        <div class="grid-col-12">
                             <label class="usa-label" for="end_date">End date</label>
                             <input class="usa-input" type="date" id="end_date" name="end_date" value="{{ end_date }}">
                         </div>
@@ -60,10 +42,25 @@
                 </div>
             </form>
         </div>
-    </div>
 
-    <div class="grid-row grid-gap">
-        <div class="grid-col-12">
+        <!-- Main Content -->
+        <div class="desktop:grid-col-9">
+            <div class="usa-card bg-base-lightest shadow-2 margin-bottom-3">
+                <div class="usa-card__header">
+                    <h1 class="usa-card__heading margin-0">Reporting Overview</h1>
+                </div>
+                <div class="usa-card__body">
+                    <p class="font-sans-md">
+                        Track cumulative trial starts over time. Counts are bucketed by the month of each trial's
+                        <code>start_date</code> and displayed as a running total.
+                    </p>
+                    <p class="usa-hint margin-0">
+                        Adjust the date range to focus on a specific review window. The chart below reflects the same
+                        time frame exposed via the JSON API at <code>/api/reporting/time-series</code>.
+                    </p>
+                </div>
+            </div>
+
             <div class="usa-card shadow-2">
                 <div class="usa-card__header">
                     <h2 class="usa-card__heading margin-0">Compliance status timeline</h2>
@@ -99,7 +96,8 @@
                         <div class="grid-col-12">
                             <div class="display-flex flex-wrap gap-2">
                                 {% for status in status_keys %}
-                                {% set status_data = latest_point.statuses[status.key] if latest_point and status.key in latest_point.statuses else None %}
+                                {% set status_data = latest_point.statuses[status.key] if latest_point and status.key in
+                                latest_point.statuses else None %}
                                 <div class="bg-base-lighter padding-2 radius-md margin-right-2 margin-bottom-2"
                                     style="min-width: 12rem;">
                                     <p class="text-uppercase text-semibold margin-0">{{ status.label }}</p>
