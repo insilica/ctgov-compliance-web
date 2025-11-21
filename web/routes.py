@@ -206,7 +206,8 @@ def reporting_time_series():
         'time_series': data['time_series'],
         'status_keys': data['status_keys'],
         'start_date': data['start_date'],
-        'end_date': data['end_date']
+        'end_date': data['end_date'],
+        'kpis': data['kpis']
     })
 
 # CSV Export Route

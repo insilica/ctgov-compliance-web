@@ -9,6 +9,7 @@ from urllib.parse import unquote
 from datetime import date, datetime, timedelta
 from .queries import QueryManager
 from .pagination import paginate, get_pagination_args
+from .reporting_metrics import build_reporting_kpis
 from opentelemetry import trace
 
 tracer = trace.get_tracer(__name__)
@@ -209,6 +210,10 @@ def process_reporting_request(start_date=None, end_date=None, QueryManager=Query
     current_span.set_attribute("reporting.end_date", end_iso)
 
     rows = QueryManager.get_trial_cumulative_time_series(start_date=start_iso, end_date=end_iso)
+    kpi_rows = QueryManager.get_reporting_metrics() or []
+    kpis = build_reporting_kpis(kpi_rows[0] if kpi_rows else None)
+    current_span.set_attribute("reporting.total_trials", kpis.get('total_trials', 0))
+    current_span.set_attribute("reporting.compliance_rate", kpis.get('overall_compliance_rate', 0))
 
     status_order = list(DEFAULT_STATUS_ORDER)
     monthly_lookup = {}
@@ -270,7 +275,8 @@ def process_reporting_request(start_date=None, end_date=None, QueryManager=Query
         'status_keys': [{'label': label, 'key': status_keys[label]} for label in status_order],
         'start_date': start_iso,
         'end_date': end_iso,
-        'latest_point': time_series[-1] if time_series else None
+        'latest_point': time_series[-1] if time_series else None,
+        'kpis': kpis
     }
     current_span.set_attribute("reporting.data_points", len(time_series))
     return context

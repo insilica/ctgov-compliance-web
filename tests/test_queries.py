@@ -234,6 +234,19 @@ def test_search_trials_complex(mock_query):
         assert "2022-12-31" in params
 
 
+def test_get_reporting_metrics(mock_query):
+    expected = [{'total_trials': 10, 'compliant_count': 7}]
+    mock_query.return_value = expected
+
+    result = qm.get_reporting_metrics()
+
+    assert result == expected
+    mock_query.assert_called_once()
+    sql = mock_query.call_args[0][0]
+    assert 'avg_reporting_delay_days' in sql
+    assert 'trials_with_issues_count' in sql
+
+
 def test_search_trials_only_date_from(mock_query):
     """Test search with only date_from (no date_to)"""
     expected_data = [{'nct_id': 'NCT123'}]

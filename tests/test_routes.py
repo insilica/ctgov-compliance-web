@@ -1494,6 +1494,14 @@ def test_reporting_dashboard_route(auth_client):
         },
         'start_date': '2024-01-01',
         'end_date': '2024-01-05',
+        'kpis': {
+            'total_trials': 5,
+            'overall_compliance_rate': 40.0,
+            'trials_with_issues_count': 1,
+            'trials_with_issues_pct': 20.0,
+            'avg_reporting_delay_days': 2.0,
+            'has_data': True
+        }
     }
     with patch('web.routes.process_reporting_request') as mock_helper, \
          patch('web.routes.render_template') as mock_render:
@@ -1511,7 +1519,8 @@ def test_reporting_dashboard_route(auth_client):
             status_keys=template_payload['status_keys'],
             latest_point=template_payload['latest_point'],
             start_date='2024-01-01',
-            end_date='2024-01-05'
+            end_date='2024-01-05',
+            kpis=template_payload['kpis']
         )
 
 
@@ -1530,6 +1539,14 @@ def test_reporting_time_series_api(auth_client):
         },
         'start_date': '2024-02-01',
         'end_date': '2024-02-10',
+        'kpis': {
+            'total_trials': 10,
+            'overall_compliance_rate': 70.0,
+            'trials_with_issues_count': 2,
+            'trials_with_issues_pct': 20.0,
+            'avg_reporting_delay_days': 3.0,
+            'has_data': True
+        }
     }
     with patch('web.routes.process_reporting_request') as mock_helper:
         mock_helper.return_value = helper_payload
@@ -1542,7 +1559,8 @@ def test_reporting_time_series_api(auth_client):
             'time_series': helper_payload['time_series'],
             'status_keys': helper_payload['status_keys'],
             'start_date': '2024-02-01',
-            'end_date': '2024-02-10'
+            'end_date': '2024-02-10',
+            'kpis': helper_payload['kpis']
         }
         mock_helper.assert_called_once_with('2024-02-01', None, QueryManager=ANY)
 

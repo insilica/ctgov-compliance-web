@@ -388,6 +388,30 @@ class QueryManager:
         current_span.set_attribute("values", values)
         return query(base_sql, values)
 
+    @tracer.start_as_current_span("queries.get_reporting_metrics")
+    def get_reporting_metrics(self):
+        """Return summary metrics for the reporting KPIs."""
+        current_span = trace.get_current_span()
+        sql = '''
+            SELECT
+                COUNT(trial_id) AS total_trials,
+                COUNT(trial_id) FILTER (WHERE compliance_status = 'Compliant') AS compliant_count,
+                COUNT(trial_id) FILTER (
+                    WHERE compliance_status = 'Incompliant'
+                        OR (compliance_status IS NULL AND reporting_due_date < CURRENT_DATE)
+                ) AS trials_with_issues_count,
+                AVG(
+                    GREATEST(0, (CURRENT_DATE - reporting_due_date))
+                ) FILTER (
+                    WHERE reporting_due_date IS NOT NULL
+                      AND (compliance_status = 'Incompliant' OR compliance_status IS NULL)
+                      AND reporting_due_date < CURRENT_DATE
+                ) AS avg_reporting_delay_days
+            FROM joined_trials
+        '''
+        current_span.set_attribute("sql", sql)
+        return query(sql)
+
     @tracer.start_as_current_span("queries.get_compliance_summary_stats")
     def get_compliance_summary_stats(self, search_params=None, compliance_status_list=None):
         """Get comprehensive compliance summary statistics."""

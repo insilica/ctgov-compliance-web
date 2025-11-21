@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block title %}Reporting{% endblock title %}
 {% block content %}
-<div class="grid-container padding-y-4">
+<div class="grid-container-widescreen width-full margin-x-auto padding-y-4">
     <nav class="usa-breadcrumb margin-bottom-3" aria-label="Breadcrumb">
         <ol class="usa-breadcrumb__list">
             <li class="usa-breadcrumb__list-item">
@@ -45,6 +45,39 @@
 
         <!-- Main Content -->
         <div class="desktop:grid-col-9">
+            <section class="reporting-kpi-strip usa-card shadow-2 margin-bottom-3" aria-label="Key performance indicators">
+                <div class="reporting-kpi-card">
+                    <p class="kpi-label text-uppercase text-semibold" id="totalTrialsLabel">Total Trials</p>
+                    <div class="kpi-visual" data-kpi="totalTrials" aria-labelledby="totalTrialsLabel">
+                        <span class="kpi-fallback-value">{{ kpis.total_trials }}</span>
+                    </div>
+                    <p class="kpi-subtext">Active across this window</p>
+                </div>
+                <div class="reporting-kpi-card">
+                    <p class="kpi-label text-uppercase text-semibold" id="complianceGaugeLabel">Overall Compliance Rate</p>
+                    <div class="kpi-visual kpi-visual--gauge" data-kpi="complianceGauge" role="img"
+                        aria-labelledby="complianceGaugeLabel complianceGaugeDesc">
+                        <span id="complianceGaugeDesc" class="usa-sr-only">
+                            {{ kpis.overall_compliance_rate }} percent compliant to date.
+                        </span>
+                        <span class="kpi-fallback-value">{{ kpis.overall_compliance_rate }}%</span>
+                    </div>
+                </div>
+                <div class="reporting-kpi-card">
+                    <p class="kpi-label text-uppercase text-semibold" id="issueCountLabel">Trials with Issues</p>
+                    <div class="kpi-visual" data-kpi="issueCount" aria-labelledby="issueCountLabel">
+                        <span class="kpi-fallback-value">{{ kpis.trials_with_issues_count }}</span>
+                    </div>
+                    <p class="kpi-subtext">{{ kpis.trials_with_issues_pct }}% of total</p>
+                </div>
+                <div class="reporting-kpi-card">
+                    <p class="kpi-label text-uppercase text-semibold" id="avgDelayLabel">Average Reporting Delay</p>
+                    <div class="kpi-visual" data-kpi="avgDelay" aria-labelledby="avgDelayLabel">
+                        <span class="kpi-fallback-value">{{ kpis.avg_reporting_delay_days }} days</span>
+                    </div>
+                    <p class="kpi-subtext">Among overdue submissions</p>
+                </div>
+            </section>
             <div class="usa-card bg-base-lightest shadow-2 margin-bottom-3">
                 <div class="usa-card__header">
                     <h1 class="usa-card__heading margin-0">Reporting Overview</h1>
@@ -128,7 +161,8 @@
 <script>
     window.reportingData = {
         time_series: {{ time_series | tojson }},
-        status_keys: {{ status_keys | tojson }}
+        status_keys: {{ status_keys | tojson }},
+        kpis: {{ kpis | tojson }}
     };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>

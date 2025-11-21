@@ -217,6 +217,12 @@ class TestProcessReportingRequest:
             {'period_start': date(2024, 1, 1), 'compliance_status': 'Compliant', 'trials_in_month': 2, 'cumulative_trials': 2},
             {'period_start': '2024-02-01', 'compliance_status': 'Incompliant', 'trials_in_month': 1, 'cumulative_trials': 1},
         ]
+        mock_qm.get_reporting_metrics.return_value = [{
+            'total_trials': 3,
+            'compliant_count': 2,
+            'trials_with_issues_count': 1,
+            'avg_reporting_delay_days': 4
+        }]
 
         result = process_reporting_request('2024-01-01', '2024-03-15', QueryManager=mock_qm)
 
@@ -224,6 +230,7 @@ class TestProcessReportingRequest:
             start_date='2024-01-01',
             end_date='2024-03-15'
         )
+        mock_qm.get_reporting_metrics.assert_called_once()
         assert result['template'] == 'reporting.html'
         assert result['start_date'] == '2024-01-01'
         assert result['end_date'] == '2024-03-15'
@@ -243,6 +250,7 @@ class TestProcessReportingRequest:
         assert result['latest_point']['date'] == '2024-03-01'
         assert result['status_keys']
         assert 'statuses' in result['latest_point']
+        assert result['kpis']['total_trials'] == 3
 
     @patch('web.utils.route_helpers.date')
     def test_reporting_request_defaults(self, mock_date_cls):
@@ -250,6 +258,7 @@ class TestProcessReportingRequest:
         mock_date_cls.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
         mock_qm = MagicMock()
         mock_qm.get_trial_cumulative_time_series.return_value = []
+        mock_qm.get_reporting_metrics.return_value = [{'total_trials': 0, 'compliant_count': 0, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
 
         result = process_reporting_request(QueryManager=mock_qm)
 
@@ -259,10 +268,13 @@ class TestProcessReportingRequest:
             start_date='2024-04-01',
             end_date='2024-04-30'
         )
+        mock_qm.get_reporting_metrics.assert_called_once()
+        assert result['kpis']['total_trials'] == 0
 
     def test_reporting_request_swaps_dates(self):
         mock_qm = MagicMock()
         mock_qm.get_trial_cumulative_time_series.return_value = []
+        mock_qm.get_reporting_metrics.return_value = [{'total_trials': 1, 'compliant_count': 1, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
 
         result = process_reporting_request('2024-03-10', '2024-03-01', QueryManager=mock_qm)
 
@@ -272,3 +284,5 @@ class TestProcessReportingRequest:
             start_date='2024-03-01',
             end_date='2024-03-10'
         )
+        mock_qm.get_reporting_metrics.assert_called_once()
+        assert result['kpis']['overall_compliance_rate'] == 100.0
