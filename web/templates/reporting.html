@@ -1,25 +1,13 @@
 {% extends "layout.html" %}
 {% block title %}Reporting{% endblock title %}
 {% block content %}
-<div class="grid-container-widescreen width-full margin-x-auto padding-y-4">
-    <nav class="usa-breadcrumb margin-bottom-3" aria-label="Breadcrumb">
-        <ol class="usa-breadcrumb__list">
-            <li class="usa-breadcrumb__list-item">
-                <a href="{{ url_for('routes.index') }}" class="usa-breadcrumb__link">Home</a>
-            </li>
-            <li class="usa-breadcrumb__list-item usa-current" aria-current="page">
-                Reporting
-            </li>
-        </ol>
-    </nav>
-
+<div class="reporting-page grid-container-widescreen width-full margin-x-auto padding-y-4">
     <div class="grid-row grid-gap">
         <!-- Sidebar -->
         <div class="desktop:grid-col-3">
-            <form method="get"
-                class="usa-form usa-form--large bg-base-lightest padding-3 radius-md shadow-2 margin-bottom-3">
+            <form method="get" class="usa-form reporting-filter-card">
+                <p class="kpi-label text-uppercase text-semibold margin-bottom-2">Date range</p>
                 <fieldset class="usa-fieldset margin-0">
-                    <legend class="usa-label font-sans-lg">Date range</legend>
                     <div class="grid-row grid-gap">
                         <div class="grid-col-12">
                             <label class="usa-label" for="start_date">Start date</label>
@@ -32,11 +20,11 @@
                         </div>
                     </div>
                 </fieldset>
-                <div class="display-flex flex-justify-between flex-align-center margin-top-2">
-                    <button class="usa-button" type="submit">
+                <div class="reporting-filter-actions margin-top-2">
+                    <button class="usa-button reporting-filter-button" type="submit">
                         Update range
                     </button>
-                    <a class="usa-button usa-button--outline" href="{{ url_for('routes.reporting_dashboard') }}">
+                    <a class="usa-button reporting-filter-button" href="{{ url_for('routes.reporting_dashboard') }}">
                         Reset
                     </a>
                 </div>
@@ -78,78 +66,58 @@
                     <p class="kpi-subtext">Among overdue submissions</p>
                 </div>
             </section>
-            <div class="usa-card bg-base-lightest shadow-2 margin-bottom-3">
-                <div class="usa-card__header">
-                    <h1 class="usa-card__heading margin-0">Reporting Overview</h1>
-                </div>
-                <div class="usa-card__body">
-                    <p class="font-sans-md">
-                        Track cumulative trial starts over time. Counts are bucketed by the month of each trial's
-                        <code>start_date</code> and displayed as a running total.
-                    </p>
-                    <p class="usa-hint margin-0">
-                        Adjust the date range to focus on a specific review window. The chart below reflects the same
-                        time frame exposed via the JSON API at <code>/api/reporting/time-series</code>.
-                    </p>
-                </div>
-            </div>
-
             <div class="usa-card shadow-2">
                 <div class="usa-card__header">
                     <h2 class="usa-card__heading margin-0">Compliance status timeline</h2>
                 </div>
                 <div class="usa-card__body">
                     {% if latest_point %}
-                    <div class="grid-row grid-gap margin-bottom-3">
-                        <div class="tablet:grid-col-4">
-                            <div class="bg-base-lightest padding-2 radius-md">
-                                <p class="text-uppercase text-semibold margin-0">Cumulative trials</p>
-                                <p class="font-sans-2xl margin-0">{{ latest_point.total_cumulative }}</p>
-                                <p class="usa-hint margin-0">Through {{ latest_point.month_label }}</p>
+                    <div class="compliance-summary-grid margin-bottom-3">
+                        <div class="compliance-summary-card">
+                            <p class="kpi-label text-uppercase text-semibold margin-0">Cumulative trials</p>
+                            <div class="kpi-value">
+                                <span class="kpi-value__number">{{ latest_point.total_cumulative }}</span>
                             </div>
+                            <p class="kpi-subtext">Through {{ latest_point.month_label }}</p>
                         </div>
-                        <div class="tablet:grid-col-4">
-                            <div class="bg-base-lightest padding-2 radius-md">
-                                <p class="text-uppercase text-semibold margin-0">New this month</p>
-                                <p class="font-sans-2xl margin-0">{{ latest_point.total_monthly }}</p>
-                                <p class="usa-hint margin-0">{{ latest_point.month_label }}</p>
+                        <div class="compliance-summary-card">
+                            <p class="kpi-label text-uppercase text-semibold margin-0">New this month</p>
+                            <div class="kpi-value">
+                                <span class="kpi-value__number">{{ latest_point.total_monthly }}</span>
                             </div>
+                            <p class="kpi-subtext">{{ latest_point.month_label }}</p>
                         </div>
-                        <div class="tablet:grid-col-4">
-                            <div class="bg-base-lightest padding-2 radius-md">
-                                <p class="text-uppercase text-semibold margin-0">Months tracked</p>
-                                <p class="font-sans-2xl margin-0">{{ time_series|length }}</p>
-                                {% if time_series %}
-                                <p class="usa-hint margin-0">Since {{ time_series[0].month_label }}</p>
-                                {% endif %}
+                        <div class="compliance-summary-card">
+                            <p class="kpi-label text-uppercase text-semibold margin-0">Months tracked</p>
+                            <div class="kpi-value">
+                                <span class="kpi-value__number">{{ time_series|length }}</span>
                             </div>
+                            {% if time_series %}
+                            <p class="kpi-subtext">Since {{ time_series[0].month_label }}</p>
+                            {% endif %}
                         </div>
                     </div>
-                    <div class="grid-row grid-gap margin-bottom-2">
-                        <div class="grid-col-12">
-                            <div class="display-flex flex-wrap gap-2">
-                                {% for status in status_keys %}
-                                {% set status_data = latest_point.statuses[status.key] if latest_point and status.key in
-                                latest_point.statuses else None %}
-                                <div class="bg-base-lighter padding-2 radius-md margin-right-2 margin-bottom-2"
-                                    style="min-width: 12rem;">
-                                    <p class="text-uppercase text-semibold margin-0">{{ status.label }}</p>
-                                    <p class="font-sans-xl margin-0">
-                                        {{ status_data.cumulative if status_data else 0 }}
-                                    </p>
-                                    <p class="usa-hint margin-0">
-                                        +{{ status_data.monthly if status_data else 0 }} in {{ latest_point.month_label
-                                        if latest_point else '' }}
-                                    </p>
-                                </div>
-                                {% endfor %}
+                    <div class="status-tile-grid margin-bottom-2">
+                        {% for status in status_keys %}
+                        {% set status_data = latest_point.statuses[status.key] if latest_point and status.key in
+                        latest_point.statuses else None %}
+                        <div class="compliance-summary-card status-color-{{ status.key }}">
+                            <p class="kpi-label text-uppercase text-semibold margin-0">{{ status.label }}</p>
+                            <div class="kpi-value">
+                                <span class="kpi-value__number">
+                                    {{ status_data.cumulative if status_data else 0 }}
+                                </span>
                             </div>
+                            <p class="kpi-subtext">
+                                +{{ status_data.monthly if status_data else 0 }} in {{ latest_point.month_label
+                                if latest_point else '' }}
+                            </p>
                         </div>
+                        {% endfor %}
                     </div>
                     {% endif %}
                     <div id="reporting-chart" class="reporting-chart" role="img"
                         aria-label="Line chart showing cumulative trial counts over time"></div>
-                    <div id="reporting-chart-legend" class="margin-top-2"></div>
                     {% if not time_series %}
                     <p class="usa-hint margin-top-2">No trial starts found for the selected time range.</p>
                     {% endif %}

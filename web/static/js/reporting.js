@@ -141,67 +141,6 @@
                 });
         });
 
-        if (legendElement) {
-            legendElement.innerHTML = '';
-            const list = document.createElement('ul');
-            list.className = 'usa-list usa-list--unstyled display-flex flex-wrap';
-
-            statusKeys.forEach((status) => {
-                const item = document.createElement('li');
-                item.className = 'margin-right-3 margin-bottom-1 display-flex flex-align-center';
-                const swatch = document.createElement('span');
-                swatch.style.backgroundColor = colors(status.key);
-                swatch.style.width = '1rem';
-                swatch.style.height = '1rem';
-                swatch.style.display = 'inline-block';
-                swatch.style.marginRight = '0.5rem';
-                swatch.style.borderRadius = '999px';
-                const label = document.createElement('span');
-                label.textContent = status.label;
-                item.appendChild(swatch);
-                item.appendChild(label);
-                list.appendChild(item);
-            });
-
-            legendElement.appendChild(list);
-        }
-    };
-
-    const appendIcon = (selection, type) => {
-        const icon = selection.append('svg')
-            .attr('class', 'kpi-icon')
-            .attr('viewBox', '0 0 24 24')
-            .attr('aria-hidden', 'true')
-            .attr('focusable', 'false');
-
-        if (type === 'clock') {
-            icon.append('circle')
-                .attr('cx', 12)
-                .attr('cy', 12)
-                .attr('r', 9)
-                .attr('fill', 'none')
-                .attr('stroke', 'currentColor')
-                .attr('stroke-width', '2');
-            icon.append('path')
-                .attr('d', 'M12 7v5.2l3.5 1.8')
-                .attr('fill', 'none')
-                .attr('stroke', 'currentColor')
-                .attr('stroke-width', '2')
-                .attr('stroke-linecap', 'round')
-                .attr('stroke-linejoin', 'round');
-            return;
-        }
-
-        const paths = {
-            arrow: ['M12 3L4 11h5v10h6V11h5z'],
-            alert: ['M12 3L22 20H2L12 3z', 'M11 10h2v5h-2z', 'M11 16.5h2v2h-2z'],
-        };
-
-        (paths[type] || []).forEach((d) => {
-            icon.append('path')
-                .attr('d', d)
-                .attr('fill', 'currentColor');
-        });
     };
 
     const formatComma = d3.format(',');
@@ -229,7 +168,6 @@
             wrapper.append('span')
                 .attr('class', 'kpi-value__number')
                 .text(formatComma(totalValue));
-            appendIcon(wrapper, 'arrow');
         }
 
         if (issueNode) {
@@ -240,7 +178,6 @@
             wrapper.append('span')
                 .attr('class', 'kpi-value__number')
                 .text(formatComma(issueValue));
-            appendIcon(wrapper, 'alert');
         }
 
         if (delayNode) {
@@ -251,13 +188,14 @@
             wrapper.append('span')
                 .attr('class', 'kpi-value__number')
                 .text(`${formatDays(delayValue)} days`);
-            appendIcon(wrapper, 'clock');
         }
 
         if (complianceNode) {
             const node = d3.select(complianceNode);
             node.html('');
             const rate = Math.max(0, Math.min(100, Number(kpiData.overall_compliance_rate || 0)));
+            const compliantColor = '#005ea2';
+            const remainderColor = '#e52207';
             const size = 120;
             const thickness = 14;
             const radius = (size / 2) - 6;
@@ -276,7 +214,9 @@
             svg.append('path')
                 .attr('class', 'kpi-gauge__track')
                 .attr('d', arcGenerator({ startAngle: 0, endAngle: Math.PI * 2 }))
-                .attr('transform', `translate(${center},${center})`);
+                .attr('transform', `translate(${center},${center})`)
+                .attr('fill', remainderColor)
+                .attr('opacity', 0.25);
 
             svg.append('path')
                 .attr('class', 'kpi-gauge__value')
@@ -284,14 +224,16 @@
                     startAngle,
                     endAngle: startAngle + (Math.PI * 2 * (rate / 100))
                 }))
-                .attr('transform', `translate(${center},${center})`);
+                .attr('transform', `translate(${center},${center})`)
+                .attr('fill', compliantColor);
 
             svg.append('text')
                 .attr('class', 'kpi-gauge__label')
                 .attr('x', center)
                 .attr('y', center + 6)
                 .attr('text-anchor', 'middle')
-                .text(`${formatPercent(rate)}%`);
+                .text(`${formatPercent(rate)}%`)
+                .attr('fill', compliantColor);
         }
     };
 
