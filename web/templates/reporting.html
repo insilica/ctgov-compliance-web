@@ -200,7 +200,11 @@
                                         <p class="action-item-card__label text-uppercase text-semibold margin-0">
                                             Organization
                                         </p>
-                                        <h3 class="action-item-card__title margin-y-05">{{ org.name }}</h3>
+                                        <h3 class="action-item-card__title margin-y-05">
+                                            <button type="button" class="action-item-card__trigger" data-org-id="{{ org.id }}">
+                                                {{ org.name }}
+                                            </button>
+                                        </h3>
                                     </div>
                                     <div class="action-item-card__metric text-right">
                                         <span class="action-item-card__value">{{ org.compliance_rate }}%</span>
@@ -232,11 +236,62 @@
         </div>
     </div>
 </div>
+<div class="org-detail-modal" id="orgDetailModal" data-modal-active="{{ 'true' if focused_org else 'false' }}">
+    <div class="org-detail-modal__backdrop" data-modal-close></div>
+    <div class="org-detail-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="orgDetailModalTitle">
+        <button class="org-detail-modal__close" type="button" data-modal-close aria-label="Close details">&times;</button>
+        <div class="org-detail-modal__header">
+            <p class="org-detail-modal__label text-uppercase text-semibold">Organization</p>
+            <h3 class="org-detail-modal__title" id="orgDetailModalTitle" data-modal-org-name></h3>
+        </div>
+        <div class="org-detail-modal__meta">
+            <div>
+                <p class="org-detail-modal__metric-label">Compliance rate</p>
+                <p class="org-detail-modal__metric-value" data-modal-org-compliance></p>
+            </div>
+            <div>
+                <p class="org-detail-modal__metric-label">Late trials</p>
+                <p class="org-detail-modal__metric-value" data-modal-org-late></p>
+            </div>
+            <div>
+                <p class="org-detail-modal__metric-label">Pending submissions</p>
+                <p class="org-detail-modal__metric-value" data-modal-org-pending></p>
+            </div>
+        </div>
+        <div class="org-detail-modal__content">
+            <h4 class="org-detail-modal__section-title">Incompliant trials</h4>
+            <p class="usa-hint" data-modal-empty-message>
+                No incompliant trials found for this organization.
+            </p>
+            <div class="org-detail-modal__table" data-modal-table-wrapper hidden>
+                <table class="usa-table usa-table--striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">Trial title</th>
+                            <th scope="col">NCT ID</th>
+                            <th scope="col">User</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Start date</th>
+                            <th scope="col">Completion date</th>
+                            <th scope="col">Days overdue</th>
+                        </tr>
+                    </thead>
+                    <tbody data-modal-trials></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 <script>
     window.reportingData = {
         time_series: {{ time_series | tojson }},
         status_keys: {{ status_keys | tojson }},
         kpis: {{ kpis | tojson }}
+    };
+    window.reportingOrgModalData = {
+        organization: {{ focused_org | tojson }},
+        trials: {{ focused_org_trials | tojson }},
+        open: {{ 'true' if focused_org else 'false' }}
     };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>

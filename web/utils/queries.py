@@ -598,6 +598,36 @@ class QueryManager:
         
         return query(sql, params)
 
+    @tracer.start_as_current_span("queries.get_org_incompliant_trials")
+    def get_org_incompliant_trials(self, organization_id):
+        """Return incompliant trials for an organization ordered by completion date."""
+        if not organization_id:
+            return []
+        sql = '''
+            SELECT
+                t.id,
+                t.title,
+                t.nct_id,
+                o.name AS organization_name,
+                u.email AS user_email,
+                COALESCE(tc.status, 'Pending') AS status,
+                t.start_date,
+                t.completion_date,
+                t.reporting_due_date,
+                GREATEST(
+                    0,
+                    (CURRENT_DATE - (t.completion_date + INTERVAL '1 year')::date)
+                ) AS days_overdue
+            FROM trial t
+            JOIN organization o ON t.organization_id = o.id
+            LEFT JOIN ctgov_user u ON t.user_id = u.id
+            LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
+            WHERE t.organization_id = %s
+              AND COALESCE(tc.status, 'Pending') = 'Incompliant'
+            ORDER BY t.completion_date ASC NULLS LAST, t.title ASC
+        '''
+        return query(sql, [organization_id])
+
     @tracer.start_as_current_span("queries.get_funding_source_classes")
     def get_funding_source_classes(self):
         """Return distinct funding source categories."""

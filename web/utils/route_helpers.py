@@ -219,7 +219,7 @@ def _add_one_month(dt):
 
 
 @tracer.start_as_current_span("route_helpers.process_reporting_request")
-def process_reporting_request(start_date=None, end_date=None, filters=None, QueryManager=QueryManager()):
+def process_reporting_request(start_date=None, end_date=None, filters=None, focus_org_id=None, QueryManager=QueryManager()):
     """Build template context for the reporting dashboard."""
     current_span = trace.get_current_span()
     filter_params, filter_form_values = _extract_action_filter_params(filters)
@@ -263,6 +263,18 @@ def process_reporting_request(start_date=None, end_date=None, filters=None, Quer
     funding_source_options = QueryManager.get_funding_source_classes()
     action_items = _build_org_action_items(org_compliance_rows)
     current_span.set_attribute("reporting.action_items", len(action_items))
+    focused_org = None
+    focused_org_trials = []
+    if focus_org_id:
+        for item in action_items:
+            if item.get('id') == focus_org_id:
+                focused_org = item
+                break
+        if focused_org:
+            trial_rows = QueryManager.get_org_incompliant_trials(focus_org_id)
+            focused_org_trials = _serialize_org_trials(trial_rows)
+            current_span.set_attribute("reporting.focus_org", focus_org_id)
+            current_span.set_attribute("reporting.focus_org_trials", len(focused_org_trials))
 
     status_order = list(DEFAULT_STATUS_ORDER)
     monthly_lookup = {}
@@ -354,7 +366,10 @@ def process_reporting_request(start_date=None, end_date=None, filters=None, Quer
         'action_filter_values': filter_form_values,
         'action_filter_options': {
             'funding_source_classes': funding_source_options
-        }
+        },
+        'focused_org': focused_org,
+        'focused_org_trials': focused_org_trials,
+        'focus_org_id': focus_org_id
     }
     current_span.set_attribute("reporting.data_points", len(time_series))
     return context
@@ -391,6 +406,7 @@ def _build_org_action_items(org_rows):
             })
 
         action_items.append({
+            'id': org.get('id'),
             'name': org.get('name') or 'Unnamed organization',
             'compliance_rate': compliance_rate,
             'late_count': late,
@@ -404,6 +420,28 @@ def _build_org_action_items(org_rows):
     # Sort by lowest compliance to highlight riskiest first
     action_items.sort(key=lambda org: org.get('compliance_rate', 100))
     return action_items
+
+
+def _serialize_org_trials(rows):
+    """Prepare organization trial rows for modal display."""
+    serialized = []
+    for row in rows or []:
+        start = _coerce_to_date(row.get('start_date'))
+        completion = _coerce_to_date(row.get('completion_date'))
+        serialized.append({
+            'id': row.get('id'),
+            'title': row.get('title'),
+            'nct_id': row.get('nct_id'),
+            'organization_name': row.get('organization_name'),
+            'user_email': row.get('user_email'),
+            'status': row.get('status'),
+            'start_date': start.isoformat() if start else None,
+            'start_date_label': start.strftime('%b %d, %Y') if start else '—',
+            'completion_date': completion.isoformat() if completion else None,
+            'completion_date_label': completion.strftime('%b %d, %Y') if completion else '—',
+            'days_overdue': row.get('days_overdue') or 0
+        })
+    return serialized
 
 
 def _build_summary_tiles(latest_point, kpis, months_tracked, first_month_label):

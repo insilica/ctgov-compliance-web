@@ -1524,7 +1524,10 @@ def test_reporting_dashboard_route(auth_client):
         },
         'action_filter_options': {
             'funding_source_classes': []
-        }
+        },
+        'focused_org': None,
+        'focused_org_trials': [],
+        'focus_org_id': None
     }
     with patch('web.routes.process_reporting_request') as mock_helper, \
          patch('web.routes.render_template') as mock_render:
@@ -1544,6 +1547,7 @@ def test_reporting_dashboard_route(auth_client):
                 'funding_source_class': None,
                 'organization': None
             },
+            focus_org_id=None,
             QueryManager=ANY
         )
         mock_render.assert_called_once_with(
@@ -1556,7 +1560,10 @@ def test_reporting_dashboard_route(auth_client):
             kpis=template_payload['kpis'],
             action_items=[],
             action_filter_values=template_payload['action_filter_values'],
-            action_filter_options=template_payload['action_filter_options']
+            action_filter_options=template_payload['action_filter_options'],
+            focused_org=None,
+            focused_org_trials=[],
+            focus_org_id=None
         )
 
 
@@ -1620,6 +1627,7 @@ def test_reporting_time_series_api(auth_client):
                 'funding_source_class': None,
                 'organization': None
             },
+            focus_org_id=None,
             QueryManager=ANY
         )
 

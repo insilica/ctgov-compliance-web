@@ -188,6 +188,7 @@ def reporting_dashboard():
     current_span = trace.get_current_span()
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
+    focus_org_id = request.args.get('org_focus', type=int)
     if start_date:
         current_span.set_attribute("filters.start_date", start_date)
     if end_date:
@@ -198,7 +199,13 @@ def reporting_dashboard():
         'funding_source_class': request.args.get('funding_source_class'),
         'organization': request.args.get('organization')
     }
-    template_data = process_reporting_request(start_date, end_date, filters=filter_args, QueryManager=qm)
+    template_data = process_reporting_request(
+        start_date,
+        end_date,
+        filters=filter_args,
+        focus_org_id=focus_org_id,
+        QueryManager=qm
+    )
     return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
 
 @bp.route('/api/reporting/time-series')
@@ -213,7 +220,7 @@ def reporting_time_series():
         'funding_source_class': request.args.get('funding_source_class'),
         'organization': request.args.get('organization')
     }
-    data = process_reporting_request(start_date, end_date, filters=filter_args, QueryManager=qm)
+    data = process_reporting_request(start_date, end_date, filters=filter_args, focus_org_id=None, QueryManager=qm)
     return jsonify({
         'time_series': data['time_series'],
         'status_keys': data['status_keys'],

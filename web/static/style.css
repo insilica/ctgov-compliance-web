@@ -1565,6 +1565,22 @@ kbd {
     font-weight: 600;
 }
 
+.action-item-card__trigger {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #005ea2;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.action-item-card__trigger:hover,
+.action-item-card__trigger:focus {
+    text-decoration: underline;
+    outline: none;
+}
+
 .action-item-card__metric {
     display: flex;
     flex-direction: column;
@@ -1610,6 +1626,103 @@ kbd {
 .action-chip--email {
     background: #e3f2fd;
     color: #0f62a4;
+}
+
+.org-detail-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    z-index: 1050;
+}
+
+.org-detail-modal.is-visible {
+    display: flex;
+}
+
+.org-detail-modal__backdrop {
+    position: absolute;
+    inset: 0;
+}
+
+.org-detail-modal__dialog {
+    background: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.15);
+    width: min(960px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    padding: 2rem;
+}
+
+.org-detail-modal__close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #5c5c5c;
+}
+
+.org-detail-modal__header {
+    margin-bottom: 1rem;
+}
+
+.org-detail-modal__label {
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+}
+
+.org-detail-modal__title {
+    margin: 0;
+    font-size: 1.75rem;
+}
+
+.org-detail-modal__meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.org-detail-modal__metric-label {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.org-detail-modal__metric-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.org-detail-modal__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.org-detail-modal__table {
+    overflow-x: auto;
+}
+
+.org-detail-modal__section-title {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+body.modal-open {
+    overflow: hidden;
 }
 
 .status-color-compliant .kpi-label,

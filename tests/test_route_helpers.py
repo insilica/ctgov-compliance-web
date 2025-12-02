@@ -243,6 +243,7 @@ class TestProcessReportingRequest:
         }]
         mock_qm.get_organization_risk_analysis.return_value = [
             {
+                'id': 1,
                 'name': 'Org A',
                 'total_trials': 5,
                 'on_time_count': 3,
@@ -251,6 +252,7 @@ class TestProcessReportingRequest:
                 'high_risk_trials': 1
             }
         ]
+        mock_qm.get_org_incompliant_trials.return_value = []
         mock_qm.get_funding_source_classes.return_value = ['Academic', 'Industry']
 
         result = process_reporting_request('2024-01-01', '2024-03-15', QueryManager=mock_qm)
@@ -266,6 +268,7 @@ class TestProcessReportingRequest:
             funding_source_class=None,
             organization_name=None
         )
+        mock_qm.get_org_incompliant_trials.assert_not_called()
         mock_qm.get_funding_source_classes.assert_called_once()
         assert result['template'] == 'reporting.html'
         assert result['start_date'] == '2024-01-01'
@@ -309,6 +312,7 @@ class TestProcessReportingRequest:
         mock_qm.get_trial_cumulative_time_series.return_value = []
         mock_qm.get_reporting_metrics.return_value = [{'total_trials': 0, 'compliant_count': 0, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
         mock_qm.get_organization_risk_analysis.return_value = []
+        mock_qm.get_org_incompliant_trials.return_value = []
         mock_qm.get_funding_source_classes.return_value = []
 
         result = process_reporting_request(QueryManager=mock_qm)
@@ -326,6 +330,7 @@ class TestProcessReportingRequest:
             funding_source_class=None,
             organization_name=None
         )
+        mock_qm.get_org_incompliant_trials.assert_not_called()
         mock_qm.get_funding_source_classes.assert_called_once()
         assert result['kpis']['total_trials'] == 0
         assert result['action_items'] == []
@@ -335,6 +340,7 @@ class TestProcessReportingRequest:
         mock_qm.get_trial_cumulative_time_series.return_value = []
         mock_qm.get_reporting_metrics.return_value = [{'total_trials': 1, 'compliant_count': 1, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
         mock_qm.get_organization_risk_analysis.return_value = []
+        mock_qm.get_org_incompliant_trials.return_value = []
         mock_qm.get_funding_source_classes.return_value = []
 
         result = process_reporting_request('2024-03-10', '2024-03-01', QueryManager=mock_qm)
@@ -352,6 +358,7 @@ class TestProcessReportingRequest:
             funding_source_class=None,
             organization_name=None
         )
+        mock_qm.get_org_incompliant_trials.assert_not_called()
         mock_qm.get_funding_source_classes.assert_called_once()
         assert result['kpis']['overall_compliance_rate'] == 100.0
         assert result['action_items'] == []
@@ -360,7 +367,18 @@ class TestProcessReportingRequest:
         mock_qm = MagicMock()
         mock_qm.get_trial_cumulative_time_series.return_value = []
         mock_qm.get_reporting_metrics.return_value = [{'total_trials': 0, 'compliant_count': 0, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
-        mock_qm.get_organization_risk_analysis.return_value = []
+        mock_qm.get_organization_risk_analysis.return_value = [
+            {
+                'id': 2,
+                'name': 'Org Focus',
+                'total_trials': 3,
+                'on_time_count': 1,
+                'late_count': 2,
+                'pending_count': 0,
+                'high_risk_trials': 0
+            }
+        ]
+        mock_qm.get_org_incompliant_trials.return_value = []
         mock_qm.get_funding_source_classes.return_value = ['Academic']
         filters = {
             'min_compliance': '75',
@@ -377,3 +395,39 @@ class TestProcessReportingRequest:
             funding_source_class='Academic',
             organization_name='Health'
         )
+        mock_qm.get_org_incompliant_trials.assert_not_called()
+
+    def test_reporting_request_focus_org_details(self):
+        mock_qm = MagicMock()
+        mock_qm.get_trial_cumulative_time_series.return_value = []
+        mock_qm.get_reporting_metrics.return_value = [{'total_trials': 0, 'compliant_count': 0, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
+        mock_qm.get_organization_risk_analysis.return_value = [
+            {
+                'id': 5,
+                'name': 'Org Modal',
+                'total_trials': 4,
+                'on_time_count': 1,
+                'late_count': 3,
+                'pending_count': 0,
+                'high_risk_trials': 0
+            }
+        ]
+        mock_qm.get_org_incompliant_trials.return_value = [
+            {
+                'id': 10,
+                'title': 'Trial 1',
+                'nct_id': 'NCT123',
+                'organization_name': 'Org Modal',
+                'user_email': 'user@example.com',
+                'status': 'Incompliant',
+                'start_date': date(2024, 1, 1),
+                'completion_date': date(2024, 2, 1)
+            }
+        ]
+        mock_qm.get_funding_source_classes.return_value = []
+
+        result = process_reporting_request(focus_org_id=5, QueryManager=mock_qm)
+
+        mock_qm.get_org_incompliant_trials.assert_called_once_with(5)
+        assert result['focused_org']['id'] == 5
+        assert result['focused_org_trials'][0]['nct_id'] == 'NCT123'

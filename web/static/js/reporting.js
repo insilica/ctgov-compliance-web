@@ -435,8 +435,116 @@
         }
     };
 
+    const initActionItemLinks = () => {
+        document.querySelectorAll('.action-item-card__trigger').forEach((trigger) => {
+            trigger.addEventListener('click', () => {
+                const orgId = trigger.getAttribute('data-org-id');
+                if (!orgId) {
+                    return;
+                }
+                const url = new URL(window.location.href);
+                url.searchParams.set('org_focus', orgId);
+                window.location.href = url.toString();
+            });
+        });
+    };
+
+    const initOrgModal = () => {
+        const modal = document.getElementById('orgDetailModal');
+        if (!modal) {
+            return;
+        }
+        const body = document.body;
+        const titleNode = modal.querySelector('[data-modal-org-name]');
+        const complianceNode = modal.querySelector('[data-modal-org-compliance]');
+        const lateNode = modal.querySelector('[data-modal-org-late]');
+        const pendingNode = modal.querySelector('[data-modal-org-pending]');
+        const tableWrapper = modal.querySelector('[data-modal-table-wrapper]');
+        const tableBody = modal.querySelector('[data-modal-trials]');
+        const emptyMessage = modal.querySelector('[data-modal-empty-message]');
+
+        const closeModal = () => {
+            modal.classList.remove('is-visible');
+            body.classList.remove('modal-open');
+            const url = new URL(window.location.href);
+            url.searchParams.delete('org_focus');
+            window.history.replaceState({}, '', url);
+        };
+
+        modal.querySelectorAll('[data-modal-close]').forEach((node) => {
+            node.addEventListener('click', closeModal);
+        });
+
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        const populateModal = (modalData) => {
+            if (!modalData || !modalData.organization) {
+                return;
+            }
+            const org = modalData.organization;
+            const trials = Array.isArray(modalData.trials) ? modalData.trials : [];
+
+            if (titleNode) {
+                titleNode.textContent = org.name || 'Organization details';
+            }
+            if (complianceNode) {
+                complianceNode.textContent = org.compliance_rate != null ? `${org.compliance_rate}%` : '—';
+            }
+            if (lateNode) {
+                lateNode.textContent = org.late_count != null ? `${org.late_count}` : '0';
+            }
+            if (pendingNode) {
+                pendingNode.textContent = org.pending_count != null ? `${org.pending_count}` : '0';
+            }
+
+            if (tableBody) {
+                tableBody.innerHTML = '';
+                trials.forEach((trial) => {
+                    const row = document.createElement('tr');
+                    const nctLink = trial.nct_id ? `<a href="https://clinicaltrials.gov/study/${trial.nct_id}" target="_blank" rel="noopener">${trial.nct_id}</a>` : '—';
+                    const daysOverdue = Number(trial.days_overdue || 0);
+                    row.innerHTML = `
+                        <td>${trial.title || 'Untitled trial'}</td>
+                        <td>${nctLink}</td>
+                        <td>${trial.user_email || '—'}</td>
+                        <td>${trial.status || '—'}</td>
+                        <td>${trial.start_date_label || '—'}</td>
+                        <td>${trial.completion_date_label || '—'}</td>
+                        <td>${daysOverdue}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            if (tableWrapper && emptyMessage) {
+                if (trials.length) {
+                    tableWrapper.hidden = false;
+                    emptyMessage.hidden = true;
+                } else {
+                    tableWrapper.hidden = true;
+                    emptyMessage.hidden = false;
+                }
+            }
+        };
+
+        const modalData = window.reportingOrgModalData || {};
+        if (String(modalData.open) === 'true' && modalData.organization) {
+            populateModal(modalData);
+            modal.classList.add('is-visible');
+            body.classList.add('modal-open');
+        } else if (modalData.organization) {
+            populateModal(modalData);
+        }
+    };
+
     renderCharts();
     renderKpis();
+    initActionItemLinks();
+    initOrgModal();
 
     window.addEventListener('resize', () => {
         window.requestAnimationFrame(() => {
