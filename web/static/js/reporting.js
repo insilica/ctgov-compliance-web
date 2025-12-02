@@ -4,39 +4,75 @@
     const statusKeys = reportingData.status_keys || [];
     const kpiData = reportingData.kpis || {};
 
-    const chartElement = document.getElementById('reporting-chart');
-    const legendElement = document.getElementById('reporting-chart-legend');
-    const hasD3 = typeof window.d3 !== 'undefined';
+    const timelineElement = document.getElementById('reporting-chart');
+    const newCompletedElement = document.getElementById('reporting-new-completed-chart');
 
-    if (!hasD3) {
-        if (chartElement) {
-            chartElement.innerHTML = '<p class="usa-hint">D3 failed to load. Please refresh the page.</p>';
+    if (typeof window.d3 === 'undefined') {
+        if (timelineElement) {
+            timelineElement.innerHTML = '<p class="usa-hint">D3 failed to load. Please refresh the page.</p>';
         }
         return;
     }
 
     const d3 = window.d3;
+    const parsedDates = dataset.map((item) => new Date(`${item.date}T00:00:00`));
 
-    const renderChart = () => {
-        if (!chartElement) {
+    const formatComma = d3.format(',');
+    const formatPercent = d3.format('.1f');
+    const formatDays = (value) => {
+        if (typeof value !== 'number') {
+            return '—';
+        }
+        const formatted = d3.format('.1f')(value || 0);
+        return formatted.replace(/\.0$/, '');
+    };
+
+    const getTimeBounds = () => {
+        if (!parsedDates.length) {
+            const today = new Date();
+            const nextMonth = new Date(today.getTime());
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            return [today, nextMonth];
+        }
+        const extent = d3.extent(parsedDates);
+        const [start, end] = extent;
+        if (start && end && start.getTime() !== end.getTime()) {
+            return extent;
+        }
+        const anchor = start || end || new Date();
+        const paddedEnd = new Date(anchor.getTime());
+        paddedEnd.setMonth(paddedEnd.getMonth() + 1);
+        return [anchor, paddedEnd];
+    };
+
+    const buildTimeScale = (rangeEnd) => {
+        const [start, end] = getTimeBounds();
+        return d3.scaleTime().domain([start, end]).range([0, rangeEnd]);
+    };
+
+    const createTooltip = (container) => {
+        return d3.select(container)
+            .append('div')
+            .attr('class', 'reporting-tooltip')
+            .style('display', 'none');
+    };
+
+    const renderTimelineChart = () => {
+        if (!timelineElement) {
             return;
         }
-
-        chartElement.innerHTML = '';
+        timelineElement.innerHTML = '';
 
         if (!dataset.length || !statusKeys.length) {
-            chartElement.innerHTML = '<p class="usa-hint">No data available for the selected range.</p>';
-            if (legendElement) {
-                legendElement.innerHTML = '';
-            }
+            timelineElement.innerHTML = '<p class="usa-hint">No data available for the selected range.</p>';
             return;
         }
 
-        const width = chartElement.clientWidth || 960;
+        const width = timelineElement.clientWidth || 960;
         const height = 360;
         const margin = { top: 20, right: 24, bottom: 40, left: 56 };
 
-        const svg = d3.select(chartElement)
+        const svg = d3.select(timelineElement)
             .append('svg')
             .attr('width', width)
             .attr('height', height + margin.top + margin.bottom)
@@ -46,19 +82,15 @@
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 
-        const parsedDates = dataset.map((item) => new Date(item.date + 'T00:00:00'));
-        const timeExtent = d3.extent(parsedDates);
-        const xScale = d3.scaleTime()
-            .domain(timeExtent)
-            .range([0, innerWidth]);
-
+        const xScale = buildTimeScale(innerWidth);
         const maxCumulative = d3.max(dataset, (item) => {
             return d3.max(statusKeys, (status) => {
                 return Number(item.statuses?.[status.key]?.cumulative || 0);
             });
         }) || 0;
+
         const yScale = d3.scaleLinear()
-            .domain([0, maxCumulative * 1.05 || 1])
+            .domain([0, maxCumulative ? maxCumulative * 1.05 : 1])
             .nice()
             .range([innerHeight, 0]);
 
@@ -105,17 +137,7 @@
                 .attr('d', lineGenerator);
         });
 
-        const tooltip = d3.select(chartElement)
-            .append('div')
-            .attr('class', 'reporting-tooltip')
-            .style('position', 'absolute')
-            .style('pointer-events', 'none')
-            .style('background', 'rgba(0,0,0,0.75)')
-            .style('color', '#fff')
-            .style('padding', '0.5rem 0.75rem')
-            .style('border-radius', '4px')
-            .style('font-size', '0.85rem')
-            .style('display', 'none');
+        const tooltip = createTooltip(timelineElement);
 
         series.forEach((statusSeries) => {
             svg.selectAll(`.reporting-point-${statusSeries.key}`)
@@ -128,7 +150,7 @@
                 .attr('r', 4)
                 .attr('fill', colors(statusSeries.key))
                 .on('mouseenter', function (event, d) {
-                    const bounds = chartElement.getBoundingClientRect();
+                    const bounds = timelineElement.getBoundingClientRect();
                     tooltip.style('display', 'block')
                         .style('left', `${event.clientX - bounds.left + 12}px`)
                         .style('top', `${event.clientY - bounds.top - 28}px`)
@@ -140,14 +162,153 @@
                     d3.select(this).attr('r', 4);
                 });
         });
-
     };
 
-    const formatComma = d3.format(',');
-    const formatPercent = d3.format('.1f');
-    const formatDays = (value) => {
-        const formatted = d3.format('.1f')(value || 0);
-        return formatted.replace(/\.0$/, '');
+    const renderNewCompletedChart = () => {
+        if (!newCompletedElement) {
+            return;
+        }
+        newCompletedElement.innerHTML = '';
+
+        if (!dataset.length) {
+            newCompletedElement.innerHTML = '<p class="usa-hint">No trial data available for this range.</p>';
+            return;
+        }
+
+        const width = newCompletedElement.clientWidth || 500;
+        const height = 260;
+        const margin = { top: 16, right: 16, bottom: 52, left: 56 };
+        const svg = d3.select(newCompletedElement)
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+        const xScale = buildTimeScale(innerWidth);
+
+        const stackData = dataset.map((item, index) => {
+            const newCount = Math.max(0, Number(item.new_trials || 0));
+            const completedCount = Math.max(0, Number(item.completed_trials || 0));
+            return {
+                date: parsedDates[index],
+                monthLabel: item.month_label,
+                totals: {
+                    newCount,
+                    completedCount
+                },
+                segments: [
+                    { key: 'new_trials', value: newCount },
+                    { key: 'completed_trials', value: completedCount }
+                ]
+            };
+        });
+
+        const maxCount = d3.max(stackData, (item) => {
+            return item.segments.reduce((sum, segment) => sum + segment.value, 0);
+        }) || 0;
+
+        const yScale = d3.scaleLinear()
+            .domain([0, maxCount ? maxCount * 1.2 : 1])
+            .nice()
+            .range([innerHeight, 0]);
+
+        const xAxis = d3.axisBottom(xScale)
+            .ticks(Math.min(dataset.length, 8))
+            .tickFormat(d3.timeFormat('%b %Y'));
+        const yAxis = d3.axisLeft(yScale).ticks(5).tickFormat(d3.format('d'));
+
+        svg.append('g')
+            .attr('transform', `translate(0,${innerHeight})`)
+            .call(xAxis)
+            .selectAll('text')
+            .style('text-anchor', 'end')
+            .attr('transform', 'rotate(-35)');
+
+        svg.append('g').call(yAxis);
+
+        const computeBarWidth = () => {
+            if (parsedDates.length < 2) {
+                return Math.min(48, Math.max(18, innerWidth * 0.15));
+            }
+            const gaps = [];
+            for (let i = 1; i < parsedDates.length; i += 1) {
+                gaps.push(Math.abs(xScale(parsedDates[i]) - xScale(parsedDates[i - 1])));
+            }
+            const avgGap = gaps.length ? d3.mean(gaps) : innerWidth / parsedDates.length;
+            return Math.min(56, Math.max(14, (avgGap || 20) * 0.5));
+        };
+
+        const barWidth = computeBarWidth();
+        const colors = { new_trials: '#DC602E', completed_trials: '#450920' };
+        const tooltip = createTooltip(newCompletedElement);
+        const bars = svg.selectAll('.stack-bar')
+            .data(stackData)
+            .enter()
+            .append('g')
+            .attr('class', 'stack-bar')
+            .attr('transform', (d) => `translate(${xScale(d.date) - (barWidth / 2)},0)`);
+
+        bars.selectAll('rect')
+            .data((d) => {
+                let offset = 0;
+                return d.segments.map((segment) => {
+                    const start = offset;
+                    offset += segment.value;
+                    return {
+                        key: segment.key,
+                        value: segment.value,
+                        y0: start,
+                        y1: offset,
+                        monthLabel: d.monthLabel,
+                        date: d.date,
+                        totals: d.totals,
+                        color: colors[segment.key],
+                        label: segment.key === 'new_trials' ? 'New trials' : 'Completed trials'
+                    };
+                }).filter((segment) => segment.value > 0);
+            })
+            .enter()
+            .append('rect')
+            .attr('x', 0)
+            .attr('width', barWidth)
+            .attr('y', (segment) => yScale(segment.y1))
+            .attr('height', (segment) => yScale(segment.y0) - yScale(segment.y1))
+            .attr('fill', (segment) => segment.color)
+            .attr('rx', 2)
+            .on('mouseenter', (event, segment) => {
+                const bounds = newCompletedElement.getBoundingClientRect();
+                const total = segment.totals.newCount + segment.totals.completedCount;
+                tooltip.style('display', 'block')
+                    .style('left', `${event.clientX - bounds.left + 12}px`)
+                    .style('top', `${event.clientY - bounds.top - 28}px`)
+                    .html(`<strong>${segment.monthLabel}</strong><br>${segment.label}: ${formatComma(segment.value)}<br>New: ${formatComma(segment.totals.newCount)} · Completed: ${formatComma(segment.totals.completedCount)}<br>Total: ${formatComma(total)}`);
+            })
+            .on('mouseleave', () => {
+                tooltip.style('display', 'none');
+            });
+
+        const legend = d3.select(newCompletedElement)
+            .append('div')
+            .attr('class', 'reporting-chart-legend');
+
+        [
+            { label: 'New trials', color: colors.new_trials },
+            { label: 'Completed trials', color: colors.completed_trials }
+        ].forEach((item) => {
+            const entry = legend.append('div').attr('class', 'reporting-chart-legend__item');
+            entry.append('span')
+                .attr('class', 'reporting-chart-legend__swatch')
+                .style('background', item.color);
+            entry.append('span').text(item.label);
+        });
+    };
+
+    const renderCharts = () => {
+        renderTimelineChart();
+        renderNewCompletedChart();
     };
 
     const renderKpis = () => {
@@ -237,12 +398,13 @@
         }
     };
 
-    renderChart();
+    renderCharts();
     renderKpis();
 
-    if (chartElement) {
-        window.addEventListener('resize', () => {
-            window.requestAnimationFrame(renderChart);
+    window.addEventListener('resize', () => {
+        window.requestAnimationFrame(() => {
+            renderCharts();
+            renderKpis();
         });
-    }
+    });
 })();
