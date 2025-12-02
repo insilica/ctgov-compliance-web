@@ -242,7 +242,7 @@ def process_reporting_request(start_date=None, end_date=None, filters=None, focu
         start_dt, end_dt = end_dt, start_dt
 
     start_of_month = _start_of_month(start_dt)
-    end_of_month = _start_of_month(end_dt)
+    end_of_month = _add_one_month(_start_of_month(end_dt))
 
     start_iso = start_dt.isoformat()
     end_iso = end_dt.isoformat()
@@ -289,10 +289,10 @@ def process_reporting_request(start_date=None, end_date=None, filters=None, focu
         month_entry = monthly_lookup.setdefault(iso_day, {
             'statuses': {},
             'metrics': {
-                'new_trials': 0,
-                'completed_trials': 0,
+                'new_trials': None,
+                'completed_trials': None,
                 'avg_reporting_delay_days': None,
-                'reporting_delay_trials': 0
+                'reporting_delay_trials': None
             }
         })
         month_entry['statuses'][status_label] = {
@@ -300,21 +300,25 @@ def process_reporting_request(start_date=None, end_date=None, filters=None, focu
             'cumulative_trials': row.get('cumulative_trials', 0) or 0
         }
         metrics = month_entry['metrics']
-        if 'new_trials' in row:
-            metrics['new_trials'] = row.get('new_trials', 0) or 0
-        if 'completed_trials' in row:
-            metrics['completed_trials'] = row.get('completed_trials', 0) or 0
-        if 'avg_reporting_delay_days' in row:
-            metrics['avg_reporting_delay_days'] = row.get('avg_reporting_delay_days')
-        if 'reporting_delay_trials' in row:
-            metrics['reporting_delay_trials'] = row.get('reporting_delay_trials', 0) or 0
+        new_trials = row.get('new_trials')
+        if metrics['new_trials'] is None and new_trials is not None:
+            metrics['new_trials'] = new_trials or 0
+        completed_trials = row.get('completed_trials')
+        if metrics['completed_trials'] is None and completed_trials is not None:
+            metrics['completed_trials'] = completed_trials or 0
+        avg_delay = row.get('avg_reporting_delay_days')
+        if metrics['avg_reporting_delay_days'] is None and avg_delay is not None:
+            metrics['avg_reporting_delay_days'] = avg_delay
+        delay_trials = row.get('reporting_delay_trials')
+        if metrics['reporting_delay_trials'] is None and delay_trials is not None:
+            metrics['reporting_delay_trials'] = delay_trials or 0
 
     status_keys = {label: label.lower().replace(' ', '_') for label in status_order}
     cumulative_tracker = {status_keys[label]: 0 for label in status_order}
 
     time_series = []
     month_cursor = start_of_month
-    while month_cursor <= end_of_month:
+    while month_cursor < end_of_month:
         iso_day = month_cursor.isoformat()
         label = month_cursor.strftime('%B %Y')
         month_data = monthly_lookup.get(iso_day, {})
