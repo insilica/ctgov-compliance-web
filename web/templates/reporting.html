@@ -116,8 +116,20 @@
                         {% endfor %}
                     </div>
                     {% endif %}
-                    <div id="reporting-chart" class="reporting-chart" role="img"
-                        aria-label="Line chart showing cumulative trial counts over time"></div>
+                    <div class="reporting-chart-stack">
+                        <section class="reporting-chart-panel">
+                            <h3 class="reporting-chart-panel__title">Compliance status timeline</h3>
+                            <div id="reporting-chart" class="reporting-chart reporting-chart--full" role="img"
+                                aria-label="Line chart showing cumulative trial counts over time"></div>
+                        </section>
+                        <section class="reporting-chart-panel">
+                            <h3 class="reporting-chart-panel__title">Monthly New and Completed Trials</h3>
+                            <p class="reporting-chart-panel__hint">Counts of first reports compared to completed trials each
+                                month.</p>
+                            <div id="reporting-new-completed-chart" class="reporting-chart reporting-chart--full"
+                                role="img" aria-label="Stacked bar chart showing new versus completed trials per month"></div>
+                        </section>
+                    </div>
                     {% if not time_series %}
                     <p class="usa-hint margin-top-2">No trial starts found for the selected time range.</p>
                     {% endif %}

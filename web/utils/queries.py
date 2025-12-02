@@ -579,7 +579,7 @@ class QueryManager:
 
     @tracer.start_as_current_span("queries.get_trial_cumulative_time_series")
     def get_trial_cumulative_time_series(self, start_date=None, end_date=None):
-        """Return monthly trial counts plus cumulative totals grouped by start_date and status."""
+        """Return enriched monthly aggregates for the reporting timeline."""
         current_span = trace.get_current_span()
         if start_date:
             current_span.set_attribute("start_date", str(start_date))
@@ -602,7 +602,15 @@ class QueryManager:
         sql = f'''
             WITH trials_with_status AS (
                 SELECT
+                    t.id,
                     DATE_TRUNC('month', t.start_date)::date AS period_start,
+                    DATE_TRUNC('month', t.completion_date)::date AS completion_month,
+                    CASE
+                        WHEN t.reporting_due_date IS NOT NULL
+                             AND t.completion_date IS NOT NULL
+                        THEN GREATEST(0, (t.reporting_due_date - t.completion_date))
+                        ELSE NULL
+                    END AS reporting_delay_days,
                     COALESCE(tc.status, 'Pending') AS compliance_status
                 FROM trial t
                 LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
@@ -614,19 +622,64 @@ class QueryManager:
                     compliance_status,
                     COUNT(*) AS trials_in_month
                 FROM trials_with_status
+                WHERE period_start IS NOT NULL
                 GROUP BY period_start, compliance_status
+            ),
+            cumulative_counts AS (
+                SELECT
+                    period_start,
+                    compliance_status,
+                    trials_in_month,
+                    SUM(trials_in_month) OVER (
+                        PARTITION BY compliance_status
+                        ORDER BY period_start ASC
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                    ) AS cumulative_trials
+                FROM monthly_counts
+            ),
+            monthly_new AS (
+                SELECT
+                    period_start,
+                    COUNT(*) AS new_trials
+                FROM trials_with_status
+                WHERE period_start IS NOT NULL
+                GROUP BY period_start
+            ),
+            monthly_completed AS (
+                SELECT
+                    completion_month AS period_start,
+                    COUNT(*) AS completed_trials
+                FROM trials_with_status
+                WHERE completion_month IS NOT NULL
+                GROUP BY completion_month
+            ),
+            monthly_delay AS (
+                SELECT
+                    completion_month AS period_start,
+                    AVG(reporting_delay_days) AS avg_reporting_delay_days,
+                    COUNT(reporting_delay_days) AS reporting_delay_trials
+                FROM trials_with_status
+                WHERE completion_month IS NOT NULL
+                  AND reporting_delay_days IS NOT NULL
+                GROUP BY completion_month
             )
             SELECT
-                period_start,
-                compliance_status,
-                trials_in_month,
-                SUM(trials_in_month) OVER (
-                    PARTITION BY compliance_status
-                    ORDER BY period_start ASC
-                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-                ) AS cumulative_trials
-            FROM monthly_counts
-            ORDER BY period_start ASC, compliance_status ASC
+                cumulative_counts.period_start,
+                cumulative_counts.compliance_status,
+                cumulative_counts.trials_in_month,
+                cumulative_counts.cumulative_trials,
+                COALESCE(monthly_new.new_trials, 0) AS new_trials,
+                COALESCE(monthly_completed.completed_trials, 0) AS completed_trials,
+                monthly_delay.avg_reporting_delay_days,
+                monthly_delay.reporting_delay_trials
+            FROM cumulative_counts
+            LEFT JOIN monthly_new
+                ON monthly_new.period_start = cumulative_counts.period_start
+            LEFT JOIN monthly_completed
+                ON monthly_completed.period_start = cumulative_counts.period_start
+            LEFT JOIN monthly_delay
+                ON monthly_delay.period_start = cumulative_counts.period_start
+            ORDER BY cumulative_counts.period_start ASC, cumulative_counts.compliance_status ASC
         '''
 
         current_span.set_attribute("sql", sql)

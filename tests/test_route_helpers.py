@@ -214,8 +214,26 @@ class TestProcessReportingRequest:
     def test_reporting_request_with_range(self):
         mock_qm = MagicMock()
         mock_qm.get_trial_cumulative_time_series.return_value = [
-            {'period_start': date(2024, 1, 1), 'compliance_status': 'Compliant', 'trials_in_month': 2, 'cumulative_trials': 2},
-            {'period_start': '2024-02-01', 'compliance_status': 'Incompliant', 'trials_in_month': 1, 'cumulative_trials': 1},
+            {
+                'period_start': date(2024, 1, 1),
+                'compliance_status': 'Compliant',
+                'trials_in_month': 2,
+                'cumulative_trials': 2,
+                'new_trials': 2,
+                'completed_trials': 1,
+                'avg_reporting_delay_days': 5.5,
+                'reporting_delay_trials': 1
+            },
+            {
+                'period_start': '2024-02-01',
+                'compliance_status': 'Incompliant',
+                'trials_in_month': 1,
+                'cumulative_trials': 1,
+                'new_trials': 1,
+                'completed_trials': 0,
+                'avg_reporting_delay_days': None,
+                'reporting_delay_trials': 0
+            },
         ]
         mock_qm.get_reporting_metrics.return_value = [{
             'total_trials': 3,
@@ -250,6 +268,10 @@ class TestProcessReportingRequest:
         assert result['latest_point']['date'] == '2024-03-01'
         assert result['status_keys']
         assert 'statuses' in result['latest_point']
+        assert first_month['new_trials'] == 2
+        assert first_month['completed_trials'] == 1
+        assert first_month['avg_reporting_delay_days'] == 5.5
+        assert third_month['avg_reporting_delay_days'] is None
         assert result['kpis']['total_trials'] == 3
 
     @patch('web.utils.route_helpers.date')

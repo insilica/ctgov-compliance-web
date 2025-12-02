@@ -1483,14 +1483,27 @@ def test_reporting_dashboard_route(auth_client):
     """Ensure reporting route renders template with helper context."""
     template_payload = {
         'template': 'reporting.html',
-        'time_series': [{'date': '2024-01-01', 'statuses': {'compliant': {'cumulative': 5, 'monthly': 2}}, 'total_cumulative': 5, 'total_monthly': 2}],
+        'time_series': [{
+            'date': '2024-01-01',
+            'statuses': {'compliant': {'cumulative': 5, 'monthly': 2}},
+            'total_cumulative': 5,
+            'total_monthly': 2,
+            'new_trials': 2,
+            'completed_trials': 1,
+            'avg_reporting_delay_days': 4.5,
+            'reporting_delay_trials': 1
+        }],
         'status_keys': [{'label': 'Compliant', 'key': 'compliant'}],
         'latest_point': {
             'date': '2024-01-01',
             'month_label': 'January 2024',
             'total_cumulative': 5,
             'total_monthly': 2,
-            'statuses': {'compliant': {'cumulative': 5, 'monthly': 2}}
+            'statuses': {'compliant': {'cumulative': 5, 'monthly': 2}},
+            'new_trials': 2,
+            'completed_trials': 1,
+            'avg_reporting_delay_days': 4.5,
+            'reporting_delay_trials': 1
         },
         'start_date': '2024-01-01',
         'end_date': '2024-01-05',
@@ -1528,14 +1541,27 @@ def test_reporting_time_series_api(auth_client):
     """Ensure reporting API returns helper data as JSON."""
     helper_payload = {
         'template': 'reporting.html',
-        'time_series': [{'date': '2024-02-01', 'statuses': {'compliant': {'cumulative': 10, 'monthly': 3}}, 'total_cumulative': 10}],
+        'time_series': [{
+            'date': '2024-02-01',
+            'statuses': {'compliant': {'cumulative': 10, 'monthly': 3}},
+            'total_cumulative': 10,
+            'total_monthly': 3,
+            'new_trials': 3,
+            'completed_trials': 2,
+            'avg_reporting_delay_days': 6.0,
+            'reporting_delay_trials': 2
+        }],
         'status_keys': [{'label': 'Compliant', 'key': 'compliant'}],
         'latest_point': {
             'date': '2024-02-01',
             'month_label': 'February 2024',
             'total_cumulative': 10,
             'total_monthly': 3,
-            'statuses': {'compliant': {'cumulative': 10, 'monthly': 3}}
+            'statuses': {'compliant': {'cumulative': 10, 'monthly': 3}},
+            'new_trials': 3,
+            'completed_trials': 2,
+            'avg_reporting_delay_days': 6.0,
+            'reporting_delay_trials': 2
         },
         'start_date': '2024-02-01',
         'end_date': '2024-02-10',

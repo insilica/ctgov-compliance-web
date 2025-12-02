@@ -225,10 +225,28 @@ def process_reporting_request(start_date=None, end_date=None, QueryManager=Query
         if not row_date:
             continue
         iso_day = row_date.isoformat()
-        monthly_lookup.setdefault(iso_day, {})[status_label] = {
+        month_entry = monthly_lookup.setdefault(iso_day, {
+            'statuses': {},
+            'metrics': {
+                'new_trials': 0,
+                'completed_trials': 0,
+                'avg_reporting_delay_days': None,
+                'reporting_delay_trials': 0
+            }
+        })
+        month_entry['statuses'][status_label] = {
             'trials_in_month': row.get('trials_in_month', 0) or 0,
             'cumulative_trials': row.get('cumulative_trials', 0) or 0
         }
+        metrics = month_entry['metrics']
+        if 'new_trials' in row:
+            metrics['new_trials'] = row.get('new_trials', 0) or 0
+        if 'completed_trials' in row:
+            metrics['completed_trials'] = row.get('completed_trials', 0) or 0
+        if 'avg_reporting_delay_days' in row:
+            metrics['avg_reporting_delay_days'] = row.get('avg_reporting_delay_days')
+        if 'reporting_delay_trials' in row:
+            metrics['reporting_delay_trials'] = row.get('reporting_delay_trials', 0) or 0
 
     status_keys = {label: label.lower().replace(' ', '_') for label in status_order}
     cumulative_tracker = {status_keys[label]: 0 for label in status_order}
@@ -239,13 +257,15 @@ def process_reporting_request(start_date=None, end_date=None, QueryManager=Query
         iso_day = month_cursor.isoformat()
         label = month_cursor.strftime('%B %Y')
         month_data = monthly_lookup.get(iso_day, {})
+        month_metrics = month_data.get('metrics', {}) if month_data else {}
+        status_bucket = month_data.get('statuses', {}) if month_data else {}
         status_payload = {}
         total_monthly = 0
         total_cumulative = 0
 
         for status_label in status_order:
             status_key = status_keys[status_label]
-            stats = month_data.get(status_label, {})
+            stats = status_bucket.get(status_label, {})
             monthly_count = stats.get('trials_in_month', 0) or 0
             cumulative_count = stats.get('cumulative_trials')
             if cumulative_count is None:
@@ -264,7 +284,11 @@ def process_reporting_request(start_date=None, end_date=None, QueryManager=Query
             'month_label': label,
             'statuses': status_payload,
             'total_monthly': total_monthly,
-            'total_cumulative': total_cumulative
+            'total_cumulative': total_cumulative,
+            'new_trials': month_metrics.get('new_trials', 0) or 0,
+            'completed_trials': month_metrics.get('completed_trials', 0) or 0,
+            'avg_reporting_delay_days': month_metrics.get('avg_reporting_delay_days'),
+            'reporting_delay_trials': month_metrics.get('reporting_delay_trials', 0) or 0
         }
         time_series.append(entry)
         month_cursor = _add_one_month(month_cursor)

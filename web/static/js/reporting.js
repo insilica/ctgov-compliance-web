@@ -45,9 +45,14 @@
         return [anchor, paddedEnd];
     };
 
-    const buildTimeScale = (rangeEnd) => {
-        const [start, end] = getTimeBounds();
-        return d3.scaleTime().domain([start, end]).range([0, rangeEnd]);
+    const getTimeDomainMeta = () => {
+        const bounds = getTimeBounds();
+        const baseScale = d3.scaleTime().domain(bounds);
+        const tickCount = dataset.length ? Math.min(dataset.length, 8) : 4;
+        return {
+            bounds,
+            ticks: baseScale.ticks(tickCount)
+        };
     };
 
     const createTooltip = (container) => {
@@ -82,7 +87,8 @@
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 
-        const xScale = buildTimeScale(innerWidth);
+        const { bounds, ticks } = getTimeDomainMeta();
+        const xScale = d3.scaleTime().domain(bounds).range([0, innerWidth]);
         const maxCumulative = d3.max(dataset, (item) => {
             return d3.max(statusKeys, (status) => {
                 return Number(item.statuses?.[status.key]?.cumulative || 0);
@@ -95,7 +101,7 @@
             .range([innerHeight, 0]);
 
         const xAxis = d3.axisBottom(xScale)
-            .ticks(Math.min(dataset.length, 8))
+            .tickValues(ticks)
             .tickFormat(d3.timeFormat('%b %Y'));
         const yAxis = d3.axisLeft(yScale).ticks(6).tickFormat(d3.format('d'));
 
@@ -107,6 +113,33 @@
             .attr('transform', 'rotate(-35)');
 
         svg.append('g').call(yAxis);
+
+        const hoverLine = svg.append('line')
+            .attr('class', 'reporting-hover-line')
+            .attr('y1', 0)
+            .attr('y2', innerHeight)
+            .attr('stroke', '#6b6b6b')
+            .attr('stroke-width', 1.5)
+            .attr('stroke-dasharray', '4 4')
+            .style('opacity', 0);
+
+        const hoverCapture = svg.append('rect')
+            .attr('class', 'reporting-hover-capture')
+            .attr('width', innerWidth)
+            .attr('height', innerHeight)
+            .attr('fill', 'transparent')
+            .style('pointer-events', 'all');
+
+        const handleHoverMove = (event) => {
+            const [x] = d3.pointer(event);
+            const clampedX = Math.max(0, Math.min(innerWidth, x));
+            hoverLine
+                .attr('x1', clampedX)
+                .attr('x2', clampedX)
+                .style('opacity', 1);
+        };
+
+        hoverCapture.on('mousemove.hoverline', handleHoverMove);
 
         const colors = d3.scaleOrdinal()
             .domain(statusKeys.map((s) => s.key))
@@ -187,7 +220,8 @@
 
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
-        const xScale = buildTimeScale(innerWidth);
+        const { bounds, ticks } = getTimeDomainMeta();
+        const xScale = d3.scaleTime().domain(bounds).range([0, innerWidth]);
 
         const stackData = dataset.map((item, index) => {
             const newCount = Math.max(0, Number(item.new_trials || 0));
@@ -216,7 +250,7 @@
             .range([innerHeight, 0]);
 
         const xAxis = d3.axisBottom(xScale)
-            .ticks(Math.min(dataset.length, 8))
+            .tickValues(ticks)
             .tickFormat(d3.timeFormat('%b %Y'));
         const yAxis = d3.axisLeft(yScale).ticks(5).tickFormat(d3.format('d'));
 
@@ -249,7 +283,10 @@
             .enter()
             .append('g')
             .attr('class', 'stack-bar')
-            .attr('transform', (d) => `translate(${xScale(d.date) - (barWidth / 2)},0)`);
+            .attr('transform', (d) => {
+                const xPos = Math.max(2, xScale(d.date) - (barWidth / 2));
+                return `translate(${xPos},0)`;
+            });
 
         bars.selectAll('rect')
             .data((d) => {

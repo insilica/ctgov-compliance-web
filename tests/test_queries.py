@@ -731,8 +731,10 @@ def test_get_trial_cumulative_time_series_default(mock_query):
     mock_query.assert_called_once()
     sql, params = mock_query.call_args[0]
     assert 'WITH trials_with_status AS' in sql
-    assert 'PARTITION BY compliance_status' in sql
-    assert 'ORDER BY period_start ASC, compliance_status ASC' in sql
+    assert 'monthly_completed AS' in sql
+    assert 'avg_reporting_delay_days' in sql
+    assert 'new_trials' in sql
+    assert 'ORDER BY cumulative_counts.period_start ASC, cumulative_counts.compliance_status ASC' in sql
     assert params == []
 
 
