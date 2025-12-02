@@ -523,7 +523,15 @@ class QueryManager:
         
         return critical_issues
 
-    def get_organization_risk_analysis(self, min_compliance=None, max_compliance=None, min_trials=None, max_trials=None):
+    def get_organization_risk_analysis(
+        self,
+        min_compliance=None,
+        max_compliance=None,
+        min_trials=None,
+        max_trials=None,
+        funding_source_class=None,
+        organization_name=None
+    ):
         """Get enhanced organization compliance with risk analysis."""
         sql = '''
         SELECT 
@@ -550,32 +558,57 @@ class QueryManager:
             MAX(tc.last_checked) AS last_compliance_check
         FROM organization o
         LEFT JOIN trial t ON o.id = t.organization_id
-        LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
-        GROUP BY o.id, o.name
-        '''
+        LEFT JOIN trial_compliance tc ON t.id = tc.trial_id'''
         
-        having_clauses = []
+        where_clauses = []
         params = []
+        having_clauses = []
+        having_params = []
+
+        if funding_source_class:
+            where_clauses.append('o.funding_source_class = %s')
+            params.append(funding_source_class)
+        if organization_name:
+            where_clauses.append('o.name ILIKE %s')
+            params.append(f'%{organization_name}%')
+        
+        if where_clauses:
+            sql += '\nWHERE ' + ' AND '.join(where_clauses)
+
+        sql += '\nGROUP BY o.id, o.name'
         
         if min_compliance is not None:
             having_clauses.append('(SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) >= %s')
-            params.append(min_compliance)
+            having_params.append(min_compliance)
         if max_compliance is not None:
             having_clauses.append('(SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) <= %s')
-            params.append(max_compliance)
+            having_params.append(max_compliance)
         if min_trials is not None:
             having_clauses.append('COUNT(t.id) >= %s')
-            params.append(min_trials)
+            having_params.append(min_trials)
         if max_trials is not None:
             having_clauses.append('COUNT(t.id) <= %s')
-            params.append(max_trials)
+            having_params.append(max_trials)
         
         if having_clauses:
             sql += ' HAVING ' + ' AND '.join(having_clauses)
+            params.extend(having_params)
         
         sql += '\nORDER BY (SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) ASC'
         
         return query(sql, params)
+
+    @tracer.start_as_current_span("queries.get_funding_source_classes")
+    def get_funding_source_classes(self):
+        """Return distinct funding source categories."""
+        sql = '''
+            SELECT DISTINCT funding_source_class
+            FROM organization
+            WHERE funding_source_class IS NOT NULL AND funding_source_class <> ''
+            ORDER BY funding_source_class
+        '''
+        rows = query(sql)
+        return [row['funding_source_class'] for row in rows if row.get('funding_source_class')]
 
     @tracer.start_as_current_span("queries.get_trial_cumulative_time_series")
     def get_trial_cumulative_time_series(self, start_date=None, end_date=None):

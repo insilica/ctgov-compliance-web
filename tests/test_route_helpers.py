@@ -241,6 +241,17 @@ class TestProcessReportingRequest:
             'trials_with_issues_count': 1,
             'avg_reporting_delay_days': 4
         }]
+        mock_qm.get_organization_risk_analysis.return_value = [
+            {
+                'name': 'Org A',
+                'total_trials': 5,
+                'on_time_count': 3,
+                'late_count': 2,
+                'pending_count': 0,
+                'high_risk_trials': 1
+            }
+        ]
+        mock_qm.get_funding_source_classes.return_value = ['Academic', 'Industry']
 
         result = process_reporting_request('2024-01-01', '2024-03-15', QueryManager=mock_qm)
 
@@ -249,6 +260,13 @@ class TestProcessReportingRequest:
             end_date='2024-03-15'
         )
         mock_qm.get_reporting_metrics.assert_called_once()
+        mock_qm.get_organization_risk_analysis.assert_called_once_with(
+            min_compliance=None,
+            max_compliance=None,
+            funding_source_class=None,
+            organization_name=None
+        )
+        mock_qm.get_funding_source_classes.assert_called_once()
         assert result['template'] == 'reporting.html'
         assert result['start_date'] == '2024-01-01'
         assert result['end_date'] == '2024-03-15'
@@ -273,6 +291,15 @@ class TestProcessReportingRequest:
         assert first_month['avg_reporting_delay_days'] == 5.5
         assert third_month['avg_reporting_delay_days'] is None
         assert result['kpis']['total_trials'] == 3
+        assert result['action_items']
+        assert result['action_items'][0]['name'] == 'Org A'
+        assert result['action_filter_values'] == {
+            'min_compliance': '',
+            'max_compliance': '',
+            'funding_source_class': '',
+            'organization': ''
+        }
+        assert result['action_filter_options']['funding_source_classes'] == ['Academic', 'Industry']
 
     @patch('web.utils.route_helpers.date')
     def test_reporting_request_defaults(self, mock_date_cls):
@@ -281,6 +308,8 @@ class TestProcessReportingRequest:
         mock_qm = MagicMock()
         mock_qm.get_trial_cumulative_time_series.return_value = []
         mock_qm.get_reporting_metrics.return_value = [{'total_trials': 0, 'compliant_count': 0, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
+        mock_qm.get_organization_risk_analysis.return_value = []
+        mock_qm.get_funding_source_classes.return_value = []
 
         result = process_reporting_request(QueryManager=mock_qm)
 
@@ -291,12 +320,22 @@ class TestProcessReportingRequest:
             end_date='2024-04-30'
         )
         mock_qm.get_reporting_metrics.assert_called_once()
+        mock_qm.get_organization_risk_analysis.assert_called_once_with(
+            min_compliance=None,
+            max_compliance=None,
+            funding_source_class=None,
+            organization_name=None
+        )
+        mock_qm.get_funding_source_classes.assert_called_once()
         assert result['kpis']['total_trials'] == 0
+        assert result['action_items'] == []
 
     def test_reporting_request_swaps_dates(self):
         mock_qm = MagicMock()
         mock_qm.get_trial_cumulative_time_series.return_value = []
         mock_qm.get_reporting_metrics.return_value = [{'total_trials': 1, 'compliant_count': 1, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
+        mock_qm.get_organization_risk_analysis.return_value = []
+        mock_qm.get_funding_source_classes.return_value = []
 
         result = process_reporting_request('2024-03-10', '2024-03-01', QueryManager=mock_qm)
 
@@ -307,4 +346,34 @@ class TestProcessReportingRequest:
             end_date='2024-03-10'
         )
         mock_qm.get_reporting_metrics.assert_called_once()
+        mock_qm.get_organization_risk_analysis.assert_called_once_with(
+            min_compliance=None,
+            max_compliance=None,
+            funding_source_class=None,
+            organization_name=None
+        )
+        mock_qm.get_funding_source_classes.assert_called_once()
         assert result['kpis']['overall_compliance_rate'] == 100.0
+        assert result['action_items'] == []
+
+    def test_reporting_request_with_filters(self):
+        mock_qm = MagicMock()
+        mock_qm.get_trial_cumulative_time_series.return_value = []
+        mock_qm.get_reporting_metrics.return_value = [{'total_trials': 0, 'compliant_count': 0, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
+        mock_qm.get_organization_risk_analysis.return_value = []
+        mock_qm.get_funding_source_classes.return_value = ['Academic']
+        filters = {
+            'min_compliance': '75',
+            'max_compliance': '90',
+            'funding_source_class': 'Academic',
+            'organization': 'Health'
+        }
+
+        process_reporting_request(filters=filters, QueryManager=mock_qm)
+
+        mock_qm.get_organization_risk_analysis.assert_called_once_with(
+            min_compliance=75,
+            max_compliance=90,
+            funding_source_class='Academic',
+            organization_name='Health'
+        )

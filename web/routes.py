@@ -192,7 +192,13 @@ def reporting_dashboard():
         current_span.set_attribute("filters.start_date", start_date)
     if end_date:
         current_span.set_attribute("filters.end_date", end_date)
-    template_data = process_reporting_request(start_date, end_date, QueryManager=qm)
+    filter_args = {
+        'min_compliance': request.args.get('min_compliance'),
+        'max_compliance': request.args.get('max_compliance'),
+        'funding_source_class': request.args.get('funding_source_class'),
+        'organization': request.args.get('organization')
+    }
+    template_data = process_reporting_request(start_date, end_date, filters=filter_args, QueryManager=qm)
     return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
 
 @bp.route('/api/reporting/time-series')
@@ -201,7 +207,13 @@ def reporting_dashboard():
 def reporting_time_series():
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
-    data = process_reporting_request(start_date, end_date, QueryManager=qm)
+    filter_args = {
+        'min_compliance': request.args.get('min_compliance'),
+        'max_compliance': request.args.get('max_compliance'),
+        'funding_source_class': request.args.get('funding_source_class'),
+        'organization': request.args.get('organization')
+    }
+    data = process_reporting_request(start_date, end_date, filters=filter_args, QueryManager=qm)
     return jsonify({
         'time_series': data['time_series'],
         'status_keys': data['status_keys'],
@@ -240,8 +252,17 @@ def export_csv():
         max_compliance = request.args.get('max_compliance')
         min_trials = request.args.get('min_trials')
         max_trials = request.args.get('max_trials')
+        funding_source_class = request.args.get('funding_source_class')
+        organization_name = request.args.get('organization')
         
-        org_compliance = qm.get_organization_risk_analysis(min_compliance, max_compliance, min_trials, max_trials)
+        org_compliance = qm.get_organization_risk_analysis(
+            min_compliance=min_compliance,
+            max_compliance=max_compliance,
+            min_trials=min_trials,
+            max_trials=max_trials,
+            funding_source_class=funding_source_class,
+            organization_name=organization_name
+        )
         data = org_compliance
         filename = 'organizations_compliance_export'
         
@@ -380,9 +401,18 @@ def print_report():
         max_compliance = request.args.get('max_compliance')
         min_trials = request.args.get('min_trials')
         max_trials = request.args.get('max_trials')
+        funding_source_class = request.args.get('funding_source_class')
+        organization_name = request.args.get('organization')
         
         # Use enhanced organization analysis
-        org_compliance = qm.get_organization_risk_analysis(min_compliance, max_compliance, min_trials, max_trials)
+        org_compliance = qm.get_organization_risk_analysis(
+            min_compliance=min_compliance,
+            max_compliance=max_compliance,
+            min_trials=min_trials,
+            max_trials=max_trials,
+            funding_source_class=funding_source_class,
+            organization_name=organization_name
+        )
         template_data = {
             'org_compliance': org_compliance,
             'on_time_count': sum(org.get('on_time_count', 0) for org in org_compliance),

@@ -1494,12 +1494,122 @@ kbd {
 
 .reporting-page {
     color: var(--text-primary);
+    width: 100%;
+}
+
+.reporting-page.grid-container-widescreen {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: clamp(1rem, 3vw, 2.5rem);
+    padding-right: clamp(1rem, 3vw, 2.5rem);
 }
 
 .reporting-page .usa-label,
 .reporting-page .usa-hint,
 .reporting-page label {
     color: var(--text-primary);
+}
+
+.control-center-header .page-title {
+    font-size: clamp(1.75rem, 3vw, 2.4rem);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.control-center-header .page-lede {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.action-items-sidebar {
+    position: relative;
+}
+
+@media (min-width: 64em) {
+    .action-items-sidebar {
+        position: sticky;
+        top: 2rem;
+        align-self: flex-start;
+    }
+}
+
+.action-items-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.action-items-panel__body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.action-item-card {
+    border: 1px solid var(--border-subtle, #dfe1e2);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: var(--surface-color);
+    box-shadow: var(--shadow-xs, 0 1px 2px rgba(0, 0, 0, 0.12));
+}
+
+.action-item-card__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.action-item-card__title {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.action-item-card__metric {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.action-item-card__value {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.action-item-card__hint {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.action-item-card__summary {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.action-item-card__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.action-item-card__list-item {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.95rem;
+}
+
+.action-chip {
+    border-radius: 999px;
+    padding: 0.1rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.action-chip--email {
+    background: #e3f2fd;
+    color: #0f62a4;
 }
 
 .status-color-compliant .kpi-label,

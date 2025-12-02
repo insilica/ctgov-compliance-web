@@ -149,6 +149,39 @@ def parse_request_arg(val):
     return int(val) if val and val.isdigit() else None
 
 
+def _extract_action_filter_params(filters=None):
+    """Normalize sidebar filter params for the action items list."""
+    filters = filters or {}
+
+    def _clean_int(value):
+        value = value.strip() if isinstance(value, str) else None
+        return int(value) if value and value.isdigit() else None
+
+    def _clean_text(value):
+        return value.strip() if isinstance(value, str) else ''
+
+    min_compliance_raw = filters.get('min_compliance')
+    max_compliance_raw = filters.get('max_compliance')
+    funding_source_raw = filters.get('funding_source_class')
+    organization_raw = filters.get('organization')
+
+    query_filters = {
+        'min_compliance': _clean_int(min_compliance_raw) if min_compliance_raw is not None else None,
+        'max_compliance': _clean_int(max_compliance_raw) if max_compliance_raw is not None else None,
+        'funding_source_class': _clean_text(funding_source_raw) or None,
+        'organization': _clean_text(organization_raw) or None
+    }
+
+    form_values = {
+        'min_compliance': _clean_text(min_compliance_raw) if min_compliance_raw is not None else '',
+        'max_compliance': _clean_text(max_compliance_raw) if max_compliance_raw is not None else '',
+        'funding_source_class': _clean_text(funding_source_raw) if funding_source_raw is not None else '',
+        'organization': _clean_text(organization_raw) if organization_raw is not None else ''
+    }
+
+    return query_filters, form_values
+
+
 def _parse_iso_date(value):
     """Parse YYYY-MM-DD strings into date objects."""
     if not value:
@@ -186,9 +219,16 @@ def _add_one_month(dt):
 
 
 @tracer.start_as_current_span("route_helpers.process_reporting_request")
-def process_reporting_request(start_date=None, end_date=None, QueryManager=QueryManager()):
+def process_reporting_request(start_date=None, end_date=None, filters=None, QueryManager=QueryManager()):
     """Build template context for the reporting dashboard."""
     current_span = trace.get_current_span()
+    filter_params, filter_form_values = _extract_action_filter_params(filters)
+    current_span.set_attribute("reporting.filters.min_compliance", filter_params.get('min_compliance') if filter_params.get('min_compliance') is not None else -1)
+    current_span.set_attribute("reporting.filters.max_compliance", filter_params.get('max_compliance') if filter_params.get('max_compliance') is not None else -1)
+    if filter_params.get('funding_source_class'):
+        current_span.set_attribute("reporting.filters.funding_source_class", filter_params['funding_source_class'])
+    if filter_params.get('organization'):
+        current_span.set_attribute("reporting.filters.organization", filter_params['organization'])
     start_dt = _parse_iso_date(start_date)
     end_dt = _parse_iso_date(end_date)
 
@@ -214,6 +254,15 @@ def process_reporting_request(start_date=None, end_date=None, QueryManager=Query
     kpis = build_reporting_kpis(kpi_rows[0] if kpi_rows else None)
     current_span.set_attribute("reporting.total_trials", kpis.get('total_trials', 0))
     current_span.set_attribute("reporting.compliance_rate", kpis.get('overall_compliance_rate', 0))
+    org_compliance_rows = QueryManager.get_organization_risk_analysis(
+        min_compliance=filter_params.get('min_compliance'),
+        max_compliance=filter_params.get('max_compliance'),
+        funding_source_class=filter_params.get('funding_source_class'),
+        organization_name=filter_params.get('organization')
+    )
+    funding_source_options = QueryManager.get_funding_source_classes()
+    action_items = _build_org_action_items(org_compliance_rows)
+    current_span.set_attribute("reporting.action_items", len(action_items))
 
     status_order = list(DEFAULT_STATUS_ORDER)
     monthly_lookup = {}
@@ -300,10 +349,102 @@ def process_reporting_request(start_date=None, end_date=None, QueryManager=Query
         'start_date': start_iso,
         'end_date': end_iso,
         'latest_point': time_series[-1] if time_series else None,
-        'kpis': kpis
+        'kpis': kpis,
+        'action_items': action_items,
+        'action_filter_values': filter_form_values,
+        'action_filter_options': {
+            'funding_source_classes': funding_source_options
+        }
     }
     current_span.set_attribute("reporting.data_points", len(time_series))
     return context
+
+
+def _build_org_action_items(org_rows):
+    """Create structured action items for organizations below 100% compliance."""
+    action_items = []
+    if not org_rows:
+        return action_items
+
+    for org in org_rows:
+        total_trials = org.get('total_trials') or 0
+        if not total_trials:
+            continue
+        on_time = org.get('on_time_count') or 0
+        compliance_rate = round((on_time / total_trials) * 100, 1)
+        if compliance_rate >= 100:
+            continue
+        late = org.get('late_count') or 0
+        pending = org.get('pending_count') or 0
+        high_risk = org.get('high_risk_trials') or 0
+
+        actions = []
+        if late:
+            actions.append({
+                'label': f"Email reporting lead about {late} late trial{'s' if late != 1 else ''}",
+                'type': 'email'
+            })
+        if not actions:
+            actions.append({
+                'label': 'Contact organization to confirm reporting cadence',
+                'type': 'email'
+            })
+
+        action_items.append({
+            'name': org.get('name') or 'Unnamed organization',
+            'compliance_rate': compliance_rate,
+            'late_count': late,
+            'pending_count': pending,
+            'high_risk_trials': high_risk,
+            'total_trials': total_trials,
+            'last_compliance_check': org.get('last_compliance_check'),
+            'actions': actions
+        })
+
+    # Sort by lowest compliance to highlight riskiest first
+    action_items.sort(key=lambda org: org.get('compliance_rate', 100))
+    return action_items
+
+
+def _build_summary_tiles(latest_point, kpis, months_tracked, first_month_label):
+    """Build the six-tile grid that sits beside the date filter."""
+    tiles = []
+    month_label = latest_point.get('month_label') if latest_point else None
+    cumulative_total = latest_point.get('total_cumulative', 0) if latest_point else 0
+    statuses = latest_point.get('statuses', {}) if latest_point else {}
+    compliant_status = statuses.get('compliant', {})
+
+    tiles.append({
+        'label': 'Cumulative trials',
+        'value': cumulative_total,
+        'subtext': f"Through {month_label}" if month_label else None
+    })
+    tiles.append({
+        'label': 'Compliant trials',
+        'value': compliant_status.get('cumulative', 0),
+        'subtext': f"+{compliant_status.get('monthly', 0)} this month" if month_label else None
+    })
+    tiles.append({
+        'label': 'Total trials',
+        'value': kpis.get('total_trials', 0),
+        'subtext': 'All time'
+    })
+    tiles.append({
+        'label': 'Compliance rate',
+        'value': f"{kpis.get('overall_compliance_rate', 0)}%",
+        'subtext': 'Overall'
+    })
+    tiles.append({
+        'label': 'Trials with issues',
+        'value': kpis.get('trials_with_issues_count', 0),
+        'subtext': f"{kpis.get('trials_with_issues_pct', 0)}% of total"
+    })
+    tiles.append({
+        'label': 'Months tracked',
+        'value': months_tracked,
+        'subtext': f"Since {first_month_label}" if first_month_label else None
+    })
+    return tiles
 
 
 @tracer.start_as_current_span("route_helpers.process_compare_organizations_request")

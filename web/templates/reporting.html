@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% block title %}Reporting{% endblock title %}
+{% block title %}Control Center{% endblock title %}
 {% block content %}
 <div class="reporting-page grid-container-widescreen width-full margin-x-auto padding-y-4">
     <div class="grid-row grid-gap">
@@ -20,6 +20,10 @@
                         </div>
                     </div>
                 </fieldset>
+                <input type="hidden" name="min_compliance" value="{{ action_filter_values.min_compliance }}">
+                <input type="hidden" name="max_compliance" value="{{ action_filter_values.max_compliance }}">
+                <input type="hidden" name="funding_source_class" value="{{ action_filter_values.funding_source_class }}">
+                <input type="hidden" name="organization" value="{{ action_filter_values.organization }}">
                 <div class="reporting-filter-actions margin-top-2">
                     <button class="usa-button reporting-filter-button" type="submit">
                         Update range
@@ -31,41 +35,49 @@
             </form>
         </div>
 
-        <!-- Main Content -->
+        <!-- Main Content + Action Items -->
         <div class="desktop:grid-col-9">
-            <section class="reporting-kpi-strip usa-card shadow-2 margin-bottom-3" aria-label="Key performance indicators">
-                <div class="reporting-kpi-card">
-                    <p class="kpi-label text-uppercase text-semibold" id="totalTrialsLabel">Total Trials</p>
-                    <div class="kpi-visual" data-kpi="totalTrials" aria-labelledby="totalTrialsLabel">
-                        <span class="kpi-fallback-value">{{ kpis.total_trials }}</span>
-                    </div>
-                    <p class="kpi-subtext">Active across this window</p>
-                </div>
-                <div class="reporting-kpi-card">
-                    <p class="kpi-label text-uppercase text-semibold" id="complianceGaugeLabel">Overall Compliance Rate</p>
-                    <div class="kpi-visual kpi-visual--gauge" data-kpi="complianceGauge" role="img"
-                        aria-labelledby="complianceGaugeLabel complianceGaugeDesc">
-                        <span id="complianceGaugeDesc" class="usa-sr-only">
-                            {{ kpis.overall_compliance_rate }} percent compliant to date.
-                        </span>
-                        <span class="kpi-fallback-value">{{ kpis.overall_compliance_rate }}%</span>
-                    </div>
-                </div>
-                <div class="reporting-kpi-card">
-                    <p class="kpi-label text-uppercase text-semibold" id="issueCountLabel">Trials with Issues</p>
-                    <div class="kpi-visual" data-kpi="issueCount" aria-labelledby="issueCountLabel">
-                        <span class="kpi-fallback-value">{{ kpis.trials_with_issues_count }}</span>
-                    </div>
-                    <p class="kpi-subtext">{{ kpis.trials_with_issues_pct }}% of total</p>
-                </div>
-                <div class="reporting-kpi-card">
-                    <p class="kpi-label text-uppercase text-semibold" id="avgDelayLabel">Average Reporting Delay</p>
-                    <div class="kpi-visual" data-kpi="avgDelay" aria-labelledby="avgDelayLabel">
-                        <span class="kpi-fallback-value">{{ kpis.avg_reporting_delay_days }} days</span>
-                    </div>
-                    <p class="kpi-subtext">Among overdue submissions</p>
-                </div>
-            </section>
+            <div class="grid-row grid-gap">
+                <div class="desktop:grid-col-8">
+                    <header class="control-center-header margin-bottom-3">
+                        <p class="kpi-label text-uppercase text-semibold margin-0">Control Center</p>
+                        <h1 class="page-title margin-y-1">Compliance Control Center</h1>
+                        <p class="page-lede margin-0">Track clinical trial performance and intervene quickly with at-risk
+                            organizations.</p>
+                    </header>
+                    <section class="reporting-kpi-strip usa-card shadow-2 margin-bottom-3" aria-label="Key performance indicators">
+                        <div class="reporting-kpi-card">
+                            <p class="kpi-label text-uppercase text-semibold" id="totalTrialsLabel">Total Trials</p>
+                            <div class="kpi-visual" data-kpi="totalTrials" aria-labelledby="totalTrialsLabel">
+                                <span class="kpi-fallback-value">{{ kpis.total_trials }}</span>
+                            </div>
+                            <p class="kpi-subtext">Active across this window</p>
+                        </div>
+                        <div class="reporting-kpi-card">
+                            <p class="kpi-label text-uppercase text-semibold" id="complianceGaugeLabel">Overall Compliance Rate</p>
+                            <div class="kpi-visual kpi-visual--gauge" data-kpi="complianceGauge" role="img"
+                                aria-labelledby="complianceGaugeLabel complianceGaugeDesc">
+                                <span id="complianceGaugeDesc" class="usa-sr-only">
+                                    {{ kpis.overall_compliance_rate }} percent compliant to date.
+                                </span>
+                                <span class="kpi-fallback-value">{{ kpis.overall_compliance_rate }}%</span>
+                            </div>
+                        </div>
+                        <div class="reporting-kpi-card">
+                            <p class="kpi-label text-uppercase text-semibold" id="issueCountLabel">Trials with Issues</p>
+                            <div class="kpi-visual" data-kpi="issueCount" aria-labelledby="issueCountLabel">
+                                <span class="kpi-fallback-value">{{ kpis.trials_with_issues_count }}</span>
+                            </div>
+                            <p class="kpi-subtext">{{ kpis.trials_with_issues_pct }}% of total</p>
+                        </div>
+                        <div class="reporting-kpi-card">
+                            <p class="kpi-label text-uppercase text-semibold" id="avgDelayLabel">Average Reporting Delay</p>
+                            <div class="kpi-visual" data-kpi="avgDelay" aria-labelledby="avgDelayLabel">
+                                <span class="kpi-fallback-value">{{ kpis.avg_reporting_delay_days }} days</span>
+                            </div>
+                            <p class="kpi-subtext">Among overdue submissions</p>
+                        </div>
+                    </section>
             <div class="usa-card shadow-2">
                 <div class="usa-card__header">
                     <h2 class="usa-card__heading margin-0">Compliance status timeline</h2>
@@ -134,6 +146,88 @@
                     <p class="usa-hint margin-top-2">No trial starts found for the selected time range.</p>
                     {% endif %}
                 </div>
+            </div>
+                </div>
+                <aside class="desktop:grid-col-4 action-items-sidebar" aria-label="Action Items">
+                    <div class="usa-card shadow-2 action-items-panel">
+                        <div class="usa-card__header">
+                            <h2 class="usa-card__heading margin-0">Action Items</h2>
+                            <p class="usa-card__lede margin-0">Focus on organizations that need hands-on follow up.</p>
+                        </div>
+                        <div class="usa-card__body action-items-panel__body">
+                            <form method="get" class="margin-bottom-3 action-items-filter-form">
+                                <input type="hidden" name="start_date" value="{{ start_date }}">
+                                <input type="hidden" name="end_date" value="{{ end_date }}">
+                                <fieldset class="usa-fieldset margin-0">
+                                    <legend class="usa-legend text-semibold text-uppercase">Filter organizations</legend>
+                                    <div class="grid-row grid-gap">
+                                        <div class="grid-col-6">
+                                            <label class="usa-label" for="min_compliance_filter">Min compliance (%)</label>
+                                            <input class="usa-input" type="number" id="min_compliance_filter" name="min_compliance" min="0" max="100" step="1"
+                                                value="{{ action_filter_values.min_compliance }}">
+                                        </div>
+                                        <div class="grid-col-6">
+                                            <label class="usa-label" for="max_compliance_filter">Max compliance (%)</label>
+                                            <input class="usa-input" type="number" id="max_compliance_filter" name="max_compliance" min="0" max="100" step="1"
+                                                value="{{ action_filter_values.max_compliance }}">
+                                        </div>
+                                        <div class="grid-col-12">
+                                            <label class="usa-label" for="funding_source_class">Funding source</label>
+                                            <select class="usa-select" id="funding_source_class" name="funding_source_class">
+                                                <option value="">All funding sources</option>
+                                                {% for option in action_filter_options.funding_source_classes %}
+                                                <option value="{{ option }}" {% if option == action_filter_values.funding_source_class %}selected{% endif %}>{{ option }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="grid-col-12">
+                                            <label class="usa-label" for="organization_filter">Organization name</label>
+                                            <input class="usa-input" type="text" id="organization_filter" name="organization" placeholder="Search organization"
+                                                value="{{ action_filter_values.organization }}">
+                                        </div>
+                                    </div>
+                                </fieldset>
+                                <div class="display-flex flex-justify margin-top-2">
+                                    <button class="usa-button usa-button--secondary width-auto" type="submit">Apply filters</button>
+                                    <a class="usa-button usa-button--unstyled text-semibold" href="{{ url_for('routes.reporting_dashboard', start_date=start_date, end_date=end_date) }}">Reset</a>
+                                </div>
+                            </form>
+                            {% if action_items %}
+                            {% for org in action_items %}
+                            <article class="action-item-card">
+                                <div class="action-item-card__header">
+                                    <div>
+                                        <p class="action-item-card__label text-uppercase text-semibold margin-0">
+                                            Organization
+                                        </p>
+                                        <h3 class="action-item-card__title margin-y-05">{{ org.name }}</h3>
+                                    </div>
+                                    <div class="action-item-card__metric text-right">
+                                        <span class="action-item-card__value">{{ org.compliance_rate }}%</span>
+                                        <span class="action-item-card__hint">compliant</span>
+                                    </div>
+                                </div>
+                                <p class="action-item-card__summary margin-y-1">
+                                    {{ org.late_count }} late · {{ org.pending_count }} pending
+                                </p>
+                                <ul class="action-item-card__list usa-list--unstyled margin-0">
+                                    {% for task in org.actions %}
+                                    <li class="action-item-card__list-item">
+                                        <span class="action-chip action-chip--{{ task.type }}">
+                                            {{ task.type|capitalize }}
+                                        </span>
+                                        <span>{{ task.label }}</span>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </article>
+                            {% endfor %}
+                            {% else %}
+                            <p class="usa-hint margin-0">All organizations are fully compliant. Great work!</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </aside>
             </div>
         </div>
     </div>

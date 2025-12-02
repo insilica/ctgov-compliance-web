@@ -71,12 +71,14 @@ development server:
 flask run --host 0.0.0.0 --port 6525
 ```
 
-### Reporting Landing Page
+### Control Center
 
-The reporting dashboard lives at `/reporting` and surfaces cumulative trial
+The Control Center lives at `/reporting` and surfaces cumulative trial
 starts over time. It renders a D3.js chart that visualizes running totals
 bucketed by each trial's `start_date` month, differentiated by compliance
 status (Compliant, Incompliant, Pending) using the server-provided dataset.
+An action-items sidebar highlights organizations based on compliance rate, 
+funding source class, and organization name filters.
 
 - Adjust the `start_date` and `end_date` query parameters (or use the built-in
   form) to focus on a specific window.

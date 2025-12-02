@@ -1514,6 +1514,16 @@ def test_reporting_dashboard_route(auth_client):
             'trials_with_issues_pct': 20.0,
             'avg_reporting_delay_days': 2.0,
             'has_data': True
+        },
+        'action_items': [],
+        'action_filter_values': {
+            'min_compliance': '',
+            'max_compliance': '',
+            'funding_source_class': '',
+            'organization': ''
+        },
+        'action_filter_options': {
+            'funding_source_classes': []
         }
     }
     with patch('web.routes.process_reporting_request') as mock_helper, \
@@ -1525,7 +1535,17 @@ def test_reporting_dashboard_route(auth_client):
 
         assert response.status_code == 200
         assert response.data.decode() == 'rendered'
-        mock_helper.assert_called_once_with('2024-01-01', '2024-01-05', QueryManager=ANY)
+        mock_helper.assert_called_once_with(
+            '2024-01-01',
+            '2024-01-05',
+            filters={
+                'min_compliance': None,
+                'max_compliance': None,
+                'funding_source_class': None,
+                'organization': None
+            },
+            QueryManager=ANY
+        )
         mock_render.assert_called_once_with(
             'reporting.html',
             time_series=template_payload['time_series'],
@@ -1533,7 +1553,10 @@ def test_reporting_dashboard_route(auth_client):
             latest_point=template_payload['latest_point'],
             start_date='2024-01-01',
             end_date='2024-01-05',
-            kpis=template_payload['kpis']
+            kpis=template_payload['kpis'],
+            action_items=[],
+            action_filter_values=template_payload['action_filter_values'],
+            action_filter_options=template_payload['action_filter_options']
         )
 
 
@@ -1588,7 +1611,17 @@ def test_reporting_time_series_api(auth_client):
             'end_date': '2024-02-10',
             'kpis': helper_payload['kpis']
         }
-        mock_helper.assert_called_once_with('2024-02-01', None, QueryManager=ANY)
+        mock_helper.assert_called_once_with(
+            '2024-02-01',
+            None,
+            filters={
+                'min_compliance': None,
+                'max_compliance': None,
+                'funding_source_class': None,
+                'organization': None
+            },
+            QueryManager=ANY
+        )
 
 
 # The comprehensive edge case tests above provide excellent coverage for all route logic
