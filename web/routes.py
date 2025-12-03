@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, make_response
+from flask import Blueprint, render_template, stream_template, request, jsonify, make_response
 from flask_login import login_required, current_user    # pragma: no cover, current_user
 import csv
 import io
@@ -206,7 +206,7 @@ def reporting_dashboard():
         focus_org_id=focus_org_id,
         QueryManager=qm
     )
-    return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
+    return stream_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
 
 @bp.route('/api/reporting/time-series')
 @login_required    # pragma: no cover

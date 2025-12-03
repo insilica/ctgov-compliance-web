@@ -1530,9 +1530,9 @@ def test_reporting_dashboard_route(auth_client):
         'focus_org_id': None
     }
     with patch('web.routes.process_reporting_request') as mock_helper, \
-         patch('web.routes.render_template') as mock_render:
+         patch('web.routes.stream_template') as mock_stream:
         mock_helper.return_value = template_payload
-        mock_render.return_value = 'rendered'
+        mock_stream.return_value = iter(['rendered'])
 
         response = auth_client.get('/reporting?start_date=2024-01-01&end_date=2024-01-05')
 
@@ -1550,7 +1550,7 @@ def test_reporting_dashboard_route(auth_client):
             focus_org_id=None,
             QueryManager=ANY
         )
-        mock_render.assert_called_once_with(
+        mock_stream.assert_called_once_with(
             'reporting.html',
             time_series=template_payload['time_series'],
             status_keys=template_payload['status_keys'],
