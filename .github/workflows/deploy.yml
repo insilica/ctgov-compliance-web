@@ -20,6 +20,9 @@ jobs:
       id-token: write
 
     runs-on: ubuntu-latest
+    outputs:
+      image-digest: ${{ steps.build-image.outputs.digest }}
+      image-uri: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -112,7 +115,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ctgov-web-preview-pr-${{ github.event.pull_request.number }}
-          image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/ctgov-compliance-web:pr-${{ github.event.pull_request.number }}
+          image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/ctgov-compliance-web@${{ needs.build-push.outputs.image-digest }}
           region: ${{ secrets.GCP_REGION }}
           flags: |
             --port=6525
