@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, make_response
+from flask import Blueprint, render_template, stream_template, request, jsonify, make_response
 from flask_login import login_required, current_user    # pragma: no cover, current_user
 import csv
 import io
@@ -9,6 +9,7 @@ from .utils.route_helpers import (
     process_organization_dashboard_request,
     process_compare_organizations_request,
     process_user_dashboard_request,
+    process_reporting_request,
 )
 from .utils.queries import (
     QueryManager,
@@ -180,6 +181,54 @@ def show_user_dashboard(user_id):
     template_data = process_user_dashboard_request(user_id, current_user_getter, QueryManager=qm)
     return render_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
 
+@bp.route('/reporting')
+@login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.reporting_dashboard")
+def reporting_dashboard():
+    current_span = trace.get_current_span()
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    focus_org_id = request.args.get('org_focus', type=int)
+    if start_date:
+        current_span.set_attribute("filters.start_date", start_date)
+    if end_date:
+        current_span.set_attribute("filters.end_date", end_date)
+    filter_args = {
+        'min_compliance': request.args.get('min_compliance'),
+        'max_compliance': request.args.get('max_compliance'),
+        'funding_source_class': request.args.get('funding_source_class'),
+        'organization': request.args.get('organization')
+    }
+    template_data = process_reporting_request(
+        start_date,
+        end_date,
+        filters=filter_args,
+        focus_org_id=focus_org_id,
+        QueryManager=qm
+    )
+    return stream_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
+
+@bp.route('/api/reporting/time-series')
+@login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.reporting_time_series")
+def reporting_time_series():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    filter_args = {
+        'min_compliance': request.args.get('min_compliance'),
+        'max_compliance': request.args.get('max_compliance'),
+        'funding_source_class': request.args.get('funding_source_class'),
+        'organization': request.args.get('organization')
+    }
+    data = process_reporting_request(start_date, end_date, filters=filter_args, focus_org_id=None, QueryManager=qm)
+    return jsonify({
+        'time_series': data['time_series'],
+        'status_keys': data['status_keys'],
+        'start_date': data['start_date'],
+        'end_date': data['end_date'],
+        'kpis': data['kpis']
+    })
+
 # CSV Export Route
 @bp.route('/export/csv')
 @login_required    # pragma: no cover
@@ -210,8 +259,17 @@ def export_csv():
         max_compliance = request.args.get('max_compliance')
         min_trials = request.args.get('min_trials')
         max_trials = request.args.get('max_trials')
+        funding_source_class = request.args.get('funding_source_class')
+        organization_name = request.args.get('organization')
         
-        org_compliance = qm.get_organization_risk_analysis(min_compliance, max_compliance, min_trials, max_trials)
+        org_compliance = qm.get_organization_risk_analysis(
+            min_compliance=min_compliance,
+            max_compliance=max_compliance,
+            min_trials=min_trials,
+            max_trials=max_trials,
+            funding_source_class=funding_source_class,
+            organization_name=organization_name
+        )
         data = org_compliance
         filename = 'organizations_compliance_export'
         
@@ -350,9 +408,18 @@ def print_report():
         max_compliance = request.args.get('max_compliance')
         min_trials = request.args.get('min_trials')
         max_trials = request.args.get('max_trials')
+        funding_source_class = request.args.get('funding_source_class')
+        organization_name = request.args.get('organization')
         
         # Use enhanced organization analysis
-        org_compliance = qm.get_organization_risk_analysis(min_compliance, max_compliance, min_trials, max_trials)
+        org_compliance = qm.get_organization_risk_analysis(
+            min_compliance=min_compliance,
+            max_compliance=max_compliance,
+            min_trials=min_trials,
+            max_trials=max_trials,
+            funding_source_class=funding_source_class,
+            organization_name=organization_name
+        )
         template_data = {
             'org_compliance': org_compliance,
             'on_time_count': sum(org.get('on_time_count', 0) for org in org_compliance),

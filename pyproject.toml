@@ -54,6 +54,7 @@ dependencies = [
     "opentelemetry-sdk>=1.36.0",
     "packaging==25.0",
     "pandas>=2.3.0",
+    "pip>=25.3",
     "prompt-toolkit==3.0.51",
     "psycopg2-binary",
     "pydantic==2.11.5",

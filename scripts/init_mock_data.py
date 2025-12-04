@@ -16,6 +16,7 @@ NUM_ORGANIZATIONS = 5
 NUM_USERS = 2  # default number of users
 NUM_TRIALS = 5000
 DEFAULT_PASSWORD = "password"
+FUNDING_SOURCES = ["OTHER", "INDUSTRY", "OTHER_GOV", "NETWORK", "INDIV", "FED", "NIH", "UNKNOWN", "AMBIG", None]
 
 # --- Database Connection ---
 def get_conn():
@@ -41,16 +42,22 @@ def populate_organizations(cur, num_orgs: int = NUM_ORGANIZATIONS) -> List[int]:
     for i in range(num_orgs):
         org_name = f"Organization {i+1}"
         org_email_domain = f"organization{i+1}.com"
-        cur.execute("SELECT id FROM organization WHERE name = %s", (org_name,))
+        cur.execute("SELECT id, funding_source_class FROM organization WHERE name = %s", (org_name,))
         result = cur.fetchone()
+        funding_source = FUNDING_SOURCES[i % len(FUNDING_SOURCES)]
         if not result:
             cur.execute(
-                "INSERT INTO organization (name, email_domain) VALUES (%s, %s) RETURNING id",
-                (org_name, org_email_domain)
+                "INSERT INTO organization (name, email_domain, funding_source_class) VALUES (%s, %s, %s) RETURNING id",
+                (org_name, org_email_domain, funding_source)
             )
             org_id = cur.fetchone()[0]
         else:
             org_id = result[0]
+            if result[1] is None and funding_source is not None:
+                cur.execute(
+                    "UPDATE organization SET funding_source_class = %s WHERE id = %s",
+                    (funding_source, org_id)
+                )
         org_ids.append(org_id)
         print(f"  Organization {i+1}/{num_orgs} seeded", end='\r')
     print(f"  Done seeding organizations.{' ' * 30}")
