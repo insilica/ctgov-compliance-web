@@ -14,6 +14,8 @@ jobs:
       postgres:
         image: postgres:15
         env:
+          # `POSTGRES_*` for container `postgres:V` `initdb`.
+          # See: <https://github.com/docker-library/docs/tree/master/postgres#environment-variables>.
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: devpassword
           POSTGRES_DB: ctgov-web
