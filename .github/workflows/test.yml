@@ -63,7 +63,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           echo "Running tests with Nix in CI environment..."
-          
+
           # Wait for PostgreSQL service to be ready
           echo 'Waiting for PostgreSQL service to be ready...'
           timeout 60s bash -c '
@@ -72,14 +72,14 @@ jobs:
               sleep 2
             done
           '
-          
+
           # Verify database connection
           echo 'Testing database connection...'
           psql -c 'SELECT version();'
-          
+
           # Use nix develop to get dependencies and run tests
           nix develop --command bash -c "$(cat <<'EOF'
-            uv sync 
+            uv sync
 
             # Run tests with verbose output
             echo 'Running tests...'
