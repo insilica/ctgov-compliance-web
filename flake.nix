@@ -30,7 +30,6 @@
 
           shellHook = ''
             # Set environment variables to skip interactive components
-            export CI=false  # Keep services running but skip some setup
             # export SKIP_FLYWAY_SETUP=true
 
             source scripts/flake/shellhook.sh
