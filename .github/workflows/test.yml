@@ -14,6 +14,8 @@ jobs:
       postgres:
         image: postgres:15
         env:
+          # `POSTGRES_*` for container `postgres:V` `initdb`.
+          # See: <https://github.com/docker-library/docs/tree/master/postgres#environment-variables>.
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: devpassword
           POSTGRES_DB: ctgov-web
@@ -64,7 +66,7 @@ jobs:
           # Wait for PostgreSQL service to be ready
           echo 'Waiting for PostgreSQL service to be ready...'
           timeout 60s bash -c '
-            until pg_isready -h localhost -p 5464 -U postgres; do
+            until pg_isready; do
               echo "Waiting for PostgreSQL..."
               sleep 2
             done
@@ -72,7 +74,7 @@ jobs:
           
           # Verify database connection
           echo 'Testing database connection...'
-          PGPASSWORD=devpassword psql -h localhost -p 5464 -U postgres -d ctgov-web -c 'SELECT version();'
+          psql -c 'SELECT version();'
           
           # Use nix develop to get dependencies and run migrations + tests
           nix develop --command bash -c "
