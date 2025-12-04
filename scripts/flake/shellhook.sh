@@ -4,7 +4,7 @@
 OLD_OPTS=$(set +o)
 set -euo pipefail
 
-# Skip PostgreSQL setup in CI environment
+# Skip PostgreSQL setup (e.g., in CI environment)
 if [ "${SKIP_POSTGRES_SETUP:-false}" != "true" ]; then
   echo "Setting up PostgreSQL..."
   source scripts/flake/setup_postgres.sh \
@@ -26,8 +26,8 @@ else
 fi
 
 
-# Skip Flyway in CI environment (assuming no migrations needed for tests)
-if [ "${SKIP_POSTGRES_SETUP:-false}" != "true" ] && [ "${SKIP_FLYWAY_SETUP:-false}" != "true" ]; then
+# Skip Flyway (e.g., in CI environment, assuming no migrations needed for tests)
+if [ "${SKIP_FLYWAY_SETUP:-false}" != "true" ]; then
   source scripts/flake/run_flyway.sh
 else
   echo "Skipping Flyway (CI environment)"
