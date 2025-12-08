@@ -14,6 +14,8 @@ jobs:
       postgres:
         image: postgres:15
         env:
+          # `POSTGRES_*` for container `postgres:V` `initdb`.
+          # See: <https://github.com/docker-library/docs/tree/master/postgres#environment-variables>.
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: devpassword
           POSTGRES_DB: ctgov-web
@@ -38,6 +40,7 @@ jobs:
           # CI flag to prevent PostgreSQL setup conflicts
           CI: true
           SKIP_POSTGRES_SETUP: true
+          SKIP_FLYWAY_SETUP: true # NOTE skip migrations — no staging DB at the moment
           # Flask configuration
           FLASK_APP: web.app
           FLASK_ENV: development
@@ -60,38 +63,30 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           echo "Running tests with Nix in CI environment..."
-          
+
           # Wait for PostgreSQL service to be ready
           echo 'Waiting for PostgreSQL service to be ready...'
           timeout 60s bash -c '
-            until pg_isready -h localhost -p 5464 -U postgres; do
+            until pg_isready; do
               echo "Waiting for PostgreSQL..."
               sleep 2
             done
           '
-          
+
           # Verify database connection
           echo 'Testing database connection...'
-          PGPASSWORD=devpassword psql -h localhost -p 5464 -U postgres -d ctgov-web -c 'SELECT version();'
-          
-          # Use nix develop to get dependencies and run migrations + tests
-          nix develop --command bash -c "
-            # Run Flyway migrations to set up database schema
-            echo 'Running Flyway migrations...'
-            flyway \\
-              -url='jdbc:postgresql://localhost:5464/ctgov-web' \\
-              -user='postgres' \\
-              -password='devpassword' \\
-              -locations='filesystem:./.flyway/sql' \\
-              migrate
-            
-            uv sync 
-            
+          psql -c 'SELECT version();'
+
+          # Use nix develop to get dependencies and run tests
+          nix develop --command bash -c "$(cat <<'EOF'
+            uv sync
+
             # Run tests with verbose output
             echo 'Running tests...'
             uv run pytest
-          "
-          
+          EOF
+          )"
+
       - name: Upload Flyway Report on Failure
         if: failure()
         uses: actions/upload-artifact@v4
