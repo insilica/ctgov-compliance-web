@@ -1,8 +1,13 @@
-from flask import Blueprint, render_template, stream_template, request, jsonify, make_response
-from flask_login import login_required, current_user    # pragma: no cover, current_user
 import csv
 import io
+import json
+import os
 from datetime import datetime
+from textwrap import dedent
+from threading import Lock
+
+from flask import Blueprint, render_template, stream_template, request, jsonify, make_response, current_app
+from flask_login import login_required, current_user    # pragma: no cover, current_user
 from .utils.route_helpers import (
     process_index_request,
     process_search_request,
@@ -15,12 +20,239 @@ from .utils.route_helpers import (
 from .utils.queries import (
     QueryManager,
 )
+from .mcp.ctgov_mcp import ClinicalTrialsMCPServer, UnifiedQueryInterface
 from opentelemetry import trace
 
 tracer = trace.get_tracer(__name__)
 
 bp = Blueprint('routes', __name__)
 qm = QueryManager()
+
+def _env_truthy(value: str, default: bool = True) -> bool:
+    if value is None:
+        return default
+    return value.lower() not in ('0', 'false', 'no', 'off')
+
+DEFAULT_USE_LLM = _env_truthy(os.getenv('USE_LLM_PARSER'), True)
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
+
+README_FEATURES = [
+    {
+        "title": "Natural language understanding",
+        "description": "Turns free-form compliance questions into ClinicalTrials.gov parameters with either Claude-powered or deterministic parsing."
+    },
+    {
+        "title": "Automatic fallbacks",
+        "description": "Uses the pattern parser whenever an LLM key is not configured so analysts can continue working."
+    },
+    {
+        "title": "Comprehensive filtering",
+        "description": "Supports every major ClinicalTrials.gov filter including phase, geography, regulatory posture, and publication requirements."
+    },
+    {
+        "title": "Conversation memory",
+        "description": "Keeps track of clarifying answers so multi-turn sessions stay grounded in prior constraints."
+    },
+    {
+        "title": "MCP compatible",
+        "description": "Ships with a ready-to-register MCP tool definition for orchestrators and agent frameworks."
+    },
+    {
+        "title": "ACT awareness",
+        "description": "Detects Applicable Clinical Trial scenarios and applies the right compliance rules automatically."
+    },
+]
+
+PARAMETER_SECTIONS = [
+    {
+        "title": "Study filters",
+        "items": [
+            {"label": "study_type", "description": "Interventional | Observational | Expanded Access"},
+            {"label": "status", "description": "com, rec, act, not, sus, ter, wit, unk"},
+            {"label": "phase", "description": "PHASE1 | PHASE2 | PHASE3 | PHASE4 | EARLY_PHASE1"},
+            {"label": "exclude_phase", "description": "Treat supplied phase list as exclusions"},
+        ],
+    },
+    {
+        "title": "Output controls",
+        "items": [
+            {"label": "has_results", "description": "Require posted results"},
+            {"label": "has_publications", "description": "Require linked publications"},
+            {"label": "fda_drug", "description": "Filter for FDA regulated drugs"},
+            {"label": "fda_device", "description": "Filter for FDA regulated devices"},
+        ],
+    },
+    {
+        "title": "Location scope",
+        "items": [
+            {"label": "country", "description": "Country filter, e.g., United States"},
+            {"label": "state", "description": "State-level targeting"},
+            {"label": "city", "description": "City-level targeting"},
+        ],
+    },
+    {
+        "title": "Date ranges",
+        "items": [
+            {"label": "start_date_min / max", "description": "Start date bounds"},
+            {"label": "completion_date_min / max", "description": "Completion date bounds"},
+        ],
+    },
+    {
+        "title": "Search terms",
+        "items": [
+            {"label": "condition", "description": "Disease or condition focus"},
+            {"label": "intervention", "description": "Treatment or therapy"},
+            {"label": "sponsor", "description": "Lead organization"},
+            {"label": "keywords", "description": "General keywords"},
+        ],
+    },
+]
+
+QUICK_START_SNIPPETS = [
+    {
+        "title": "MCP server usage",
+        "language": "python",
+        "code": dedent("""\
+            from ctgov_mcp import ClinicalTrialsMCPServer
+
+            server = ClinicalTrialsMCPServer()
+            print(server.query("How many interventional trials have results?"))
+
+            result = server.query_structured(
+                study_type="Interventional",
+                has_results=True,
+                country="United States"
+            )
+            print(result)
+        """),
+    },
+    {
+        "title": "Direct API helpers",
+        "language": "python",
+        "code": dedent("""\
+            from ctgov_mcp import mcp_query_trials, mcp_structured_query
+
+            summary = mcp_query_trials("Show me ACT trials")
+            print(summary)
+
+            structured = mcp_structured_query(
+                condition="diabetes",
+                has_results=True,
+                has_publications=True
+            )
+            print(structured)
+        """),
+    },
+]
+
+INTEGRATION_SNIPPETS = [
+    {
+        "title": "Flask endpoint (Integration Guide)",
+        "language": "python",
+        "description": "Expose a natural language endpoint that keeps a single ClinicalTrialsMCPServer warm.",
+        "code": dedent("""\
+            from flask import Flask, request, jsonify
+            from ctgov_mcp import ClinicalTrialsMCPServer
+
+            app = Flask(__name__)
+            server = ClinicalTrialsMCPServer()
+
+            @app.post("/api/clinical-trials/query")
+            def query_trials():
+                payload = request.get_json(force=True)
+                result = server.query(payload.get("query", ""))
+                return jsonify({"success": True, "result": result})
+        """),
+    },
+    {
+        "title": "Frontend service call",
+        "language": "typescript",
+        "description": "Call the backend endpoint from a React service using fetch.",
+        "code": dedent("""\
+            export async function queryClinicalTrials(query: string) {
+              const response = await fetch("/api/clinical-trials/query", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query })
+              });
+              if (!response.ok) {
+                throw new Error("Query failed");
+              }
+              return response.json();
+            }
+        """),
+    },
+]
+
+SAMPLE_PROMPTS = [
+    "How many interventional trials have results?",
+    "Show me ACT trials",
+    "Completed United States trials without results",
+]
+
+WELCOME_MESSAGE = ""
+
+README_SOURCE = "web/mcp/ctgov_mcp/README.md"
+INTEGRATION_SOURCE = "web/mcp/ctgov_mcp/INTEGRATION_GUIDE.md"
+
+mcp_server = ClinicalTrialsMCPServer(use_llm=DEFAULT_USE_LLM)
+_workspace_sessions = {}
+_workspace_lock = Lock()
+
+
+def _sanitize_message(text):
+    if not text:
+        return ""
+    replacements = {
+        "✅": "Success:",
+        "❌": "Error:",
+        "✗": "Error:",
+        "✓": "Success:",
+    }
+    for symbol, replacement in replacements.items():
+        text = text.replace(symbol, replacement)
+    return text.strip()
+
+
+def _coerce_bool(value, default=None):
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() not in ('0', 'false', 'no', 'off')
+    return bool(value)
+
+
+def _ensure_workspace_session(user_id, prefer_llm=None):
+    target_mode = DEFAULT_USE_LLM if prefer_llm is None else prefer_llm
+    with _workspace_lock:
+        session_entry = _workspace_sessions.get(user_id)
+        needs_new = session_entry is None
+        if session_entry and prefer_llm is not None:
+            needs_new = session_entry["interface"].use_llm != target_mode
+
+        if needs_new:
+            interface = UnifiedQueryInterface(use_llm=target_mode, api_key=ANTHROPIC_API_KEY)
+            session_entry = {"interface": interface}
+            _workspace_sessions[user_id] = session_entry
+
+        return session_entry
+
+
+def _reset_workspace_session(user_id, prefer_llm=None):
+    target_mode = DEFAULT_USE_LLM if prefer_llm is None else prefer_llm
+    with _workspace_lock:
+        session_entry = _workspace_sessions.get(user_id)
+        recreate = session_entry is None or session_entry["interface"].use_llm != target_mode
+        if recreate:
+            interface = UnifiedQueryInterface(use_llm=target_mode, api_key=ANTHROPIC_API_KEY)
+            session_entry = {"interface": interface}
+            _workspace_sessions[user_id] = session_entry
+        else:
+            session_entry["interface"].reset()
+        return session_entry
+
 
 @bp.route('/health')
 def health():
@@ -528,3 +760,71 @@ def print_report():
     template_data['compliance_status_list'] = compliance_status_list
     
     return render_template('reports/print_report.html', **{k: v for k, v in template_data.items() if k != 'template'})
+
+
+@bp.route('/query-workspace')
+@login_required    # pragma: no cover
+def query_workspace():
+    try:
+        tool_definitions = mcp_server.get_tools()
+    except Exception as exc:    # pragma: no cover
+        current_app.logger.warning("Failed to load MCP tool definitions: %s", exc)
+        tool_definitions = []
+
+    tool_schema = json.dumps(tool_definitions[0], indent=2) if tool_definitions else "{}"
+
+    context = {
+        'features': README_FEATURES,
+        'parameter_sections': PARAMETER_SECTIONS,
+        'quick_start_snippets': QUICK_START_SNIPPETS,
+        'integration_snippets': INTEGRATION_SNIPPETS,
+        'sample_prompts': SAMPLE_PROMPTS,
+        'tool_schema': tool_schema,
+        'default_use_llm': DEFAULT_USE_LLM,
+        'anthropic_configured': bool(ANTHROPIC_API_KEY),
+        'welcome_message': WELCOME_MESSAGE,
+        'readme_source': README_SOURCE,
+        'integration_source': INTEGRATION_SOURCE,
+    }
+    return render_template('query_workspace.html', **context)
+
+
+@bp.route('/api/query-workspace/message', methods=['POST'])
+@login_required    # pragma: no cover
+def handle_query_workspace_message():
+    payload = request.get_json(silent=True) or {}
+    message = (payload.get('message') or '').strip()
+    prefer_llm = _coerce_bool(payload.get('use_llm'))
+
+    if not message:
+        return jsonify({'success': False, 'error': 'A query is required.'}), 400
+
+    try:
+        session_entry = _ensure_workspace_session(current_user.id, prefer_llm=prefer_llm)
+        response = session_entry['interface'].process_query(message)
+        sanitized_message = _sanitize_message(response.get('message', ''))
+        return jsonify({
+            'success': True,
+            'status': response.get('status'),
+            'message': sanitized_message,
+            'clarifications': response.get('clarifications', []),
+            'params': response.get('params', {}),
+            'result': response.get('result'),
+            'use_llm': session_entry['interface'].use_llm,
+        })
+    except Exception as exc:    # pragma: no cover
+        current_app.logger.exception("Query workspace message failed: %s", exc)
+        return jsonify({'success': False, 'error': 'Unable to process the query.'}), 500
+
+
+@bp.route('/api/query-workspace/reset', methods=['POST'])
+@login_required    # pragma: no cover
+def reset_query_workspace():
+    payload = request.get_json(silent=True) or {}
+    prefer_llm = _coerce_bool(payload.get('use_llm'))
+    session_entry = _reset_workspace_session(current_user.id, prefer_llm=prefer_llm)
+    return jsonify({
+        'success': True,
+        'message': 'Conversation reset.',
+        'use_llm': session_entry['interface'].use_llm,
+    })
