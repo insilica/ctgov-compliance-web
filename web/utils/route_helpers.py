@@ -8,13 +8,14 @@ without Flask context dependencies while maintaining clean separation of concern
 from urllib.parse import unquote
 from datetime import date, datetime, timedelta
 from .queries import QueryManager
-from .pagination import paginate, get_pagination_args
+from .pagination import paginate, get_pagination_args, Pagination
 from .reporting_metrics import build_reporting_kpis
 from opentelemetry import trace
 
 tracer = trace.get_tracer(__name__)
 REPORTING_WINDOW_DAYS = 30
 DEFAULT_STATUS_ORDER = ['Compliant', 'Incompliant', 'Pending']
+ACTION_ITEMS_PER_PAGE = 7
 
 
 
@@ -219,7 +220,7 @@ def _add_one_month(dt):
 
 
 @tracer.start_as_current_span("route_helpers.process_reporting_request")
-def process_reporting_request(start_date=None, end_date=None, filters=None, focus_org_id=None, QueryManager=QueryManager()):
+def process_reporting_request(start_date=None, end_date=None, filters=None, focus_org_id=None, action_page=None, action_per_page=ACTION_ITEMS_PER_PAGE, QueryManager=QueryManager()):
     """Build template context for the reporting dashboard."""
     current_span = trace.get_current_span()
     filter_params, filter_form_values = _extract_action_filter_params(filters)
@@ -261,12 +262,15 @@ def process_reporting_request(start_date=None, end_date=None, filters=None, focu
         organization_name=filter_params.get('organization')
     )
     funding_source_options = QueryManager.get_funding_source_classes()
-    action_items = _build_org_action_items(org_compliance_rows)
-    current_span.set_attribute("reporting.action_items", len(action_items))
+    action_items_all = _build_org_action_items(org_compliance_rows)
+    total_action_items = len(action_items_all)
+    current_span.set_attribute("reporting.action_items", total_action_items)
     focused_org = None
     focused_org_trials = []
+    normalized_page = action_page if isinstance(action_page, int) and action_page > 0 else 1
+    per_page = action_per_page if isinstance(action_per_page, int) and action_per_page > 0 else ACTION_ITEMS_PER_PAGE
     if focus_org_id:
-        for item in action_items:
+        for item in action_items_all:
             if item.get('id') == focus_org_id:
                 focused_org = item
                 break
@@ -275,6 +279,17 @@ def process_reporting_request(start_date=None, end_date=None, filters=None, focu
             focused_org_trials = _serialize_org_trials(trial_rows)
             current_span.set_attribute("reporting.focus_org", focus_org_id)
             current_span.set_attribute("reporting.focus_org_trials", len(focused_org_trials))
+
+    if total_action_items:
+        max_page = max(1, (total_action_items + per_page - 1) // per_page)
+        normalized_page = min(normalized_page, max_page)
+        start_index = (normalized_page - 1) * per_page
+    else:
+        normalized_page = 1
+        start_index = 0
+    end_index = start_index + per_page
+    action_items_page = action_items_all[start_index:end_index]
+    action_items_pagination = Pagination(action_items_page, normalized_page, per_page, total_entries=total_action_items)
 
     status_order = list(DEFAULT_STATUS_ORDER)
     monthly_lookup = {}
@@ -366,7 +381,9 @@ def process_reporting_request(start_date=None, end_date=None, filters=None, focu
         'end_date': end_iso,
         'latest_point': time_series[-1] if time_series else None,
         'kpis': kpis,
-        'action_items': action_items,
+        'action_items': action_items_pagination.items_page,
+        'action_items_pagination': action_items_pagination,
+        'action_items_per_page': per_page,
         'action_filter_values': filter_form_values,
         'action_filter_options': {
             'funding_source_classes': funding_source_options

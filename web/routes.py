@@ -189,6 +189,7 @@ def reporting_dashboard():
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
     focus_org_id = request.args.get('org_focus', type=int)
+    action_page = request.args.get('action_page', default=1, type=int)
     if start_date:
         current_span.set_attribute("filters.start_date", start_date)
     if end_date:
@@ -204,6 +205,7 @@ def reporting_dashboard():
         end_date,
         filters=filter_args,
         focus_org_id=focus_org_id,
+        action_page=action_page,
         QueryManager=qm
     )
     return stream_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})

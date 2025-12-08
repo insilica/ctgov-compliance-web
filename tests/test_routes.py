@@ -16,6 +16,7 @@ The tests verify that:
 """
 
 import pytest
+from types import SimpleNamespace
 from unittest.mock import patch, MagicMock, ANY
 from flask import Flask, request, current_app
 from flask_login import login_user
@@ -1516,6 +1517,19 @@ def test_reporting_dashboard_route(auth_client):
             'has_data': True
         },
         'action_items': [],
+        'action_items_pagination': SimpleNamespace(
+            total_entries=0,
+            page=1,
+            per_page=7,
+            has_prev=False,
+            has_next=False,
+            prev_page=1,
+            next_page=1,
+            start_index=0,
+            end_index=0,
+            iter_pages=lambda **kwargs: []
+        ),
+        'action_items_per_page': 7,
         'action_filter_values': {
             'min_compliance': '',
             'max_compliance': '',
@@ -1548,6 +1562,7 @@ def test_reporting_dashboard_route(auth_client):
                 'organization': None
             },
             focus_org_id=None,
+            action_page=1,
             QueryManager=ANY
         )
         mock_stream.assert_called_once_with(
@@ -1559,6 +1574,8 @@ def test_reporting_dashboard_route(auth_client):
             end_date='2024-01-05',
             kpis=template_payload['kpis'],
             action_items=[],
+            action_items_pagination=template_payload['action_items_pagination'],
+            action_items_per_page=7,
             action_filter_values=template_payload['action_filter_values'],
             action_filter_options=template_payload['action_filter_options'],
             focused_org=None,

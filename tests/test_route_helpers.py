@@ -296,6 +296,13 @@ class TestProcessReportingRequest:
         assert result['kpis']['total_trials'] == 3
         assert result['action_items']
         assert result['action_items'][0]['name'] == 'Org A'
+        assert result['action_items_per_page'] == 7
+        pagination = result['action_items_pagination']
+        assert pagination.total_entries == 1
+        assert pagination.page == 1
+        assert pagination.total_pages == 1
+        assert pagination.start_index == 1
+        assert pagination.end_index == 1
         assert result['action_filter_values'] == {
             'min_compliance': '',
             'max_compliance': '',
@@ -334,6 +341,9 @@ class TestProcessReportingRequest:
         mock_qm.get_funding_source_classes.assert_called_once()
         assert result['kpis']['total_trials'] == 0
         assert result['action_items'] == []
+        assert result['action_items_per_page'] == 7
+        assert result['action_items_pagination'].total_entries == 0
+        assert result['action_items_pagination'].page == 1
 
     def test_reporting_request_swaps_dates(self):
         mock_qm = MagicMock()
@@ -362,6 +372,7 @@ class TestProcessReportingRequest:
         mock_qm.get_funding_source_classes.assert_called_once()
         assert result['kpis']['overall_compliance_rate'] == 100.0
         assert result['action_items'] == []
+        assert result['action_items_pagination'].total_entries == 0
 
     def test_reporting_request_with_filters(self):
         mock_qm = MagicMock()
@@ -431,3 +442,36 @@ class TestProcessReportingRequest:
         mock_qm.get_org_incompliant_trials.assert_called_once_with(5)
         assert result['focused_org']['id'] == 5
         assert result['focused_org_trials'][0]['nct_id'] == 'NCT123'
+
+    def test_reporting_request_action_items_paginated(self):
+        mock_qm = MagicMock()
+        mock_qm.get_trial_cumulative_time_series.return_value = []
+        mock_qm.get_reporting_metrics.return_value = [{'total_trials': 0, 'compliant_count': 0, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
+        org_rows = []
+        for idx in range(1, 9):
+            org_rows.append({
+                'id': idx,
+                'name': f'Org {idx}',
+                'total_trials': 10,
+                'on_time_count': idx,
+                'late_count': 10 - idx,
+                'pending_count': 0,
+                'high_risk_trials': 0
+            })
+        mock_qm.get_organization_risk_analysis.return_value = org_rows
+        mock_qm.get_org_incompliant_trials.return_value = []
+        mock_qm.get_funding_source_classes.return_value = []
+
+        result = process_reporting_request(action_page=2, QueryManager=mock_qm)
+
+        assert len(result['action_items']) == 1
+        assert result['action_items'][0]['name'] == 'Org 8'
+        pagination = result['action_items_pagination']
+        assert pagination.page == 2
+        assert pagination.total_pages == 2
+        assert pagination.total_entries == 8
+        assert pagination.start_index == 8
+        assert pagination.end_index == 8
+
+        result_last_page = process_reporting_request(action_page=5, QueryManager=mock_qm)
+        assert result_last_page['action_items_pagination'].page == 2

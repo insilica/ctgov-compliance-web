@@ -62,6 +62,7 @@
                             <input type="hidden" name="max_compliance" value="{{ action_filter_values.max_compliance }}">
                             <input type="hidden" name="funding_source_class" value="{{ action_filter_values.funding_source_class }}">
                             <input type="hidden" name="organization" value="{{ action_filter_values.organization }}">
+                            <input type="hidden" name="action_page" value="1">
                             <div class="reporting-filter-actions margin-top-2">
                                 <button class="usa-button reporting-filter-button" type="submit">
                                     Update range
@@ -146,6 +147,7 @@
                             <form method="get" class="margin-bottom-3 action-items-filter-form">
                                 <input type="hidden" name="start_date" value="{{ start_date }}">
                                 <input type="hidden" name="end_date" value="{{ end_date }}">
+                                <input type="hidden" name="action_page" value="1">
                                 <fieldset class="usa-fieldset margin-0">
                                     <div class="grid-row grid-gap">
                                         <div class="grid-col-6">
@@ -213,6 +215,48 @@
                                 </ul>
                             </article>
                             {% endfor %}
+                            {% if action_items_pagination and action_items_pagination.total_entries > action_items_per_page %}
+                            <div class="action-items-pagination margin-top-2">
+                                <p class="usa-hint margin-bottom-1">
+                                    Showing {{ action_items_pagination.start_index }}-{{ action_items_pagination.end_index }} of {{ action_items_pagination.total_entries }}
+                                </p>
+                                <nav class="usa-pagination usa-pagination--small" role="navigation" aria-label="Action item pages">
+                                    <ul class="usa-pagination__list">
+                                        {% if action_items_pagination.has_prev %}
+                                        <li class="usa-pagination__item usa-pagination__arrow">
+                                            <a class="usa-pagination__link" href="{{ url_for('routes.reporting_dashboard', start_date=start_date, end_date=end_date, min_compliance=action_filter_values.min_compliance, max_compliance=action_filter_values.max_compliance, funding_source_class=action_filter_values.funding_source_class, organization=action_filter_values.organization, action_page=action_items_pagination.prev_page, org_focus=focus_org_id) }}" aria-label="Previous page">
+                                                <span class="usa-pagination__link-text">Previous</span>
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        {% for page_num in action_items_pagination.iter_pages(left_edge=1, left_current=1, right_current=1, right_edge=1) %}
+                                            {% if page_num %}
+                                            <li class="usa-pagination__item {% if page_num == action_items_pagination.page %}usa-pagination__item--current{% endif %}">
+                                                {% if page_num == action_items_pagination.page %}
+                                                <span class="usa-pagination__link" aria-current="page">{{ page_num }}</span>
+                                                {% else %}
+                                                <a class="usa-pagination__link" href="{{ url_for('routes.reporting_dashboard', start_date=start_date, end_date=end_date, min_compliance=action_filter_values.min_compliance, max_compliance=action_filter_values.max_compliance, funding_source_class=action_filter_values.funding_source_class, organization=action_filter_values.organization, action_page=page_num, org_focus=focus_org_id) }}">
+                                                    {{ page_num }}
+                                                </a>
+                                                {% endif %}
+                                            </li>
+                                            {% else %}
+                                            <li class="usa-pagination__item usa-pagination__item--ellipsis" role="presentation">
+                                                <span class="usa-pagination__link">&hellip;</span>
+                                            </li>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if action_items_pagination.has_next %}
+                                        <li class="usa-pagination__item usa-pagination__arrow">
+                                            <a class="usa-pagination__link" href="{{ url_for('routes.reporting_dashboard', start_date=start_date, end_date=end_date, min_compliance=action_filter_values.min_compliance, max_compliance=action_filter_values.max_compliance, funding_source_class=action_filter_values.funding_source_class, organization=action_filter_values.organization, action_page=action_items_pagination.next_page, org_focus=focus_org_id) }}" aria-label="Next page">
+                                                <span class="usa-pagination__link-text">Next</span>
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                            </div>
+                            {% endif %}
                             {% else %}
                             <p class="usa-hint margin-0">All organizations are fully compliant. Great work!</p>
                             {% endif %}
