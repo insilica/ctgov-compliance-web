@@ -5,7 +5,8 @@ from web.utils.route_helpers import (
     process_index_request, 
     process_search_request, 
     process_reporting_request,
-    parse_request_arg
+    parse_request_arg,
+    build_action_items_export_rows
 )
 from datetime import date
 
@@ -475,3 +476,68 @@ class TestProcessReportingRequest:
 
         result_last_page = process_reporting_request(action_page=5, QueryManager=mock_qm)
         assert result_last_page['action_items_pagination'].page == 2
+
+
+class TestBuildActionItemsExportRows:
+    def test_build_action_items_export_rows(self):
+        mock_qm = MagicMock()
+        mock_qm.get_trial_cumulative_time_series.return_value = []
+        mock_qm.get_reporting_metrics.return_value = []
+        mock_qm.get_organization_risk_analysis.return_value = [
+            {
+                'id': 1,
+                'name': 'Beta Org',
+                'total_trials': 5,
+                'on_time_count': 2,
+                'late_count': 3,
+                'pending_count': 0,
+                'high_risk_trials': 0
+            },
+            {
+                'id': 2,
+                'name': 'Alpha Org',
+                'total_trials': 4,
+                'on_time_count': 1,
+                'late_count': 3,
+                'pending_count': 0,
+                'high_risk_trials': 0
+            }
+        ]
+        mock_qm.get_org_incompliant_trials.side_effect = [
+            [
+                {
+                    'title': 'Trial B',
+                    'nct_id': 'NCTB',
+                    'organization_name': 'Beta Org',
+                    'status': 'Incompliant',
+                    'start_date': date(2024, 1, 1),
+                    'completion_date': date(2024, 2, 1),
+                    'days_overdue': 10
+                }
+            ],
+            [
+                {
+                    'title': 'Trial A',
+                    'nct_id': 'NCTA',
+                    'organization_name': 'Alpha Org',
+                    'status': 'Incompliant',
+                    'start_date': date(2024, 3, 1),
+                    'completion_date': date(2024, 4, 1),
+                    'days_overdue': 5
+                }
+            ]
+        ]
+
+        rows = build_action_items_export_rows(QueryManager=mock_qm)
+
+        assert len(rows) == 2
+        assert rows[0]['organization_name'] == 'Alpha Org'
+        assert rows[1]['organization_name'] == 'Beta Org'
+        assert rows[0]['nct_id'] == 'NCTA'
+        assert rows[1]['days_overdue'] == 10
+
+    def test_build_action_items_export_rows_empty(self):
+        mock_qm = MagicMock()
+        mock_qm.get_organization_risk_analysis.return_value = []
+        rows = build_action_items_export_rows(QueryManager=mock_qm)
+        assert rows == []

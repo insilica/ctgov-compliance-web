@@ -150,7 +150,7 @@ def parse_request_arg(val):
     return int(val) if val and val.isdigit() else None
 
 
-def _extract_action_filter_params(filters=None):
+def extract_action_filter_params(filters=None):
     """Normalize sidebar filter params for the action items list."""
     filters = filters or {}
 
@@ -223,7 +223,7 @@ def _add_one_month(dt):
 def process_reporting_request(start_date=None, end_date=None, filters=None, focus_org_id=None, action_page=None, action_per_page=ACTION_ITEMS_PER_PAGE, QueryManager=QueryManager()):
     """Build template context for the reporting dashboard."""
     current_span = trace.get_current_span()
-    filter_params, filter_form_values = _extract_action_filter_params(filters)
+    filter_params, filter_form_values = extract_action_filter_params(filters)
     current_span.set_attribute("reporting.filters.min_compliance", filter_params.get('min_compliance') if filter_params.get('min_compliance') is not None else -1)
     current_span.set_attribute("reporting.filters.max_compliance", filter_params.get('max_compliance') if filter_params.get('max_compliance') is not None else -1)
     if filter_params.get('funding_source_class'):
@@ -262,7 +262,7 @@ def process_reporting_request(start_date=None, end_date=None, filters=None, focu
         organization_name=filter_params.get('organization')
     )
     funding_source_options = QueryManager.get_funding_source_classes()
-    action_items_all = _build_org_action_items(org_compliance_rows)
+    action_items_all = build_org_action_items(org_compliance_rows)
     total_action_items = len(action_items_all)
     current_span.set_attribute("reporting.action_items", total_action_items)
     focused_org = None
@@ -396,7 +396,7 @@ def process_reporting_request(start_date=None, end_date=None, filters=None, focu
     return context
 
 
-def _build_org_action_items(org_rows):
+def build_org_action_items(org_rows):
     """Create structured action items for organizations below 100% compliance."""
     action_items = []
     if not org_rows:
@@ -441,6 +441,45 @@ def _build_org_action_items(org_rows):
     # Sort by lowest compliance to highlight riskiest first
     action_items.sort(key=lambda org: org.get('compliance_rate', 100))
     return action_items
+
+
+@tracer.start_as_current_span("route_helpers.build_action_items_export_rows")
+def build_action_items_export_rows(filters=None, QueryManager=QueryManager()):
+    """Build flattened incompliant trial rows for all action item sponsors."""
+    current_span = trace.get_current_span()
+    filter_params, _ = extract_action_filter_params(filters)
+    org_rows = QueryManager.get_organization_risk_analysis(
+        min_compliance=filter_params.get('min_compliance'),
+        max_compliance=filter_params.get('max_compliance'),
+        funding_source_class=filter_params.get('funding_source_class'),
+        organization_name=filter_params.get('organization')
+    )
+    action_items = build_org_action_items(org_rows)
+    current_span.set_attribute("export.action_items", len(action_items))
+    export_rows = []
+    for org in action_items:
+        org_id = org.get('id')
+        if not org_id:
+            continue
+        trial_rows = QueryManager.get_org_incompliant_trials(org_id)
+        for trial in trial_rows or []:
+            start = _coerce_to_date(trial.get('start_date'))
+            completion = _coerce_to_date(trial.get('completion_date'))
+            export_rows.append({
+                'organization_name': trial.get('organization_name') or org.get('name') or 'Unnamed organization',
+                'title': trial.get('title') or 'Untitled trial',
+                'nct_id': trial.get('nct_id') or '',
+                'status': trial.get('status') or 'Incompliant',
+                'start_date': start,
+                'completion_date': completion,
+                'days_overdue': trial.get('days_overdue') or 0
+            })
+    export_rows.sort(key=lambda row: (
+        (row['organization_name'] or '').lower(),
+        (row['title'] or '').lower()
+    ))
+    current_span.set_attribute("export.trials", len(export_rows))
+    return export_rows
 
 
 def _serialize_org_trials(rows):

@@ -16,6 +16,7 @@ The tests verify that:
 """
 
 import pytest
+from datetime import date
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock, ANY
 from flask import Flask, request, current_app
@@ -1645,6 +1646,38 @@ def test_reporting_time_series_api(auth_client):
                 'organization': None
             },
             focus_org_id=None,
+            QueryManager=ANY
+        )
+
+
+def test_reporting_action_items_export(auth_client):
+    rows = [
+        {
+            'organization_name': 'Org A',
+            'title': 'Trial 1',
+            'nct_id': 'NCT001',
+            'status': 'Incompliant',
+            'start_date': date(2024, 1, 1),
+            'completion_date': date(2024, 2, 1),
+            'days_overdue': 12
+        }
+    ]
+    with patch('web.routes.build_action_items_export_rows') as mock_export:
+        mock_export.return_value = rows
+        response = auth_client.get('/reporting/action-items/export?min_compliance=70&organization=Health')
+
+        assert response.status_code == 200
+        assert response.headers['Content-Type'] == 'text/csv'
+        body = response.data.decode()
+        assert 'Org A' in body
+        assert 'Trial 1' in body
+        mock_export.assert_called_once_with(
+            filters={
+                'min_compliance': '70',
+                'max_compliance': None,
+                'funding_source_class': None,
+                'organization': 'Health'
+            },
             QueryManager=ANY
         )
 

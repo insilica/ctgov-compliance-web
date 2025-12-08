@@ -10,6 +10,7 @@ from .utils.route_helpers import (
     process_compare_organizations_request,
     process_user_dashboard_request,
     process_reporting_request,
+    build_action_items_export_rows,
 )
 from .utils.queries import (
     QueryManager,
@@ -209,6 +210,54 @@ def reporting_dashboard():
         QueryManager=qm
     )
     return stream_template(template_data['template'], **{k: v for k, v in template_data.items() if k != 'template'})
+
+@bp.route('/reporting/action-items/export')
+@login_required    # pragma: no cover
+@tracer.start_as_current_span("routes.reporting_action_items_export")
+def reporting_action_items_export():
+    current_span = trace.get_current_span()
+    filter_args = {
+        'min_compliance': request.args.get('min_compliance'),
+        'max_compliance': request.args.get('max_compliance'),
+        'funding_source_class': request.args.get('funding_source_class'),
+        'organization': request.args.get('organization')
+    }
+    rows = build_action_items_export_rows(filters=filter_args, QueryManager=qm)
+    current_span.set_attribute("export.rows", len(rows))
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'Sponsor Name',
+        'Trial Title',
+        'NCT ID',
+        'Status',
+        'Start Date',
+        'Completion Date',
+        'Days Overdue'
+    ])
+
+    def _fmt(date_value):
+        return date_value.strftime('%m/%d/%Y') if date_value else ''
+
+    for row in rows:
+        writer.writerow([
+            row.get('organization_name', ''),
+            row.get('title', ''),
+            row.get('nct_id', ''),
+            row.get('status', ''),
+            _fmt(row.get('start_date')),
+            _fmt(row.get('completion_date')),
+            row.get('days_overdue', 0)
+        ])
+
+    csv_content = output.getvalue()
+    output.close()
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"action_items_{timestamp}.csv"
+    response = make_response(csv_content)
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 @bp.route('/api/reporting/time-series')
 @login_required    # pragma: no cover
