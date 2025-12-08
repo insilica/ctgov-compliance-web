@@ -142,9 +142,6 @@
             <div class="usa-card shadow-2 action-items-panel">
                 <div class="usa-card__header display-flex flex-justify flex-align-center">
                     <h2 class="usa-card__heading margin-0">Action Items</h2>
-                    <a class="usa-button usa-button--secondary usa-button--small width-auto" href="{{ url_for('routes.reporting_action_items_export', start_date=start_date, end_date=end_date, min_compliance=action_filter_values.min_compliance, max_compliance=action_filter_values.max_compliance, funding_source_class=action_filter_values.funding_source_class, organization=action_filter_values.organization) }}">
-                        Download CSV
-                    </a>
                         </div>
                         <div class="usa-card__body action-items-panel__body">
                             <form method="get" class="margin-bottom-3 action-items-filter-form">
@@ -179,8 +176,13 @@
                                         </div>
                                     </div>
                                 </fieldset>
-                                <div class="display-flex flex-justify margin-top-2">
-                                    <button class="usa-button usa-button--secondary width-auto" type="submit">Apply filters</button>
+                                <div class="display-flex flex-justify margin-top-2 flex-align-center">
+                                    <div class="display-flex flex-align-center">
+                                        <button class="usa-button usa-button--secondary width-auto" type="submit">Apply filters</button>
+                                        <a class="usa-button usa-button--secondary width-auto margin-left-1" href="{{ url_for('routes.reporting_action_items_export', start_date=start_date, end_date=end_date, min_compliance=action_filter_values.min_compliance, max_compliance=action_filter_values.max_compliance, funding_source_class=action_filter_values.funding_source_class, organization=action_filter_values.organization) }}">
+                                            Download CSV
+                                        </a>
+                                    </div>
                                     <a class="usa-button usa-button--unstyled text-semibold" href="{{ url_for('routes.reporting_dashboard', start_date=start_date, end_date=end_date) }}">Reset</a>
                                 </div>
                             </form>
