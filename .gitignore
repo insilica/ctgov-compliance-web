@@ -9,6 +9,8 @@ deploy.zip
 # macOS
 .DS_Store
 
+agent.md
+
 # add python ignore
 __pycache__/*
 *.pyc

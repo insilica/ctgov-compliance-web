@@ -4,8 +4,11 @@ from web.utils.route_helpers import (
     compliance_counts, 
     process_index_request, 
     process_search_request, 
-    parse_request_arg
+    process_reporting_request,
+    parse_request_arg,
+    build_action_items_export_rows
 )
+from datetime import date
 
 
 class TestComplianceCounts:
@@ -204,3 +207,337 @@ class TestEdgeCases:
             'template': 'dashboards/home.html'
         }
         assert result == expected 
+
+
+class TestProcessReportingRequest:
+    """Tests for reporting helper."""
+
+    def test_reporting_request_with_range(self):
+        mock_qm = MagicMock()
+        mock_qm.get_trial_cumulative_time_series.return_value = [
+            {
+                'period_start': date(2024, 1, 1),
+                'compliance_status': 'Compliant',
+                'trials_in_month': 2,
+                'cumulative_trials': 2,
+                'new_trials': 2,
+                'completed_trials': 1,
+                'avg_reporting_delay_days': 5.5,
+                'reporting_delay_trials': 1
+            },
+            {
+                'period_start': '2024-02-01',
+                'compliance_status': 'Incompliant',
+                'trials_in_month': 1,
+                'cumulative_trials': 1,
+                'new_trials': 1,
+                'completed_trials': 0,
+                'avg_reporting_delay_days': None,
+                'reporting_delay_trials': 0
+            },
+        ]
+        mock_qm.get_reporting_metrics.return_value = [{
+            'total_trials': 3,
+            'compliant_count': 2,
+            'trials_with_issues_count': 1,
+            'avg_reporting_delay_days': 4
+        }]
+        mock_qm.get_organization_risk_analysis.return_value = [
+            {
+                'id': 1,
+                'name': 'Org A',
+                'total_trials': 5,
+                'on_time_count': 3,
+                'late_count': 2,
+                'pending_count': 0,
+                'high_risk_trials': 1
+            }
+        ]
+        mock_qm.get_org_incompliant_trials.return_value = []
+        mock_qm.get_funding_source_classes.return_value = ['Academic', 'Industry']
+
+        result = process_reporting_request('2024-01-01', '2024-03-15', QueryManager=mock_qm)
+
+        mock_qm.get_trial_cumulative_time_series.assert_called_once_with(
+            start_date='2024-01-01',
+            end_date='2024-03-15'
+        )
+        mock_qm.get_reporting_metrics.assert_called_once()
+        mock_qm.get_organization_risk_analysis.assert_called_once_with(
+            min_compliance=None,
+            max_compliance=None,
+            funding_source_class=None,
+            organization_name=None
+        )
+        mock_qm.get_org_incompliant_trials.assert_not_called()
+        mock_qm.get_funding_source_classes.assert_called_once()
+        assert result['template'] == 'reporting.html'
+        assert result['start_date'] == '2024-01-01'
+        assert result['end_date'] == '2024-03-15'
+        assert len(result['time_series']) == 3
+        first_month = result['time_series'][0]
+        assert first_month['date'] == '2024-01-01'
+        assert first_month['statuses']['compliant']['monthly'] == 2
+        assert first_month['statuses']['compliant']['cumulative'] == 2
+        assert first_month['statuses']['incompliant']['monthly'] == 0
+        assert first_month['statuses']['incompliant']['cumulative'] == 0
+        second_month = result['time_series'][1]
+        assert second_month['statuses']['compliant']['cumulative'] == 2
+        assert second_month['statuses']['incompliant']['cumulative'] == 1
+        third_month = result['time_series'][2]
+        assert third_month['statuses']['compliant']['cumulative'] == 2
+        assert third_month['statuses']['incompliant']['cumulative'] == 1
+        assert result['latest_point']['date'] == '2024-03-01'
+        assert result['status_keys']
+        assert 'statuses' in result['latest_point']
+        assert first_month['new_trials'] == 2
+        assert first_month['completed_trials'] == 1
+        assert first_month['avg_reporting_delay_days'] == 5.5
+        assert third_month['avg_reporting_delay_days'] is None
+        assert result['kpis']['total_trials'] == 3
+        assert result['action_items']
+        assert result['action_items'][0]['name'] == 'Org A'
+        assert result['action_items_per_page'] == 7
+        pagination = result['action_items_pagination']
+        assert pagination.total_entries == 1
+        assert pagination.page == 1
+        assert pagination.total_pages == 1
+        assert pagination.start_index == 1
+        assert pagination.end_index == 1
+        assert result['action_filter_values'] == {
+            'min_compliance': '',
+            'max_compliance': '',
+            'funding_source_class': '',
+            'organization': ''
+        }
+        assert result['action_filter_options']['funding_source_classes'] == ['Academic', 'Industry']
+
+    @patch('web.utils.route_helpers.date')
+    def test_reporting_request_defaults(self, mock_date_cls):
+        mock_date_cls.today.return_value = date(2024, 4, 30)
+        mock_date_cls.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+        mock_qm = MagicMock()
+        mock_qm.get_trial_cumulative_time_series.return_value = []
+        mock_qm.get_reporting_metrics.return_value = [{'total_trials': 0, 'compliant_count': 0, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
+        mock_qm.get_organization_risk_analysis.return_value = []
+        mock_qm.get_org_incompliant_trials.return_value = []
+        mock_qm.get_funding_source_classes.return_value = []
+
+        result = process_reporting_request(QueryManager=mock_qm)
+
+        assert result['end_date'] == '2024-04-30'
+        assert result['start_date'] == '2024-04-01'
+        mock_qm.get_trial_cumulative_time_series.assert_called_once_with(
+            start_date='2024-04-01',
+            end_date='2024-04-30'
+        )
+        mock_qm.get_reporting_metrics.assert_called_once()
+        mock_qm.get_organization_risk_analysis.assert_called_once_with(
+            min_compliance=None,
+            max_compliance=None,
+            funding_source_class=None,
+            organization_name=None
+        )
+        mock_qm.get_org_incompliant_trials.assert_not_called()
+        mock_qm.get_funding_source_classes.assert_called_once()
+        assert result['kpis']['total_trials'] == 0
+        assert result['action_items'] == []
+        assert result['action_items_per_page'] == 7
+        assert result['action_items_pagination'].total_entries == 0
+        assert result['action_items_pagination'].page == 1
+
+    def test_reporting_request_swaps_dates(self):
+        mock_qm = MagicMock()
+        mock_qm.get_trial_cumulative_time_series.return_value = []
+        mock_qm.get_reporting_metrics.return_value = [{'total_trials': 1, 'compliant_count': 1, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
+        mock_qm.get_organization_risk_analysis.return_value = []
+        mock_qm.get_org_incompliant_trials.return_value = []
+        mock_qm.get_funding_source_classes.return_value = []
+
+        result = process_reporting_request('2024-03-10', '2024-03-01', QueryManager=mock_qm)
+
+        assert result['start_date'] == '2024-03-01'
+        assert result['end_date'] == '2024-03-10'
+        mock_qm.get_trial_cumulative_time_series.assert_called_once_with(
+            start_date='2024-03-01',
+            end_date='2024-03-10'
+        )
+        mock_qm.get_reporting_metrics.assert_called_once()
+        mock_qm.get_organization_risk_analysis.assert_called_once_with(
+            min_compliance=None,
+            max_compliance=None,
+            funding_source_class=None,
+            organization_name=None
+        )
+        mock_qm.get_org_incompliant_trials.assert_not_called()
+        mock_qm.get_funding_source_classes.assert_called_once()
+        assert result['kpis']['overall_compliance_rate'] == 100.0
+        assert result['action_items'] == []
+        assert result['action_items_pagination'].total_entries == 0
+
+    def test_reporting_request_with_filters(self):
+        mock_qm = MagicMock()
+        mock_qm.get_trial_cumulative_time_series.return_value = []
+        mock_qm.get_reporting_metrics.return_value = [{'total_trials': 0, 'compliant_count': 0, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
+        mock_qm.get_organization_risk_analysis.return_value = [
+            {
+                'id': 2,
+                'name': 'Org Focus',
+                'total_trials': 3,
+                'on_time_count': 1,
+                'late_count': 2,
+                'pending_count': 0,
+                'high_risk_trials': 0
+            }
+        ]
+        mock_qm.get_org_incompliant_trials.return_value = []
+        mock_qm.get_funding_source_classes.return_value = ['Academic']
+        filters = {
+            'min_compliance': '75',
+            'max_compliance': '90',
+            'funding_source_class': 'Academic',
+            'organization': 'Health'
+        }
+
+        process_reporting_request(filters=filters, QueryManager=mock_qm)
+
+        mock_qm.get_organization_risk_analysis.assert_called_once_with(
+            min_compliance=75,
+            max_compliance=90,
+            funding_source_class='Academic',
+            organization_name='Health'
+        )
+        mock_qm.get_org_incompliant_trials.assert_not_called()
+
+    def test_reporting_request_focus_org_details(self):
+        mock_qm = MagicMock()
+        mock_qm.get_trial_cumulative_time_series.return_value = []
+        mock_qm.get_reporting_metrics.return_value = [{'total_trials': 0, 'compliant_count': 0, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
+        mock_qm.get_organization_risk_analysis.return_value = [
+            {
+                'id': 5,
+                'name': 'Org Modal',
+                'total_trials': 4,
+                'on_time_count': 1,
+                'late_count': 3,
+                'pending_count': 0,
+                'high_risk_trials': 0
+            }
+        ]
+        mock_qm.get_org_incompliant_trials.return_value = [
+            {
+                'id': 10,
+                'title': 'Trial 1',
+                'nct_id': 'NCT123',
+                'organization_name': 'Org Modal',
+                'user_email': 'user@example.com',
+                'status': 'Incompliant',
+                'start_date': date(2024, 1, 1),
+                'completion_date': date(2024, 2, 1)
+            }
+        ]
+        mock_qm.get_funding_source_classes.return_value = []
+
+        result = process_reporting_request(focus_org_id=5, QueryManager=mock_qm)
+
+        mock_qm.get_org_incompliant_trials.assert_called_once_with(5)
+        assert result['focused_org']['id'] == 5
+        assert result['focused_org_trials'][0]['nct_id'] == 'NCT123'
+
+    def test_reporting_request_action_items_paginated(self):
+        mock_qm = MagicMock()
+        mock_qm.get_trial_cumulative_time_series.return_value = []
+        mock_qm.get_reporting_metrics.return_value = [{'total_trials': 0, 'compliant_count': 0, 'trials_with_issues_count': 0, 'avg_reporting_delay_days': 0}]
+        org_rows = []
+        for idx in range(1, 9):
+            org_rows.append({
+                'id': idx,
+                'name': f'Org {idx}',
+                'total_trials': 10,
+                'on_time_count': idx,
+                'late_count': 10 - idx,
+                'pending_count': 0,
+                'high_risk_trials': 0
+            })
+        mock_qm.get_organization_risk_analysis.return_value = org_rows
+        mock_qm.get_org_incompliant_trials.return_value = []
+        mock_qm.get_funding_source_classes.return_value = []
+
+        result = process_reporting_request(action_page=2, QueryManager=mock_qm)
+
+        assert len(result['action_items']) == 1
+        assert result['action_items'][0]['name'] == 'Org 8'
+        pagination = result['action_items_pagination']
+        assert pagination.page == 2
+        assert pagination.total_pages == 2
+        assert pagination.total_entries == 8
+        assert pagination.start_index == 8
+        assert pagination.end_index == 8
+
+        result_last_page = process_reporting_request(action_page=5, QueryManager=mock_qm)
+        assert result_last_page['action_items_pagination'].page == 2
+
+
+class TestBuildActionItemsExportRows:
+    def test_build_action_items_export_rows(self):
+        mock_qm = MagicMock()
+        mock_qm.get_trial_cumulative_time_series.return_value = []
+        mock_qm.get_reporting_metrics.return_value = []
+        mock_qm.get_organization_risk_analysis.return_value = [
+            {
+                'id': 1,
+                'name': 'Beta Org',
+                'total_trials': 5,
+                'on_time_count': 2,
+                'late_count': 3,
+                'pending_count': 0,
+                'high_risk_trials': 0
+            },
+            {
+                'id': 2,
+                'name': 'Alpha Org',
+                'total_trials': 4,
+                'on_time_count': 1,
+                'late_count': 3,
+                'pending_count': 0,
+                'high_risk_trials': 0
+            }
+        ]
+        mock_qm.get_org_incompliant_trials.side_effect = [
+            [
+                {
+                    'title': 'Trial B',
+                    'nct_id': 'NCTB',
+                    'organization_name': 'Beta Org',
+                    'status': 'Incompliant',
+                    'start_date': date(2024, 1, 1),
+                    'completion_date': date(2024, 2, 1),
+                    'days_overdue': 10
+                }
+            ],
+            [
+                {
+                    'title': 'Trial A',
+                    'nct_id': 'NCTA',
+                    'organization_name': 'Alpha Org',
+                    'status': 'Incompliant',
+                    'start_date': date(2024, 3, 1),
+                    'completion_date': date(2024, 4, 1),
+                    'days_overdue': 5
+                }
+            ]
+        ]
+
+        rows = build_action_items_export_rows(QueryManager=mock_qm)
+
+        assert len(rows) == 2
+        assert rows[0]['organization_name'] == 'Alpha Org'
+        assert rows[1]['organization_name'] == 'Beta Org'
+        assert rows[0]['nct_id'] == 'NCTA'
+        assert rows[1]['days_overdue'] == 10
+
+    def test_build_action_items_export_rows_empty(self):
+        mock_qm = MagicMock()
+        mock_qm.get_organization_risk_analysis.return_value = []
+        rows = build_action_items_export_rows(QueryManager=mock_qm)
+        assert rows == []

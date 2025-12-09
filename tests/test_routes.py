@@ -16,7 +16,9 @@ The tests verify that:
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from datetime import date
+from types import SimpleNamespace
+from unittest.mock import patch, MagicMock, ANY
 from flask import Flask, request, current_app
 from flask_login import login_user
 
@@ -1477,6 +1479,207 @@ def test_health_endpoint(client):
 
     data = response.get_json()
     assert data == {'status': 'ok'}
+
+
+def test_reporting_dashboard_route(auth_client):
+    """Ensure reporting route renders template with helper context."""
+    template_payload = {
+        'template': 'reporting.html',
+        'time_series': [{
+            'date': '2024-01-01',
+            'statuses': {'compliant': {'cumulative': 5, 'monthly': 2}},
+            'total_cumulative': 5,
+            'total_monthly': 2,
+            'new_trials': 2,
+            'completed_trials': 1,
+            'avg_reporting_delay_days': 4.5,
+            'reporting_delay_trials': 1
+        }],
+        'status_keys': [{'label': 'Compliant', 'key': 'compliant'}],
+        'latest_point': {
+            'date': '2024-01-01',
+            'month_label': 'January 2024',
+            'total_cumulative': 5,
+            'total_monthly': 2,
+            'statuses': {'compliant': {'cumulative': 5, 'monthly': 2}},
+            'new_trials': 2,
+            'completed_trials': 1,
+            'avg_reporting_delay_days': 4.5,
+            'reporting_delay_trials': 1
+        },
+        'start_date': '2024-01-01',
+        'end_date': '2024-01-05',
+        'kpis': {
+            'total_trials': 5,
+            'overall_compliance_rate': 40.0,
+            'trials_with_issues_count': 1,
+            'trials_with_issues_pct': 20.0,
+            'avg_reporting_delay_days': 2.0,
+            'has_data': True
+        },
+        'action_items': [],
+        'action_items_pagination': SimpleNamespace(
+            total_entries=0,
+            page=1,
+            per_page=7,
+            has_prev=False,
+            has_next=False,
+            prev_page=1,
+            next_page=1,
+            start_index=0,
+            end_index=0,
+            iter_pages=lambda **kwargs: []
+        ),
+        'action_items_per_page': 7,
+        'action_filter_values': {
+            'min_compliance': '',
+            'max_compliance': '',
+            'funding_source_class': '',
+            'organization': ''
+        },
+        'action_filter_options': {
+            'funding_source_classes': []
+        },
+        'focused_org': None,
+        'focused_org_trials': [],
+        'focus_org_id': None
+    }
+    with patch('web.routes.process_reporting_request') as mock_helper, \
+         patch('web.routes.stream_template') as mock_stream:
+        mock_helper.return_value = template_payload
+        mock_stream.return_value = iter(['rendered'])
+
+        response = auth_client.get('/reporting?start_date=2024-01-01&end_date=2024-01-05')
+
+        assert response.status_code == 200
+        assert response.data.decode() == 'rendered'
+        mock_helper.assert_called_once_with(
+            '2024-01-01',
+            '2024-01-05',
+            filters={
+                'min_compliance': None,
+                'max_compliance': None,
+                'funding_source_class': None,
+                'organization': None
+            },
+            focus_org_id=None,
+            action_page=1,
+            QueryManager=ANY
+        )
+        mock_stream.assert_called_once_with(
+            'reporting.html',
+            time_series=template_payload['time_series'],
+            status_keys=template_payload['status_keys'],
+            latest_point=template_payload['latest_point'],
+            start_date='2024-01-01',
+            end_date='2024-01-05',
+            kpis=template_payload['kpis'],
+            action_items=[],
+            action_items_pagination=template_payload['action_items_pagination'],
+            action_items_per_page=7,
+            action_filter_values=template_payload['action_filter_values'],
+            action_filter_options=template_payload['action_filter_options'],
+            focused_org=None,
+            focused_org_trials=[],
+            focus_org_id=None
+        )
+
+
+def test_reporting_time_series_api(auth_client):
+    """Ensure reporting API returns helper data as JSON."""
+    helper_payload = {
+        'template': 'reporting.html',
+        'time_series': [{
+            'date': '2024-02-01',
+            'statuses': {'compliant': {'cumulative': 10, 'monthly': 3}},
+            'total_cumulative': 10,
+            'total_monthly': 3,
+            'new_trials': 3,
+            'completed_trials': 2,
+            'avg_reporting_delay_days': 6.0,
+            'reporting_delay_trials': 2
+        }],
+        'status_keys': [{'label': 'Compliant', 'key': 'compliant'}],
+        'latest_point': {
+            'date': '2024-02-01',
+            'month_label': 'February 2024',
+            'total_cumulative': 10,
+            'total_monthly': 3,
+            'statuses': {'compliant': {'cumulative': 10, 'monthly': 3}},
+            'new_trials': 3,
+            'completed_trials': 2,
+            'avg_reporting_delay_days': 6.0,
+            'reporting_delay_trials': 2
+        },
+        'start_date': '2024-02-01',
+        'end_date': '2024-02-10',
+        'kpis': {
+            'total_trials': 10,
+            'overall_compliance_rate': 70.0,
+            'trials_with_issues_count': 2,
+            'trials_with_issues_pct': 20.0,
+            'avg_reporting_delay_days': 3.0,
+            'has_data': True
+        }
+    }
+    with patch('web.routes.process_reporting_request') as mock_helper:
+        mock_helper.return_value = helper_payload
+
+        response = auth_client.get('/api/reporting/time-series?start_date=2024-02-01')
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data == {
+            'time_series': helper_payload['time_series'],
+            'status_keys': helper_payload['status_keys'],
+            'start_date': '2024-02-01',
+            'end_date': '2024-02-10',
+            'kpis': helper_payload['kpis']
+        }
+        mock_helper.assert_called_once_with(
+            '2024-02-01',
+            None,
+            filters={
+                'min_compliance': None,
+                'max_compliance': None,
+                'funding_source_class': None,
+                'organization': None
+            },
+            focus_org_id=None,
+            QueryManager=ANY
+        )
+
+
+def test_reporting_action_items_export(auth_client):
+    rows = [
+        {
+            'organization_name': 'Org A',
+            'title': 'Trial 1',
+            'nct_id': 'NCT001',
+            'status': 'Incompliant',
+            'start_date': date(2024, 1, 1),
+            'completion_date': date(2024, 2, 1),
+            'days_overdue': 12
+        }
+    ]
+    with patch('web.routes.build_action_items_export_rows') as mock_export:
+        mock_export.return_value = rows
+        response = auth_client.get('/reporting/action-items/export?min_compliance=70&organization=Health')
+
+        assert response.status_code == 200
+        assert response.headers['Content-Type'] == 'text/csv'
+        body = response.data.decode()
+        assert 'Org A' in body
+        assert 'Trial 1' in body
+        mock_export.assert_called_once_with(
+            filters={
+                'min_compliance': '70',
+                'max_compliance': None,
+                'funding_source_class': None,
+                'organization': 'Health'
+            },
+            QueryManager=ANY
+        )
 
 
 # The comprehensive edge case tests above provide excellent coverage for all route logic

@@ -388,6 +388,30 @@ class QueryManager:
         current_span.set_attribute("values", values)
         return query(base_sql, values)
 
+    @tracer.start_as_current_span("queries.get_reporting_metrics")
+    def get_reporting_metrics(self):
+        """Return summary metrics for the reporting KPIs."""
+        current_span = trace.get_current_span()
+        sql = '''
+            SELECT
+                COUNT(trial_id) AS total_trials,
+                COUNT(trial_id) FILTER (WHERE compliance_status = 'Compliant') AS compliant_count,
+                COUNT(trial_id) FILTER (
+                    WHERE compliance_status = 'Incompliant'
+                        OR (compliance_status IS NULL AND reporting_due_date < CURRENT_DATE)
+                ) AS trials_with_issues_count,
+                AVG(
+                    GREATEST(0, (CURRENT_DATE - reporting_due_date))
+                ) FILTER (
+                    WHERE reporting_due_date IS NOT NULL
+                      AND (compliance_status = 'Incompliant' OR compliance_status IS NULL)
+                      AND reporting_due_date < CURRENT_DATE
+                ) AS avg_reporting_delay_days
+            FROM joined_trials
+        '''
+        current_span.set_attribute("sql", sql)
+        return query(sql)
+
     @tracer.start_as_current_span("queries.get_compliance_summary_stats")
     def get_compliance_summary_stats(self, search_params=None, compliance_status_list=None):
         """Get comprehensive compliance summary statistics."""
@@ -499,7 +523,15 @@ class QueryManager:
         
         return critical_issues
 
-    def get_organization_risk_analysis(self, min_compliance=None, max_compliance=None, min_trials=None, max_trials=None):
+    def get_organization_risk_analysis(
+        self,
+        min_compliance=None,
+        max_compliance=None,
+        min_trials=None,
+        max_trials=None,
+        funding_source_class=None,
+        organization_name=None
+    ):
         """Get enhanced organization compliance with risk analysis."""
         sql = '''
         SELECT 
@@ -526,29 +558,193 @@ class QueryManager:
             MAX(tc.last_checked) AS last_compliance_check
         FROM organization o
         LEFT JOIN trial t ON o.id = t.organization_id
-        LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
-        GROUP BY o.id, o.name
-        '''
+        LEFT JOIN trial_compliance tc ON t.id = tc.trial_id'''
         
-        having_clauses = []
+        where_clauses = []
         params = []
+        having_clauses = []
+        having_params = []
+
+        if funding_source_class:
+            where_clauses.append('o.funding_source_class = %s')
+            params.append(funding_source_class)
+        if organization_name:
+            where_clauses.append('o.name ILIKE %s')
+            params.append(f'%{organization_name}%')
+        
+        if where_clauses:
+            sql += '\nWHERE ' + ' AND '.join(where_clauses)
+
+        sql += '\nGROUP BY o.id, o.name'
         
         if min_compliance is not None:
             having_clauses.append('(SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) >= %s')
-            params.append(min_compliance)
+            having_params.append(min_compliance)
         if max_compliance is not None:
             having_clauses.append('(SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) <= %s')
-            params.append(max_compliance)
+            having_params.append(max_compliance)
         if min_trials is not None:
             having_clauses.append('COUNT(t.id) >= %s')
-            params.append(min_trials)
+            having_params.append(min_trials)
         if max_trials is not None:
             having_clauses.append('COUNT(t.id) <= %s')
-            params.append(max_trials)
+            having_params.append(max_trials)
         
         if having_clauses:
             sql += ' HAVING ' + ' AND '.join(having_clauses)
+            params.extend(having_params)
         
         sql += '\nORDER BY (SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) ASC'
         
+        return query(sql, params)
+
+    @tracer.start_as_current_span("queries.get_org_incompliant_trials")
+    def get_org_incompliant_trials(self, organization_id):
+        """Return incompliant trials for an organization ordered by completion date."""
+        if not organization_id:
+            return []
+        sql = '''
+            SELECT
+                t.id,
+                t.title,
+                t.nct_id,
+                o.name AS organization_name,
+                u.email AS user_email,
+                COALESCE(tc.status, 'Pending') AS status,
+                t.start_date,
+                t.completion_date,
+                t.reporting_due_date,
+                GREATEST(
+                    0,
+                    (CURRENT_DATE - (t.completion_date + INTERVAL '1 year')::date)
+                ) AS days_overdue
+            FROM trial t
+            JOIN organization o ON t.organization_id = o.id
+            LEFT JOIN ctgov_user u ON t.user_id = u.id
+            LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
+            WHERE t.organization_id = %s
+              AND COALESCE(tc.status, 'Pending') = 'Incompliant'
+            ORDER BY t.completion_date ASC NULLS LAST, t.title ASC
+        '''
+        return query(sql, [organization_id])
+
+    @tracer.start_as_current_span("queries.get_funding_source_classes")
+    def get_funding_source_classes(self):
+        """Return distinct funding source categories."""
+        sql = '''
+            SELECT DISTINCT funding_source_class
+            FROM organization
+            WHERE funding_source_class IS NOT NULL AND funding_source_class <> ''
+            ORDER BY funding_source_class
+        '''
+        rows = query(sql)
+        return [row['funding_source_class'] for row in rows if row.get('funding_source_class')]
+
+    @tracer.start_as_current_span("queries.get_trial_cumulative_time_series")
+    def get_trial_cumulative_time_series(self, start_date=None, end_date=None):
+        """Return enriched monthly aggregates for the reporting timeline."""
+        current_span = trace.get_current_span()
+        if start_date:
+            current_span.set_attribute("start_date", str(start_date))
+        if end_date:
+            current_span.set_attribute("end_date", str(end_date))
+
+        where_clauses = ['t.start_date IS NOT NULL']
+        params = []
+
+        if start_date:
+            where_clauses.append('DATE(t.start_date) >= %s')
+            params.append(start_date)
+
+        if end_date:
+            where_clauses.append('DATE(t.start_date) <= %s')
+            params.append(end_date)
+
+        where_sql = ' AND '.join(where_clauses)
+
+        sql = f'''
+            WITH trials_with_status AS (
+                SELECT
+                    t.id,
+                    DATE_TRUNC('month', t.start_date)::date AS period_start,
+                    DATE_TRUNC('month', t.completion_date)::date AS completion_month,
+                    CASE
+                        WHEN t.reporting_due_date IS NOT NULL
+                             AND t.completion_date IS NOT NULL
+                        THEN GREATEST(0, (t.reporting_due_date - t.completion_date))
+                        ELSE NULL
+                    END AS reporting_delay_days,
+                    COALESCE(tc.status, 'Pending') AS compliance_status
+                FROM trial t
+                LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
+                WHERE {where_sql}
+            ),
+            monthly_counts AS (
+                SELECT
+                    period_start,
+                    compliance_status,
+                    COUNT(*) AS trials_in_month
+                FROM trials_with_status
+                WHERE period_start IS NOT NULL
+                GROUP BY period_start, compliance_status
+            ),
+            cumulative_counts AS (
+                SELECT
+                    period_start,
+                    compliance_status,
+                    trials_in_month,
+                    SUM(trials_in_month) OVER (
+                        PARTITION BY compliance_status
+                        ORDER BY period_start ASC
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                    ) AS cumulative_trials
+                FROM monthly_counts
+            ),
+            monthly_new AS (
+                SELECT
+                    period_start,
+                    COUNT(*) AS new_trials
+                FROM trials_with_status
+                WHERE period_start IS NOT NULL
+                GROUP BY period_start
+            ),
+            monthly_completed AS (
+                SELECT
+                    completion_month AS period_start,
+                    COUNT(*) AS completed_trials
+                FROM trials_with_status
+                WHERE completion_month IS NOT NULL
+                GROUP BY completion_month
+            ),
+            monthly_delay AS (
+                SELECT
+                    completion_month AS period_start,
+                    AVG(reporting_delay_days) AS avg_reporting_delay_days,
+                    COUNT(reporting_delay_days) AS reporting_delay_trials
+                FROM trials_with_status
+                WHERE completion_month IS NOT NULL
+                  AND reporting_delay_days IS NOT NULL
+                GROUP BY completion_month
+            )
+            SELECT
+                cumulative_counts.period_start,
+                cumulative_counts.compliance_status,
+                cumulative_counts.trials_in_month,
+                cumulative_counts.cumulative_trials,
+                COALESCE(monthly_new.new_trials, 0) AS new_trials,
+                COALESCE(monthly_completed.completed_trials, 0) AS completed_trials,
+                monthly_delay.avg_reporting_delay_days,
+                monthly_delay.reporting_delay_trials
+            FROM cumulative_counts
+            LEFT JOIN monthly_new
+                ON monthly_new.period_start = cumulative_counts.period_start
+            LEFT JOIN monthly_completed
+                ON monthly_completed.period_start = cumulative_counts.period_start
+            LEFT JOIN monthly_delay
+                ON monthly_delay.period_start = cumulative_counts.period_start
+            ORDER BY cumulative_counts.period_start ASC, cumulative_counts.compliance_status ASC
+        '''
+
+        current_span.set_attribute("sql", sql)
+        current_span.set_attribute("params", str(params))
         return query(sql, params)

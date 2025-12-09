@@ -234,6 +234,19 @@ def test_search_trials_complex(mock_query):
         assert "2022-12-31" in params
 
 
+def test_get_reporting_metrics(mock_query):
+    expected = [{'total_trials': 10, 'compliant_count': 7}]
+    mock_query.return_value = expected
+
+    result = qm.get_reporting_metrics()
+
+    assert result == expected
+    mock_query.assert_called_once()
+    sql = mock_query.call_args[0][0]
+    assert 'avg_reporting_delay_days' in sql
+    assert 'trials_with_issues_count' in sql
+
+
 def test_search_trials_only_date_from(mock_query):
     """Test search with only date_from (no date_to)"""
     expected_data = [{'nct_id': 'NCT123'}]
@@ -704,3 +717,36 @@ def test_search_trials_no_compliance_status_in_request(mock_query):
         assert "tc.status = 'Compliant'" not in sql
         assert "tc.status = 'Incompliant'" not in sql
         assert "tc.status IS NULL" not in sql
+
+
+def test_get_trial_cumulative_time_series_default(mock_query):
+    expected_data = [
+        {'period_start': '2024-01-01', 'compliance_status': 'Compliant', 'trials_in_month': 3, 'cumulative_trials': 3}
+    ]
+    mock_query.return_value = expected_data
+
+    result = qm.get_trial_cumulative_time_series()
+
+    assert result == expected_data
+    mock_query.assert_called_once()
+    sql, params = mock_query.call_args[0]
+    assert 'WITH trials_with_status AS' in sql
+    assert 'monthly_completed AS' in sql
+    assert 'avg_reporting_delay_days' in sql
+    assert 'new_trials' in sql
+    assert 'ORDER BY cumulative_counts.period_start ASC, cumulative_counts.compliance_status ASC' in sql
+    assert params == []
+
+
+def test_get_trial_cumulative_time_series_with_dates(mock_query):
+    expected_data = [{'period_start': '2024-02-01', 'compliance_status': 'Incompliant', 'trials_in_month': 5, 'cumulative_trials': 10}]
+    mock_query.return_value = expected_data
+
+    result = qm.get_trial_cumulative_time_series(start_date='2024-01-01', end_date='2024-03-01')
+
+    assert result == expected_data
+    mock_query.assert_called_once()
+    sql, params = mock_query.call_args[0]
+    assert 'DATE(t.start_date) >= %s' in sql
+    assert 'DATE(t.start_date) <= %s' in sql
+    assert params == ['2024-01-01', '2024-03-01']
