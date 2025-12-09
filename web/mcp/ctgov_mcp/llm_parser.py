@@ -223,7 +223,7 @@ Response:
     "has_publications": false,
     "country": "United States",
     "completion_date_max": "{(datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')}",
-    "start_date_min": "2017-01-01",
+    "start_date_min": "2017-01-18",
     "phase": ["PHASE2", "PHASE3", "PHASE4"],
     "fda_drug": true
   }},
@@ -348,9 +348,9 @@ class LLMConversationalInterface:
     def _format_result_message(self, result: Dict[str, Any], explanation: str) -> str:
         """Format result message"""
         if not result.get('success'):
-            return f"❌ Query failed: {result.get('error', 'Unknown error')}"
+            return f"Query failed: {result.get('error', 'Unknown error')}"
 
-        msg = f"✅ **{explanation}**\n\n"
+        msg = f"**{explanation}**\n\n"
         msg += f"**Total trials found: {result['total_count']:,}**\n\n"
 
         if self.current_params:

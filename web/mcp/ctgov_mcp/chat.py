@@ -121,9 +121,9 @@ class ClinicalTrialsConversation:
     def _format_result_message(self, result: Dict[str, Any]) -> str:
         """Format the query result into a readable message"""
         if not result['success']:
-            return f"❌ Query failed: {result.get('error', 'Unknown error')}"
+            return f"Query failed: {result.get('error', 'Unknown error')}"
 
-        msg = "✅ Query executed successfully!\n\n"
+        msg = "Query executed successfully!\n\n"
         msg += f"**Total trials found: {result['total_count']:,}**\n\n"
 
         if self.current_params:
@@ -184,7 +184,7 @@ def chat_interface():
             print("\n\nGoodbye!")
             break
         except Exception as e:
-            print(f"\n❌ Error: {e}\n")
+            print(f"\nError: {e}\n")
 
 
 # MCP-style function that uses the conversational interface
@@ -236,12 +236,12 @@ def mcp_execute_structured_query(**kwargs) -> str:
     result = query.count_trials(**kwargs)
 
     if result['success']:
-        output = f"✅ Total trials found: {result['total_count']:,}\n\n"
+        output = f"Total trials found: {result['total_count']:,}\n\n"
         output += "Filters applied:\n"
         output += format_query_summary(kwargs)
         return output
     else:
-        return f"❌ Query failed: {result.get('error', 'Unknown error')}"
+        return f"Query failed: {result.get('error', 'Unknown error')}"
 
 
 if __name__ == "__main__":

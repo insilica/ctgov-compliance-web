@@ -12,6 +12,7 @@ env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GAR_LOCATION: ${{ secrets.GCP_GAR_LOCATION }}
   REPOSITORY: ${{ secrets.GCP_REPOSITORY }}
+  ANTHROPIC_API_KEY: ${{ secrets.GCP_ANTHROPIC_SECRET_NAME }}
 
 jobs:
   build-push:
