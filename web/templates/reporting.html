@@ -1,0 +1,333 @@
+{% extends "layout.html" %}
+{% block title %}Control Center{% endblock title %}
+{% block content %}
+<div class="reporting-page grid-container-widescreen width-full margin-x-auto padding-y-4">
+    <div class="grid-row grid-gap">
+        <div class="desktop:grid-col-8">
+            <section class="reporting-kpi-strip usa-card shadow-2 margin-bottom-3" aria-label="Key performance indicators">
+                <div class="reporting-kpi-card">
+                    <p class="kpi-label text-uppercase text-semibold" id="totalTrialsLabel">Total Trials</p>
+                    <div class="kpi-visual" data-kpi="totalTrials" aria-labelledby="totalTrialsLabel">
+                        <span class="kpi-fallback-value">{{ kpis.total_trials }}</span>
+                    </div>
+                    <p class="kpi-subtext">Active across this window</p>
+                </div>
+                <div class="reporting-kpi-card">
+                    <p class="kpi-label text-uppercase text-semibold" id="complianceGaugeLabel">Overall Compliance Rate</p>
+                    <div class="kpi-visual kpi-visual--gauge" data-kpi="complianceGauge" role="img"
+                        aria-labelledby="complianceGaugeLabel complianceGaugeDesc">
+                        <span id="complianceGaugeDesc" class="usa-sr-only">
+                            {{ kpis.overall_compliance_rate }} percent compliant to date.
+                        </span>
+                        <span class="kpi-fallback-value">{{ kpis.overall_compliance_rate }}%</span>
+                    </div>
+                </div>
+                <div class="reporting-kpi-card">
+                    <p class="kpi-label text-uppercase text-semibold" id="issueCountLabel">Trials with Issues</p>
+                    <div class="kpi-visual" data-kpi="issueCount" aria-labelledby="issueCountLabel">
+                        <span class="kpi-fallback-value">{{ kpis.trials_with_issues_count }}</span>
+                    </div>
+                    <p class="kpi-subtext">{{ kpis.trials_with_issues_pct }}% of total</p>
+                </div>
+                <div class="reporting-kpi-card">
+                    <p class="kpi-label text-uppercase text-semibold" id="avgDelayLabel">Average Reporting Delay</p>
+                    <div class="kpi-visual" data-kpi="avgDelay" aria-labelledby="avgDelayLabel">
+                        <span class="kpi-fallback-value">{{ kpis.avg_reporting_delay_days }} days</span>
+                    </div>
+                    <p class="kpi-subtext">Among overdue submissions</p>
+                </div>
+            </section>
+            <div class="usa-card shadow-2">
+                <div class="usa-card__header">
+                    <h2 class="usa-card__heading margin-0">Compliance status timeline</h2>
+                </div>
+                <div class="usa-card__body">
+                    <div class="compliance-summary-grid margin-bottom-3">
+                        <form method="get" class="usa-form compliance-summary-card compliance-date-card">
+                            <p class="kpi-label text-uppercase text-semibold margin-0">Date range</p>
+                            <fieldset class="usa-fieldset margin-0">
+                                <div class="grid-row grid-gap">
+                                    <div class="desktop:grid-col-6">
+                                        <label class="usa-label" for="start_date">Start date</label>
+                                        <input class="usa-input" type="date" id="start_date" name="start_date"
+                                            value="{{ start_date }}">
+                                    </div>
+                                    <div class="desktop:grid-col-6">
+                                        <label class="usa-label" for="end_date">End date</label>
+                                        <input class="usa-input" type="date" id="end_date" name="end_date" value="{{ end_date }}">
+                                    </div>
+                                </div>
+                            </fieldset>
+                            <input type="hidden" name="min_compliance" value="{{ action_filter_values.min_compliance }}">
+                            <input type="hidden" name="max_compliance" value="{{ action_filter_values.max_compliance }}">
+                            <input type="hidden" name="funding_source_class" value="{{ action_filter_values.funding_source_class }}">
+                            <input type="hidden" name="organization" value="{{ action_filter_values.organization }}">
+                            <input type="hidden" name="action_page" value="1">
+                            <div class="reporting-filter-actions margin-top-2">
+                                <button class="usa-button reporting-filter-button" type="submit">
+                                    Update range
+                                </button>
+                                <a class="usa-button reporting-filter-button" href="{{ url_for('routes.reporting_dashboard') }}">
+                                    Reset
+                                </a>
+                            </div>
+                        </form>
+                        <div class="compliance-tiles-grid">
+                            {% if latest_point %}
+                            <div class="compliance-summary-card">
+                                <p class="kpi-label text-uppercase text-semibold margin-0">Cumulative trials</p>
+                                <div class="kpi-value">
+                                    <span class="kpi-value__number">{{ latest_point.total_cumulative }}</span>
+                                </div>
+                                <p class="kpi-subtext">Through {{ latest_point.month_label }}</p>
+                            </div>
+                            <div class="compliance-summary-card">
+                                <p class="kpi-label text-uppercase text-semibold margin-0">New this month</p>
+                                <div class="kpi-value">
+                                    <span class="kpi-value__number">{{ latest_point.total_monthly }}</span>
+                                </div>
+                                <p class="kpi-subtext">{{ latest_point.month_label }}</p>
+                            </div>
+                            <div class="compliance-summary-card">
+                                <p class="kpi-label text-uppercase text-semibold margin-0">Months tracked</p>
+                                <div class="kpi-value">
+                                    <span class="kpi-value__number">{{ time_series|length }}</span>
+                                </div>
+                                {% if time_series %}
+                                <p class="kpi-subtext">Since {{ time_series[0].month_label }}</p>
+                                {% endif %}
+                            </div>
+                            {% for status in status_keys %}
+                            {% set status_data = latest_point.statuses[status.key] if latest_point and status.key in
+                            latest_point.statuses else None %}
+                            <div class="compliance-summary-card status-color-{{ status.key }}">
+                                <p class="kpi-label text-uppercase text-semibold margin-0">{{ status.label }}</p>
+                                <div class="kpi-value">
+                                    <span class="kpi-value__number">
+                                        {{ status_data.cumulative if status_data else 0 }}
+                                    </span>
+                                </div>
+                                <p class="kpi-subtext">
+                                    +{{ status_data.monthly if status_data else 0 }} in {{ latest_point.month_label
+                                    if latest_point else '' }}
+                                </p>
+                            </div>
+                            {% endfor %}
+                            {% else %}
+                            <p class="usa-hint margin-0">No compliance summary available for the selected range.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="reporting-chart-stack">
+                        <section class="reporting-chart-panel">
+                            <h3 class="reporting-chart-panel__title">Compliance status timeline</h3>
+                            <div id="reporting-chart" class="reporting-chart reporting-chart--full" role="img"
+                                aria-label="Line chart showing cumulative trial counts over time"></div>
+                        </section>
+                        <section class="reporting-chart-panel">
+                            <h3 class="reporting-chart-panel__title">Monthly New and Completed Trials</h3>
+                            <p class="reporting-chart-panel__hint">Counts of first reports compared to completed trials each
+                                month.</p>
+                            <div id="reporting-new-completed-chart" class="reporting-chart reporting-chart--full"
+                                role="img" aria-label="Stacked bar chart showing new versus completed trials per month"></div>
+                        </section>
+                    </div>
+                    {% if not time_series %}
+                    <p class="usa-hint margin-top-2">No trial starts found for the selected time range.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <aside class="desktop:grid-col-4 action-items-sidebar" aria-label="Action Items">
+            <div class="usa-card shadow-2 action-items-panel">
+                <div class="usa-card__header display-flex flex-justify flex-align-center">
+                    <h2 class="usa-card__heading margin-0">Action Items</h2>
+                        </div>
+                        <div class="usa-card__body action-items-panel__body">
+                            <form method="get" class="margin-bottom-3 action-items-filter-form">
+                                <input type="hidden" name="start_date" value="{{ start_date }}">
+                                <input type="hidden" name="end_date" value="{{ end_date }}">
+                                <input type="hidden" name="action_page" value="1">
+                                <fieldset class="usa-fieldset margin-0">
+                                    <div class="grid-row grid-gap">
+                                        <div class="grid-col-6">
+                                            <label class="usa-label" for="min_compliance_filter">Min compliance (%)</label>
+                                            <input class="usa-input" type="number" id="min_compliance_filter" name="min_compliance" min="0" max="100" step="1"
+                                                value="{{ action_filter_values.min_compliance }}">
+                                        </div>
+                                        <div class="grid-col-6">
+                                            <label class="usa-label" for="max_compliance_filter">Max compliance (%)</label>
+                                            <input class="usa-input" type="number" id="max_compliance_filter" name="max_compliance" min="0" max="100" step="1"
+                                                value="{{ action_filter_values.max_compliance }}">
+                                        </div>
+                                        <div class="grid-col-12">
+                                            <label class="usa-label" for="funding_source_class">Funding source</label>
+                                            <select class="usa-select" id="funding_source_class" name="funding_source_class">
+                                                <option value="">All funding sources</option>
+                                                {% for option in action_filter_options.funding_source_classes %}
+                                                <option value="{{ option }}" {% if option == action_filter_values.funding_source_class %}selected{% endif %}>{{ option }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="grid-col-12">
+                                            <label class="usa-label" for="organization_filter">Sponsor name</label>
+                                            <input class="usa-input" type="text" id="organization_filter" name="organization" placeholder="Search sponsor"
+                                                value="{{ action_filter_values.organization }}">
+                                        </div>
+                                    </div>
+                                </fieldset>
+                                <div class="display-flex flex-justify margin-top-2 flex-align-center">
+                                    <div class="display-flex flex-align-center">
+                                        <button class="usa-button usa-button--secondary width-auto" type="submit">Apply filters</button>
+                                        <a class="usa-button usa-button--secondary width-auto margin-left-1" href="{{ url_for('routes.reporting_action_items_export', start_date=start_date, end_date=end_date, min_compliance=action_filter_values.min_compliance, max_compliance=action_filter_values.max_compliance, funding_source_class=action_filter_values.funding_source_class, organization=action_filter_values.organization) }}">
+                                            Download CSV
+                                        </a>
+                                    </div>
+                                    <a class="usa-button usa-button--unstyled text-semibold" href="{{ url_for('routes.reporting_dashboard', start_date=start_date, end_date=end_date) }}">Reset</a>
+                                </div>
+                            </form>
+                            {% if action_items %}
+                            {% for org in action_items %}
+                            <article class="action-item-card">
+                                <div class="action-item-card__header">
+                                    <div>
+                                        <p class="action-item-card__label text-uppercase text-semibold margin-0">
+                                            Sponsor
+                                        </p>
+                                        <h3 class="action-item-card__title margin-y-05">
+                                            <button type="button" class="action-item-card__trigger" data-org-id="{{ org.id }}">
+                                                {{ org.name }}
+                                            </button>
+                                        </h3>
+                                    </div>
+                                    <div class="action-item-card__metric text-right">
+                                        <span class="action-item-card__value">{{ org.compliance_rate }}%</span>
+                                        <span class="action-item-card__hint">compliant</span>
+                                    </div>
+                                </div>
+                                <p class="action-item-card__summary margin-y-1">
+                                    {{ org.late_count }} late · {{ org.pending_count }} pending
+                                </p>
+                                <ul class="action-item-card__list usa-list--unstyled margin-0">
+                                    {% for task in org.actions %}
+                                    <li class="action-item-card__list-item">
+                                        <span class="action-chip action-chip--{{ task.type }}">
+                                            {{ task.type|capitalize }}
+                                        </span>
+                                        <span>{{ task.label }}</span>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </article>
+                            {% endfor %}
+                            {% if action_items_pagination and action_items_pagination.total_entries > action_items_per_page %}
+                            <div class="action-items-pagination margin-top-2">
+                                <p class="usa-hint margin-bottom-1">
+                                    Showing {{ action_items_pagination.start_index }}-{{ action_items_pagination.end_index }} of {{ action_items_pagination.total_entries }}
+                                </p>
+                                <nav class="usa-pagination usa-pagination--small" role="navigation" aria-label="Action item pages">
+                                    <ul class="usa-pagination__list">
+                                        {% if action_items_pagination.has_prev %}
+                                        <li class="usa-pagination__item usa-pagination__arrow">
+                                            <a class="usa-pagination__link" href="{{ url_for('routes.reporting_dashboard', start_date=start_date, end_date=end_date, min_compliance=action_filter_values.min_compliance, max_compliance=action_filter_values.max_compliance, funding_source_class=action_filter_values.funding_source_class, organization=action_filter_values.organization, action_page=action_items_pagination.prev_page, org_focus=focus_org_id) }}" aria-label="Previous page">
+                                                <span class="usa-pagination__link-text">Previous</span>
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        {% for page_num in action_items_pagination.iter_pages(left_edge=1, left_current=1, right_current=1, right_edge=1) %}
+                                            {% if page_num %}
+                                            <li class="usa-pagination__item {% if page_num == action_items_pagination.page %}usa-pagination__item--current{% endif %}">
+                                                {% if page_num == action_items_pagination.page %}
+                                                <span class="usa-pagination__link" aria-current="page">{{ page_num }}</span>
+                                                {% else %}
+                                                <a class="usa-pagination__link" href="{{ url_for('routes.reporting_dashboard', start_date=start_date, end_date=end_date, min_compliance=action_filter_values.min_compliance, max_compliance=action_filter_values.max_compliance, funding_source_class=action_filter_values.funding_source_class, organization=action_filter_values.organization, action_page=page_num, org_focus=focus_org_id) }}">
+                                                    {{ page_num }}
+                                                </a>
+                                                {% endif %}
+                                            </li>
+                                            {% else %}
+                                            <li class="usa-pagination__item usa-pagination__item--ellipsis" role="presentation">
+                                                <span class="usa-pagination__link">&hellip;</span>
+                                            </li>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if action_items_pagination.has_next %}
+                                        <li class="usa-pagination__item usa-pagination__arrow">
+                                            <a class="usa-pagination__link" href="{{ url_for('routes.reporting_dashboard', start_date=start_date, end_date=end_date, min_compliance=action_filter_values.min_compliance, max_compliance=action_filter_values.max_compliance, funding_source_class=action_filter_values.funding_source_class, organization=action_filter_values.organization, action_page=action_items_pagination.next_page, org_focus=focus_org_id) }}" aria-label="Next page">
+                                                <span class="usa-pagination__link-text">Next</span>
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <p class="usa-hint margin-0">All organizations are fully compliant. Great work!</p>
+                            {% endif %}
+                        </div>
+                    </div>
+        </aside>
+    </div>
+</div>
+<div class="org-detail-modal" id="orgDetailModal" data-modal-active="{{ 'true' if focused_org else 'false' }}">
+    <div class="org-detail-modal__backdrop" data-modal-close></div>
+    <div class="org-detail-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="orgDetailModalTitle">
+        <button class="org-detail-modal__close" type="button" data-modal-close aria-label="Close details">&times;</button>
+        <div class="org-detail-modal__header">
+            <p class="org-detail-modal__label text-uppercase text-semibold">Organization</p>
+            <h3 class="org-detail-modal__title" id="orgDetailModalTitle" data-modal-org-name></h3>
+        </div>
+        <div class="org-detail-modal__meta">
+            <div>
+                <p class="org-detail-modal__metric-label">Compliance rate</p>
+                <p class="org-detail-modal__metric-value" data-modal-org-compliance></p>
+            </div>
+            <div>
+                <p class="org-detail-modal__metric-label">Late trials</p>
+                <p class="org-detail-modal__metric-value" data-modal-org-late></p>
+            </div>
+            <div>
+                <p class="org-detail-modal__metric-label">Pending submissions</p>
+                <p class="org-detail-modal__metric-value" data-modal-org-pending></p>
+            </div>
+        </div>
+        <div class="org-detail-modal__content">
+            <h4 class="org-detail-modal__section-title">Incompliant trials</h4>
+            <p class="usa-hint" data-modal-empty-message>
+                No incompliant trials found for this organization.
+            </p>
+            <div class="org-detail-modal__table" data-modal-table-wrapper hidden>
+                <table class="usa-table usa-table--striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">Trial title</th>
+                            <th scope="col">NCT ID</th>
+                            <th scope="col">User</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Start date</th>
+                            <th scope="col">Completion date</th>
+                            <th scope="col">Days overdue</th>
+                        </tr>
+                    </thead>
+                    <tbody data-modal-trials></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    window.reportingData = {
+        time_series: {{ time_series | tojson }},
+        status_keys: {{ status_keys | tojson }},
+        kpis: {{ kpis | tojson }}
+    };
+    window.reportingOrgModalData = {
+        organization: {{ focused_org | tojson }},
+        trials: {{ focused_org_trials | tojson }},
+        open: {{ 'true' if focused_org else 'false' }}
+    };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="{{ url_for('static', filename='js/reporting.js') }}"></script>
+{% endblock content %}
