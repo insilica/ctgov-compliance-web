@@ -23,7 +23,7 @@ def test_get_all_trials(mock_query):
     mock_query.assert_called_once()
     # Verify SQL contains expected tables
     sql = mock_query.call_args[0][0]
-    assert 'joined_trials' in sql
+    assert 'enriched_trials' in sql
 
 
 def test_get_all_trials_empty_result(mock_query):
@@ -164,7 +164,7 @@ def test_search_trials_no_conditions(mock_query):
         mock_query.assert_called_once()
         # Should only have base SQL without additional conditions
         sql, params = mock_query.call_args[0]
-        assert "FROM joined_trials" in sql
+        assert "FROM enriched_trials" in sql
         assert "WHERE" not in sql  # No WHERE clause should be present
         assert params == []
 
@@ -318,7 +318,7 @@ def test_search_trials_pending_status(mock_query):
         
         # Verify SQL contains pending status condition
         sql, params = mock_query.call_args[0]
-        assert "compliance_status IS NULL" in sql
+        assert "compliance_status = 'Pending'" in sql
 
 
 def test_search_trials_mixed_compliance_status(mock_query):
@@ -346,7 +346,7 @@ def test_search_trials_mixed_compliance_status(mock_query):
         sql, params = mock_query.call_args[0]
         assert "compliance_status = 'Compliant'" in sql
         assert "compliance_status = 'Incompliant'" in sql
-        assert "compliance_status IS NULL" in sql
+        assert "compliance_status = 'Pending'" in sql
 
 
 def test_search_trials_start_date_type(mock_query):
@@ -464,9 +464,9 @@ def test_search_trials_empty_compliance_status_list(mock_query):
         # Verify SQL doesn't contain compliance status WHERE conditions since 'unknown' isn't handled
         sql, params = mock_query.call_args[0]
         # Should not contain any compliance conditions in WHERE clause
-        assert "tc.status = 'Compliant'" not in sql
-        assert "tc.status = 'Incompliant'" not in sql
-        assert "tc.status IS NULL" not in sql
+        assert "compliance_status = 'Compliant'" not in sql
+        assert "compliance_status = 'Incompliant'" not in sql
+        assert "compliance_status = 'Pending'" not in sql
 
 
 def test_search_trials_with_status_param(mock_query):
@@ -714,9 +714,9 @@ def test_search_trials_no_compliance_status_in_request(mock_query):
         mock_query.assert_called_once()
         sql, params = mock_query.call_args[0]
         # Should not contain compliance status conditions
-        assert "tc.status = 'Compliant'" not in sql
-        assert "tc.status = 'Incompliant'" not in sql
-        assert "tc.status IS NULL" not in sql
+        assert "compliance_status = 'Compliant'" not in sql
+        assert "compliance_status = 'Incompliant'" not in sql
+        assert "compliance_status = 'Pending'" not in sql
 
 
 def test_get_trial_cumulative_time_series_default(mock_query):
@@ -730,7 +730,7 @@ def test_get_trial_cumulative_time_series_default(mock_query):
     assert result == expected_data
     mock_query.assert_called_once()
     sql, params = mock_query.call_args[0]
-    assert 'WITH trials_with_status AS' in sql
+    assert 'trials_with_status AS' in sql
     assert 'monthly_completed AS' in sql
     assert 'avg_reporting_delay_days' in sql
     assert 'new_trials' in sql
@@ -747,6 +747,6 @@ def test_get_trial_cumulative_time_series_with_dates(mock_query):
     assert result == expected_data
     mock_query.assert_called_once()
     sql, params = mock_query.call_args[0]
-    assert 'DATE(t.start_date) >= %s' in sql
-    assert 'DATE(t.start_date) <= %s' in sql
+    assert 'DATE(et.start_date) >= %s' in sql
+    assert 'DATE(et.start_date) <= %s' in sql
     assert params == ['2024-01-01', '2024-03-01']

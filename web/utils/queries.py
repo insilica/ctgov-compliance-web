@@ -1,9 +1,8 @@
 from web.db import query
-from flask import request
 from opentelemetry import trace
-# Cache imports with compatibility fallback
-from functools import cached_property
+
 tracer = trace.get_tracer(__name__)
+
 
 class QueryManager:
     """A class to manage all database queries for the CTGov compliance application."""
@@ -11,6 +10,124 @@ class QueryManager:
     def __init__(self):
         """Initialize the QueryManager."""
         pass
+
+    def _trial_cte(self):
+        """Common CTE that joins local trials to CTGov schemas."""
+        return '''
+            normalized_trials AS (
+                SELECT
+                    t.id AS trial_id,
+                    t.nct_id,
+                    COALESCE(s.brief_title, t.title, CONCAT('Trial ', t.nct_id)) AS title,
+                    COALESCE(s.start_date, t.start_date) AS start_date,
+                    COALESCE(s.completion_date, t.completion_date) AS completion_date,
+                    COALESCE(s.primary_completion_date, s.completion_date, t.completion_date) AS completion_milestone,
+                    o.id AS organization_id,
+                    COALESCE(o.name, sp.name, 'Unknown organization') AS organization_name,
+                    o.funding_source_class AS funding_source,
+                    o.email_domain,
+                    o.created_at AS organization_created_at,
+                    u.id AS user_id,
+                    u.email AS user_email,
+                    uo.role AS user_role,
+                    COALESCE(s.overall_status, 'Pending') AS status,
+                    t.reporting_due_date AS legacy_reporting_due_date,
+                    COALESCE(cv.were_results_reported, FALSE) AS were_results_reported,
+                    cv.months_to_report_results,
+                    COALESCE(act.is_hlact, FALSE) AS is_hlact,
+                    sp.name AS sponsor_name,
+                    sp.agency_class AS sponsor_agency_class,
+                    NULL::timestamp without time zone AS last_checked
+                FROM trial t
+                LEFT JOIN organization o ON o.id = t.organization_id
+                LEFT JOIN ctgov_user u ON u.id = t.user_id
+                LEFT JOIN user_organization uo
+                    ON uo.user_id = t.user_id AND uo.organization_id = t.organization_id
+                LEFT JOIN "ctgov".studies s ON s.nct_id = t.nct_id
+                LEFT JOIN "ctgov".sponsors sp
+                    ON sp.nct_id = t.nct_id AND sp.lead_or_collaborator = 'lead'
+                LEFT JOIN "ctgov".calculated_values cv ON cv.nct_id = t.nct_id
+                LEFT JOIN "ctgov_42_cfr_pt11".trial act ON act.nct_id = t.nct_id
+            ),
+            reporting_ready AS (
+                SELECT
+                    nt.*,
+                    COALESCE(
+                        CASE
+                            WHEN nt.is_hlact
+                            THEN (COALESCE(nt.completion_milestone, nt.completion_date) + INTERVAL '1 year')::date
+                        END,
+                        nt.legacy_reporting_due_date
+                    ) AS reporting_due_date
+                FROM normalized_trials nt
+            ),
+            enriched_trials AS (
+                SELECT
+                    rr.*,
+                    CASE
+                        WHEN rr.is_hlact AND rr.were_results_reported IS TRUE THEN 'Compliant'
+                        WHEN rr.is_hlact
+                             AND rr.reporting_due_date IS NOT NULL
+                             AND rr.reporting_due_date < CURRENT_DATE
+                             AND rr.were_results_reported IS NOT TRUE
+                        THEN 'Incompliant'
+                        ELSE 'Pending'
+                    END AS compliance_status,
+                    CASE
+                        WHEN rr.reporting_due_date IS NULL THEN 0
+                        WHEN rr.reporting_due_date < CURRENT_DATE
+                             AND rr.were_results_reported IS NOT TRUE
+                        THEN (CURRENT_DATE - rr.reporting_due_date)
+                        ELSE 0
+                    END AS days_overdue,
+                    CASE
+                        WHEN rr.reporting_due_date IS NULL THEN NULL
+                        WHEN rr.reporting_due_date >= CURRENT_DATE
+                        THEN (rr.reporting_due_date - CURRENT_DATE)
+                        ELSE 0
+                    END AS days_until_due
+                FROM reporting_ready rr
+            )
+        '''
+
+    def _org_stats_cte(self):
+        """CTE that aggregates organization-level compliance metrics."""
+        return self._trial_cte() + '''
+            ,
+            org_stats AS (
+                SELECT
+                    organization_id AS id,
+                    MAX(organization_name) AS name,
+                    MAX(funding_source) AS funding_source,
+                    MAX(email_domain) AS email_domain,
+                    MAX(organization_created_at) AS created_at,
+                    COUNT(trial_id) AS total_trials,
+                    COUNT(*) FILTER (WHERE compliance_status = 'Compliant') AS on_time_count,
+                    COUNT(*) FILTER (WHERE compliance_status = 'Incompliant') AS late_count,
+                    COUNT(*) FILTER (WHERE compliance_status = 'Pending') AS pending_count,
+                    SUM(
+                        CASE WHEN compliance_status = 'Incompliant' THEN days_overdue ELSE 0 END
+                    ) AS total_overdue_days,
+                    SUM(
+                        CASE
+                            WHEN compliance_status = 'Incompliant'
+                                 AND reporting_due_date IS NOT NULL
+                                 AND reporting_due_date < CURRENT_DATE
+                            THEN 1 ELSE 0
+                        END
+                    ) AS high_risk_trials,
+                    AVG(
+                        CASE
+                            WHEN start_date IS NOT NULL AND completion_date IS NOT NULL
+                            THEN (completion_date - start_date)
+                        END
+                    ) AS avg_trial_duration,
+                    MAX(last_checked) AS last_compliance_check
+                FROM enriched_trials
+                WHERE organization_id IS NOT NULL
+                GROUP BY organization_id
+            )
+        '''
     
     # ============================================================================
     # COMPLIANCE RATE QUERIES
@@ -22,14 +139,16 @@ class QueryManager:
         if filter: current_span.set_attribute("filter", filter)
         if params: current_span.set_attribute("params", str(params))
             
-        sql = '''
+        ctes = self._trial_cte()
+        sql = f'''
+            WITH {ctes}
             SELECT
                 COUNT(trial_id) FILTER (WHERE compliance_status = 'Compliant') AS compliant_count,
                 COUNT(trial_id) FILTER (WHERE compliance_status = 'Incompliant') AS incompliant_count
-            FROM joined_trials
+            FROM enriched_trials
         '''
         if filter:
-            sql += f"WHERE {filter}"
+            sql += f" WHERE {filter}"
             current_span.set_attribute("sql", sql)
             current_span.set_attribute("[params]", str([params]))
             return query(sql, [params])
@@ -44,12 +163,14 @@ class QueryManager:
         if min_trials: current_span.set_attribute("min_trials", min_trials)
         if max_trials: current_span.set_attribute("max_trials", max_trials)
 
-        sql = '''
-                SELECT
-                    SUM(on_time_count) AS compliant_count,
-                    SUM(late_count) AS incompliant_count
-                FROM compare_orgs
-            '''
+        ctes = self._org_stats_cte()
+        sql = f'''
+            WITH {ctes}
+            SELECT
+                SUM(on_time_count) AS compliant_count,
+                SUM(late_count) AS incompliant_count
+            FROM org_stats
+        '''
         where_clauses = []
         params = []
         # Compliance rate is calculated as (on_time_count / total_trials) * 100
@@ -82,11 +203,15 @@ class QueryManager:
         if per_page: current_span.set_attribute("per_page", per_page)
         current_span.set_attribute("count", count)
 
+        ctes = self._trial_cte()
         sql = f'''
-            SELECT {count} FROM joined_trials
+            WITH {ctes}
+            SELECT {count} FROM enriched_trials
         '''
 
-        if page is not None and per_page is not None:
+        if count == '*':
+            sql += ' ORDER BY reporting_due_date NULLS LAST, trial_id'
+        if page is not None and per_page is not None and count == '*':
             offset = (page - 1) * per_page
             sql += f' LIMIT {per_page} OFFSET {offset}'
         current_span.set_attribute("sql", sql)
@@ -100,13 +225,16 @@ class QueryManager:
         if per_page: current_span.set_attribute("per_page", per_page)
         current_span.set_attribute("count", count)
         
+        ctes = self._trial_cte()
         sql = f'''
-            SELECT {count} FROM joined_trials
+            WITH {ctes}
+            SELECT {count} FROM enriched_trials
             WHERE organization_id IN %s
         '''
         
-        # Add LIMIT and OFFSET if pagination parameters are provided
-        if page is not None and per_page is not None:
+        if count == '*':
+            sql += ' ORDER BY reporting_due_date NULLS LAST, trial_id'
+        if page is not None and per_page is not None and count == '*':
             offset = (page - 1) * per_page
             sql += f' LIMIT {per_page} OFFSET {offset}'
         current_span.set_attribute("sql", sql)
@@ -122,13 +250,16 @@ class QueryManager:
         if per_page: current_span.set_attribute("per_page", per_page)
         current_span.set_attribute("count", count)
         
+        ctes = self._trial_cte()
         sql = f'''
-            SELECT {count} FROM joined_trials
+            WITH {ctes}
+            SELECT {count} FROM enriched_trials
             WHERE user_id = %s
         '''
         
-        # Add LIMIT and OFFSET if pagination parameters are provided
-        if page is not None and per_page is not None:
+        if count == '*':
+            sql += ' ORDER BY reporting_due_date NULLS LAST, trial_id'
+        if page is not None and per_page is not None and count == '*':
             offset = (page - 1) * per_page
             sql += f' LIMIT {per_page} OFFSET {offset}'
         current_span.set_attribute("sql", sql)
@@ -147,9 +278,11 @@ class QueryManager:
         if per_page: current_span.set_attribute("per_page", per_page)
         current_span.set_attribute("count", count)
         
+        ctes = self._trial_cte()
         base_sql = f'''
+            WITH {ctes}
             SELECT {count}
-            FROM joined_trials
+            FROM enriched_trials
         '''
         
         conditions = []
@@ -208,15 +341,17 @@ class QueryManager:
                 elif status == 'incompliant':
                     status_conditions.append("compliance_status = 'Incompliant'")
                 elif status == 'pending':
-                    status_conditions.append("compliance_status IS NULL")
+                    status_conditions.append("compliance_status = 'Pending'")
             if status_conditions:
                 conditions.append(f"({' OR '.join(status_conditions)})")
 
         if conditions:
             base_sql += " WHERE " + " AND ".join(conditions)
 
+        if count == '*':
+            base_sql += ' ORDER BY reporting_due_date NULLS LAST, trial_id'
         # Add LIMIT and OFFSET if pagination parameters are provided (but not for count queries)
-        if page is not None and per_page is not None:
+        if page is not None and per_page is not None and count == '*':
             offset = (page - 1) * per_page
             base_sql += f' LIMIT {per_page} OFFSET {offset}'
 
@@ -239,10 +374,59 @@ class QueryManager:
         if per_page: current_span.set_attribute("per_page", per_page)
         current_span.set_attribute("count", count)
 
+        z_value = 1.96
+        z_sq = round(z_value ** 2, 4)
+        phat_expr = '(on_time_count::numeric / NULLIF(total_trials,0))'
+        wilson_clause = f"""
+            CASE
+                WHEN total_trials > 0 THEN
+                    ROUND(
+                        (
+                            {phat_expr}
+                            + ({z_sq}) / (2 * total_trials)
+                            - {z_value} * SQRT(
+                                (
+                                    {phat_expr} * (1 - {phat_expr})
+                                    + ({z_sq}) / (4 * total_trials)
+                                ) / total_trials
+                            )
+                        )
+                        / (1 + ({z_sq}) / total_trials)
+                        * 100
+                    , 2)
+                ELSE NULL
+            END AS wilson_lcb_score
+        """
+        if count == '*':
+            select_clause = f'''
+                id,
+                name,
+                funding_source,
+                email_domain,
+                created_at,
+                total_trials,
+                on_time_count,
+                late_count,
+                pending_count,
+                CASE
+                    WHEN total_trials > 0 THEN ROUND({phat_expr} * 100, 1)
+                    ELSE NULL
+                END AS reporting_rate,
+                {wilson_clause},
+                total_overdue_days,
+                high_risk_trials,
+                avg_trial_duration,
+                last_compliance_check
+            '''
+        else:
+            select_clause = count
+
+        ctes = self._org_stats_cte()
         sql = f'''
+            WITH {ctes}
             SELECT 
-                {count}
-            FROM compare_orgs
+                {select_clause}
+            FROM org_stats
         '''
 
         where_clauses = []
@@ -264,7 +448,9 @@ class QueryManager:
             sql += ' WHERE ' + ' AND '.join(where_clauses)
         
         # Add LIMIT and OFFSET if pagination parameters are provided
-        if page is not None and per_page is not None:
+        if count == '*':
+            sql += ' ORDER BY reporting_rate DESC NULLS LAST, total_trials DESC'
+        if page is not None and per_page is not None and count == '*':
             offset = (page - 1) * per_page
             sql += f' LIMIT {per_page} OFFSET {offset}'
         
@@ -282,44 +468,31 @@ class QueryManager:
         if search_params: current_span.set_attribute("search_params", search_params)
         if compliance_status_list: current_span.set_attribute("compliance_status_list", compliance_status_list)
         """Get enhanced trial analytics including compliance metrics, overdue days, etc."""
-        base_sql = '''
+        ctes = self._trial_cte()
+        base_sql = f'''
+            WITH {ctes}
             SELECT DISTINCT
-                t.nct_id,
-                t.title,
-                o.name,
-                u.email,
-                tc.status,
-                t.start_date,
-                t.completion_date,
-                t.reporting_due_date,
-                tc.last_checked,
-                o.id,
-                t.user_id,
-                -- Calculate days overdue (negative means not due yet)
+                et.nct_id,
+                et.title,
+                et.organization_name AS name,
+                et.user_email AS user_email,
+                et.compliance_status AS status,
+                et.start_date,
+                et.completion_date,
+                et.reporting_due_date,
+                et.last_checked,
+                et.organization_id AS id,
+                et.user_id,
+                et.days_overdue,
+                COALESCE(et.days_until_due, 0) AS days_until_due,
                 CASE 
-                    WHEN tc.status = 'Incompliant' AND t.reporting_due_date < CURRENT_DATE 
-                    THEN CURRENT_DATE - t.reporting_due_date
-                    ELSE 0
-                END as days_overdue,
-                -- Calculate time to next deadline
-                CASE 
-                    WHEN t.reporting_due_date >= CURRENT_DATE 
-                    THEN t.reporting_due_date - CURRENT_DATE
-                    ELSE 0
-                END as days_until_due,
-                -- Risk score based on compliance history and timeline
-                CASE 
-                    WHEN tc.status = 'Incompliant' AND t.reporting_due_date < CURRENT_DATE THEN 'High'
-                    WHEN tc.status IS NULL AND t.reporting_due_date <= CURRENT_DATE + INTERVAL '30 days' THEN 'Medium'
-                    WHEN tc.status IS NULL AND t.reporting_due_date <= CURRENT_DATE + INTERVAL '60 days' THEN 'Low'
+                    WHEN et.compliance_status = 'Incompliant' AND et.reporting_due_date < CURRENT_DATE THEN 'High'
+                    WHEN et.compliance_status = 'Pending' AND et.reporting_due_date <= CURRENT_DATE + INTERVAL '30 days' THEN 'Medium'
+                    WHEN et.compliance_status = 'Pending' AND et.reporting_due_date <= CURRENT_DATE + INTERVAL '60 days' THEN 'Low'
                     ELSE 'Normal'
                 END as risk_level,
-                -- Trial duration for analysis
-                t.completion_date - t.start_date as trial_duration_days
-            FROM trial t
-            LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
-            LEFT JOIN organization o ON o.id = t.organization_id
-            LEFT JOIN ctgov_user u ON u.id = t.user_id
+                et.completion_date - et.start_date as trial_duration_days
+            FROM enriched_trials et
             WHERE 1=1
             '''
         
@@ -328,19 +501,19 @@ class QueryManager:
         
         if search_params:
             if search_params.get('title'):
-                conditions.append("t.title ILIKE %s")
+                conditions.append("et.title ILIKE %s")
                 values.append(f"%{search_params['title']}%")
                 
             if search_params.get('nct_id'):
-                conditions.append("t.nct_id ILIKE %s")
+                conditions.append("et.nct_id ILIKE %s")
                 values.append(f"%{search_params['nct_id']}%")
                 
             if search_params.get('organization'):
-                conditions.append("o.name ILIKE %s")
+                conditions.append("et.organization_name ILIKE %s")
                 values.append(f"%{search_params['organization']}%")
             
             if search_params.get('user_email'):
-                conditions.append("u.email ILIKE %s")
+                conditions.append("et.user_email ILIKE %s")
                 values.append(f"%{search_params['user_email']}%")
             
             # Handle date range
@@ -350,20 +523,20 @@ class QueryManager:
             
             if date_from:
                 if date_type == 'completion':
-                    conditions.append("t.completion_date >= %s")
+                    conditions.append("et.completion_date >= %s")
                 elif date_type == 'start':
-                    conditions.append("t.start_date >= %s")
+                    conditions.append("et.start_date >= %s")
                 elif date_type == 'due':
-                    conditions.append("t.reporting_due_date >= %s")
+                    conditions.append("et.reporting_due_date >= %s")
                 values.append(date_from)
             
             if date_to:
                 if date_type == 'completion':
-                    conditions.append("t.completion_date <= %s")
+                    conditions.append("et.completion_date <= %s")
                 elif date_type == 'start':
-                    conditions.append("t.start_date <= %s")
+                    conditions.append("et.start_date <= %s")
                 elif date_type == 'due':
-                    conditions.append("t.reporting_due_date <= %s")
+                    conditions.append("et.reporting_due_date <= %s")
                 values.append(date_to)
         
         # Handle compliance status
@@ -371,18 +544,18 @@ class QueryManager:
             status_conditions = []
             for status in compliance_status_list:
                 if status == 'compliant':
-                    status_conditions.append("tc.status = 'Compliant'")
+                    status_conditions.append("et.compliance_status = 'Compliant'")
                 elif status == 'incompliant':
-                    status_conditions.append("tc.status = 'Incompliant'")
+                    status_conditions.append("et.compliance_status = 'Incompliant'")
                 elif status == 'pending':
-                    status_conditions.append("tc.status IS NULL")
+                    status_conditions.append("et.compliance_status = 'Pending'")
             if status_conditions:
                 conditions.append(f"({' OR '.join(status_conditions)})")
         
         if conditions:
             base_sql += " AND " + " AND ".join(conditions)
         
-        base_sql += " ORDER BY days_overdue DESC, t.reporting_due_date ASC"
+        base_sql += " ORDER BY days_overdue DESC, et.reporting_due_date ASC"
         
         current_span.set_attribute("sql", base_sql)
         current_span.set_attribute("values", values)
@@ -392,22 +565,24 @@ class QueryManager:
     def get_reporting_metrics(self):
         """Return summary metrics for the reporting KPIs."""
         current_span = trace.get_current_span()
-        sql = '''
+        ctes = self._trial_cte()
+        sql = f'''
+            WITH {ctes}
             SELECT
                 COUNT(trial_id) AS total_trials,
                 COUNT(trial_id) FILTER (WHERE compliance_status = 'Compliant') AS compliant_count,
                 COUNT(trial_id) FILTER (
                     WHERE compliance_status = 'Incompliant'
-                        OR (compliance_status IS NULL AND reporting_due_date < CURRENT_DATE)
+                        OR (compliance_status = 'Pending' AND reporting_due_date < CURRENT_DATE)
                 ) AS trials_with_issues_count,
                 AVG(
                     GREATEST(0, (CURRENT_DATE - reporting_due_date))
                 ) FILTER (
                     WHERE reporting_due_date IS NOT NULL
-                      AND (compliance_status = 'Incompliant' OR compliance_status IS NULL)
+                      AND (compliance_status = 'Incompliant' OR compliance_status = 'Pending')
                       AND reporting_due_date < CURRENT_DATE
                 ) AS avg_reporting_delay_days
-            FROM joined_trials
+            FROM enriched_trials
         '''
         current_span.set_attribute("sql", sql)
         return query(sql)
@@ -421,7 +596,6 @@ class QueryManager:
         trials = self.get_enhanced_trial_analytics(search_params, compliance_status_list)
         
         if not trials:
-            current_span.set_attribute('summary', summary)
             summary = {
                 'total_trials': 0,
                 'compliant_count': 0,
@@ -435,6 +609,7 @@ class QueryManager:
                 'trials_due_soon': 0,
                 'overdue_trials': 0
             }
+            current_span.set_attribute('summary', summary)
             return summary
         
         # Calculate summary statistics
@@ -533,68 +708,56 @@ class QueryManager:
         organization_name=None
     ):
         """Get enhanced organization compliance with risk analysis."""
-        sql = '''
+        phat_expr = '(on_time_count::numeric / NULLIF(total_trials,0))'
+        ctes = self._org_stats_cte()
+        sql = f'''
+        WITH {ctes}
         SELECT 
-            o.id,
-            o.name,
-            COUNT(t.id) AS total_trials,
-            SUM(CASE WHEN tc.status = 'Compliant' THEN 1 ELSE 0 END) AS on_time_count,
-            SUM(CASE WHEN tc.status = 'Incompliant' THEN 1 ELSE 0 END) AS late_count,
-            SUM(CASE WHEN tc.status IS NULL THEN 1 ELSE 0 END) AS pending_count,
-            -- Calculate overdue metrics
-            SUM(CASE 
-                WHEN tc.status = 'Incompliant' AND t.reporting_due_date < CURRENT_DATE 
-                THEN CURRENT_DATE - t.reporting_due_date
-                ELSE 0
-            END) AS total_overdue_days,
-            -- Count high-risk trials
-            SUM(CASE 
-                WHEN tc.status = 'Incompliant' AND t.reporting_due_date < CURRENT_DATE 
-                THEN 1 ELSE 0
-            END) AS high_risk_trials,
-            -- Average trial duration
-            AVG(t.completion_date - t.start_date) AS avg_trial_duration,
-            -- Most recent compliance check
-            MAX(tc.last_checked) AS last_compliance_check
-        FROM organization o
-        LEFT JOIN trial t ON o.id = t.organization_id
-        LEFT JOIN trial_compliance tc ON t.id = tc.trial_id'''
+            id,
+            name,
+            funding_source,
+            email_domain,
+            created_at,
+            total_trials,
+            on_time_count,
+            late_count,
+            pending_count,
+            total_overdue_days,
+            high_risk_trials,
+            avg_trial_duration,
+            last_compliance_check,
+            CASE
+                WHEN total_trials > 0 THEN ROUND({phat_expr} * 100, 1)
+                ELSE NULL
+            END AS compliance_rate
+        FROM org_stats'''
         
         where_clauses = []
         params = []
-        having_clauses = []
-        having_params = []
 
         if funding_source_class:
-            where_clauses.append('o.funding_source_class = %s')
+            where_clauses.append('funding_source = %s')
             params.append(funding_source_class)
         if organization_name:
-            where_clauses.append('o.name ILIKE %s')
+            where_clauses.append('name ILIKE %s')
             params.append(f'%{organization_name}%')
+        if min_compliance is not None:
+            where_clauses.append(f'({phat_expr} * 100) >= %s')
+            params.append(min_compliance)
+        if max_compliance is not None:
+            where_clauses.append(f'({phat_expr} * 100) <= %s')
+            params.append(max_compliance)
+        if min_trials is not None:
+            where_clauses.append('total_trials >= %s')
+            params.append(min_trials)
+        if max_trials is not None:
+            where_clauses.append('total_trials <= %s')
+            params.append(max_trials)
         
         if where_clauses:
             sql += '\nWHERE ' + ' AND '.join(where_clauses)
-
-        sql += '\nGROUP BY o.id, o.name'
         
-        if min_compliance is not None:
-            having_clauses.append('(SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) >= %s')
-            having_params.append(min_compliance)
-        if max_compliance is not None:
-            having_clauses.append('(SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) <= %s')
-            having_params.append(max_compliance)
-        if min_trials is not None:
-            having_clauses.append('COUNT(t.id) >= %s')
-            having_params.append(min_trials)
-        if max_trials is not None:
-            having_clauses.append('COUNT(t.id) <= %s')
-            having_params.append(max_trials)
-        
-        if having_clauses:
-            sql += ' HAVING ' + ' AND '.join(having_clauses)
-            params.extend(having_params)
-        
-        sql += '\nORDER BY (SUM(CASE WHEN tc.status = \'Compliant\' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(t.id),0)) ASC'
+        sql += f'\nORDER BY ({phat_expr} * 100) ASC NULLS LAST'
         
         return query(sql, params)
 
@@ -603,28 +766,24 @@ class QueryManager:
         """Return incompliant trials for an organization ordered by completion date."""
         if not organization_id:
             return []
-        sql = '''
+        ctes = self._trial_cte()
+        sql = f'''
+            WITH {ctes}
             SELECT
-                t.id,
-                t.title,
-                t.nct_id,
-                o.name AS organization_name,
-                u.email AS user_email,
-                COALESCE(tc.status, 'Pending') AS status,
-                t.start_date,
-                t.completion_date,
-                t.reporting_due_date,
-                GREATEST(
-                    0,
-                    (CURRENT_DATE - (t.completion_date + INTERVAL '1 year')::date)
-                ) AS days_overdue
-            FROM trial t
-            JOIN organization o ON t.organization_id = o.id
-            LEFT JOIN ctgov_user u ON t.user_id = u.id
-            LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
-            WHERE t.organization_id = %s
-              AND COALESCE(tc.status, 'Pending') = 'Incompliant'
-            ORDER BY t.completion_date ASC NULLS LAST, t.title ASC
+                trial_id AS id,
+                title,
+                nct_id,
+                organization_name,
+                user_email,
+                compliance_status AS status,
+                start_date,
+                completion_date,
+                reporting_due_date,
+                days_overdue
+            FROM enriched_trials
+            WHERE organization_id = %s
+              AND compliance_status = 'Incompliant'
+            ORDER BY completion_date ASC NULLS LAST, title ASC
         '''
         return query(sql, [organization_id])
 
@@ -649,34 +808,35 @@ class QueryManager:
         if end_date:
             current_span.set_attribute("end_date", str(end_date))
 
-        where_clauses = ['t.start_date IS NOT NULL']
+        where_clauses = ['et.start_date IS NOT NULL']
         params = []
 
         if start_date:
-            where_clauses.append('DATE(t.start_date) >= %s')
+            where_clauses.append('DATE(et.start_date) >= %s')
             params.append(start_date)
 
         if end_date:
-            where_clauses.append('DATE(t.start_date) <= %s')
+            where_clauses.append('DATE(et.start_date) <= %s')
             params.append(end_date)
 
         where_sql = ' AND '.join(where_clauses)
 
+        ctes = self._trial_cte()
         sql = f'''
-            WITH trials_with_status AS (
+            WITH {ctes},
+            trials_with_status AS (
                 SELECT
-                    t.id,
-                    DATE_TRUNC('month', t.start_date)::date AS period_start,
-                    DATE_TRUNC('month', t.completion_date)::date AS completion_month,
+                    trial_id,
+                    DATE_TRUNC('month', start_date)::date AS period_start,
+                    DATE_TRUNC('month', completion_date)::date AS completion_month,
                     CASE
-                        WHEN t.reporting_due_date IS NOT NULL
-                             AND t.completion_date IS NOT NULL
-                        THEN GREATEST(0, (t.reporting_due_date - t.completion_date))
+                        WHEN reporting_due_date IS NOT NULL
+                             AND completion_date IS NOT NULL
+                        THEN GREATEST(0, (reporting_due_date - completion_date))
                         ELSE NULL
                     END AS reporting_delay_days,
-                    COALESCE(tc.status, 'Pending') AS compliance_status
-                FROM trial t
-                LEFT JOIN trial_compliance tc ON t.id = tc.trial_id
+                    compliance_status
+                FROM enriched_trials et
                 WHERE {where_sql}
             ),
             monthly_counts AS (
