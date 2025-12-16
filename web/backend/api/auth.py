@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, UserMixin, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime, timedelta, timezone
 import secrets
 from ..repositories.db import query, execute
 from opentelemetry import trace
+from ..extensions import csrf
 
 tracer = trace.get_tracer(__name__)
 
@@ -178,3 +179,68 @@ def reset_password(token):
         flash('Password successfully updated! Please log in.', 'success')
         return redirect(url_for('auth.login'))
     return render_template('auth/reset_password.html', email=user['email'])
+
+
+def _serialize_user(user: User):
+    orgs = []
+    for org in user.organizations:
+        item = dict(org)
+        orgs.append(
+            {
+                'id': item['id'],
+                'name': item['name'],
+                'role': item.get('role'),
+            }
+        )
+    roles = [org['role'] for org in orgs if org.get('role')]
+    return {
+        'id': user.id,
+        'email': user.email,
+        'name': user.email.split('@')[0],
+        'roles': roles,
+        'organizations': orgs,
+    }
+
+
+def _complete_login(user: User):
+    login_user(user)
+    execute('INSERT INTO login_activity (user_id) VALUES (%s)', [user.id])
+
+
+@bp.route('/api/auth/login', methods=['POST'])
+@csrf.exempt
+@tracer.start_as_current_span("auth.api_login")
+def api_login():
+    if not request.is_json:
+        return jsonify({'message': 'Expected JSON body.'}), 400
+
+    payload = request.get_json(silent=True) or {}
+    email = (payload.get('email') or '').strip()
+    password = payload.get('password') or ''
+    if not email or not password:
+        return jsonify({'message': 'Email and password are required.'}), 400
+
+    row = query('SELECT id, email, password_hash FROM ctgov_user WHERE email=%s', [email], fetchone=True)
+    if row and check_password_hash(row['password_hash'], password):
+        user = User(row['id'], row['email'], row['password_hash'])
+        _complete_login(user)
+        return jsonify({'message': 'Logged in successfully.', 'user': _serialize_user(user)}), 200
+
+    return jsonify({'message': 'Invalid credentials.'}), 401
+
+
+@bp.route('/api/auth/session', methods=['GET'])
+@tracer.start_as_current_span("auth.api_session")
+def api_session():
+    if not current_user.is_authenticated:
+        return jsonify({'authenticated': False}), 401
+    return jsonify({'authenticated': True, 'user': _serialize_user(current_user)}), 200
+
+
+@bp.route('/api/auth/logout', methods=['POST'])
+@csrf.exempt
+@tracer.start_as_current_span("auth.api_logout")
+def api_logout():
+    if current_user.is_authenticated:
+        logout_user()
+    return jsonify({'message': 'Logged out.'}), 200

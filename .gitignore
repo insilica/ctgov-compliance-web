@@ -55,3 +55,9 @@ report.*
 
 report.*
 gcloud-logs.json
+
+# node / frontend artifacts
+node_modules/
+web/frontend/node_modules/
+web/frontend/dist/
+web/frontend/storybook-static/

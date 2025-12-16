@@ -1,13 +1,12 @@
 import os
 from pathlib import Path
 from flask import Flask, request
-from flask_wtf import CSRFProtect
 from flask_login import current_user, login_user
 from .api.auth import bp as auth_bp, login_manager, User
 from .api.routes import bp as routes_bp
 from .telemetry import init_telemetry, instrument_flask_app
+from .extensions import csrf
 
-csrf = CSRFProtect()
 BASE_DIR = Path(__file__).resolve().parent.parent
 LEGACY_FRONTEND = BASE_DIR / "frontend" / "legacy"
 
