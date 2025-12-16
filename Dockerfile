@@ -4,11 +4,15 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (Node.js for frontend build + build tooling)
 RUN apt-get update && apt-get install -y \
     curl \
     build-essential \
     postgresql-client \
+    ca-certificates \
+    gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv package manager
@@ -17,8 +21,14 @@ ENV PATH="/root/.local/bin:$PATH"
 
 # Copy dependency files first for better caching
 COPY pyproject.toml uv.lock ./
+COPY web/frontend/package.json web/frontend/package-lock.json ./web/frontend/
 
-# Copy application code (needed for editable install)
+# Install frontend dependencies
+RUN cd web/frontend && npm ci
+
+# Copy application code
+COPY web/frontend/ ./web/frontend/
+RUN cd web/frontend && npm run build && rm -rf node_modules
 COPY web/ ./web/
 COPY scripts/ ./scripts/
 COPY tests/ ./tests/

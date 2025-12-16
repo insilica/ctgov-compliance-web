@@ -26,6 +26,7 @@
             postgresql_15
             postgresql_jdbc
             uv
+            nodejs_20
           ];
 
           shellHook = ''

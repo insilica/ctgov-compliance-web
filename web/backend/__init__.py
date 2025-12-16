@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from flask import Flask, request
+from flask import Flask, request, send_from_directory, abort
 from flask_login import current_user, login_user
 from .api.auth import bp as auth_bp, login_manager, User
 from .api.routes import bp as routes_bp
@@ -9,6 +9,7 @@ from .extensions import csrf
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 LEGACY_FRONTEND = BASE_DIR / "frontend" / "legacy"
+REACT_DIST = BASE_DIR / "frontend" / "dist"
 
 
 def create_app(test_config=None):
@@ -34,10 +35,34 @@ def create_app(test_config=None):
     app.jinja_env.add_extension('jinja2.ext.do')
 
     csrf.init_app(app)
+    app.config.setdefault('REACT_DIST', REACT_DIST)
 
     login_manager.init_app(app)
     app.register_blueprint(auth_bp)
     app.register_blueprint(routes_bp)
+
+    @app.route('/app', defaults={'path': ''})
+    @app.route('/app/<path:path>')
+    def serve_react_app(path):
+        dist_dir = Path(app.config['REACT_DIST'])
+        if not dist_dir.exists():
+            abort(404)
+
+        candidate = dist_dir / path
+        if path and candidate.is_file():
+            return send_from_directory(dist_dir.as_posix(), path)
+
+        return send_from_directory(dist_dir.as_posix(), 'index.html')
+
+    @app.route('/assets/<path:asset_path>')
+    def serve_react_assets(asset_path):
+        assets_dir = Path(app.config['REACT_DIST']) / 'assets'
+        if not assets_dir.exists():
+            abort(404)
+        candidate = assets_dir / asset_path
+        if not candidate.is_file():
+            abort(404)
+        return send_from_directory(assets_dir.as_posix(), asset_path)
 
     # Auto-authentication for development and preview environments
     @app.before_request
