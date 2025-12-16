@@ -4,7 +4,7 @@ Tests for cloud database functionality.
 
 import pytest
 from unittest.mock import patch, MagicMock
-from web.db import (
+from web.backend.repositories.db import (
     _get_pool, 
     check_data_population, 
     mark_data_populated, 
@@ -20,8 +20,8 @@ class TestCloudDBConnection:
     def test_cloud_sql_unix_socket_connection(self, mock_pool):
         """Test that Cloud SQL unix socket connections are handled correctly."""
         # Reset the global pool
-        import web.db
-        web.db._POOL = None
+        import web.backend.repositories.db
+        web.backend.repositories.db._POOL = None
         
         # Call the function
         _get_pool()
@@ -40,8 +40,8 @@ class TestCloudDBConnection:
     def test_tcp_connection(self, mock_pool):
         """Test that TCP connections are handled correctly."""
         # Reset the global pool
-        import web.db
-        web.db._POOL = None
+        import web.backend.repositories.db
+        web.backend.repositories.db._POOL = None
         
         # Call the function
         _get_pool()
@@ -59,7 +59,7 @@ class TestCloudDBConnection:
 class TestDataPopulationTracking:
     """Test data population tracking functionality."""
 
-    @patch('web.db.query')
+    @patch('web.backend.repositories.db.query')
     def test_check_data_population_with_data(self, mock_query):
         """Test checking data population when data exists."""
         mock_query.return_value = {'count': 5}
@@ -69,7 +69,7 @@ class TestDataPopulationTracking:
         assert result is True
         mock_query.assert_called_once_with("SELECT COUNT(*) as count FROM organization", fetchone=True)
 
-    @patch('web.db.query')
+    @patch('web.backend.repositories.db.query')
     def test_check_data_population_without_data(self, mock_query):
         """Test checking data population when no data exists."""
         mock_query.return_value = {'count': 0}
@@ -78,7 +78,7 @@ class TestDataPopulationTracking:
         
         assert result is False
 
-    @patch('web.db.query')
+    @patch('web.backend.repositories.db.query')
     def test_check_data_population_error(self, mock_query):
         """Test checking data population when query fails."""
         mock_query.side_effect = Exception("Database error")
@@ -87,8 +87,8 @@ class TestDataPopulationTracking:
         
         assert result is False
 
-    @patch('web.db.execute')
-    @patch('web.db.query')
+    @patch('web.backend.repositories.db.execute')
+    @patch('web.backend.repositories.db.query')
     def test_mark_data_populated_success(self, mock_query, mock_execute):
         """Test marking data as populated successfully."""
         # Mock that no flag exists yet
@@ -100,8 +100,8 @@ class TestDataPopulationTracking:
         # Should create table and insert flag
         assert mock_execute.call_count == 2
 
-    @patch('web.db.execute')
-    @patch('web.db.query')
+    @patch('web.backend.repositories.db.execute')
+    @patch('web.backend.repositories.db.query')
     def test_mark_data_populated_already_marked(self, mock_query, mock_execute):
         """Test marking data as populated when already marked."""
         # Mock that flag already exists
@@ -113,7 +113,7 @@ class TestDataPopulationTracking:
         # Should only create table, not insert
         assert mock_execute.call_count == 1
 
-    @patch('web.db.query')
+    @patch('web.backend.repositories.db.query')
     def test_is_data_populated_true(self, mock_query):
         """Test checking if data is populated when flag exists."""
         mock_query.return_value = {'count': 1}
@@ -122,7 +122,7 @@ class TestDataPopulationTracking:
         
         assert result is True
 
-    @patch('web.db.query')
+    @patch('web.backend.repositories.db.query')
     def test_is_data_populated_false(self, mock_query):
         """Test checking if data is populated when flag doesn't exist."""
         mock_query.return_value = {'count': 0}
@@ -131,7 +131,7 @@ class TestDataPopulationTracking:
         
         assert result is False
 
-    @patch('web.db.query')
+    @patch('web.backend.repositories.db.query')
     def test_is_data_populated_error(self, mock_query):
         """Test checking if data is populated when query fails."""
         mock_query.side_effect = Exception("Database error")

@@ -1,0 +1,166 @@
+openapi: 3.0.3
+info:
+  title: CTGov Compliance Backend
+  version: "0.1.0"
+  description: >
+    OpenAPI contract describing the backend routes exposed to the frontend.
+servers:
+  - url: http://localhost:5000
+paths:
+  /health:
+    get:
+      summary: Health check
+      tags: [system]
+      responses:
+        "200":
+          description: Backend is reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /api/autocomplete/titles:
+    get:
+      summary: Trial title autocomplete
+      tags: [autocomplete]
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Minimum 2 characters from the trial title
+      responses:
+        "200":
+          description: List of matching titles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutocompleteResponse"
+  /api/autocomplete/organizations:
+    get:
+      summary: Organization autocomplete
+      tags: [autocomplete]
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of matching organizations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutocompleteResponse"
+  /api/autocomplete/nct_ids:
+    get:
+      summary: Trial identifier autocomplete
+      tags: [autocomplete]
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of matching NCT IDs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutocompleteResponse"
+  /api/autocomplete/user_emails:
+    get:
+      summary: User email autocomplete
+      tags: [autocomplete]
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of matching user emails
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AutocompleteResponse"
+  /export/csv:
+    get:
+      summary: Export current dashboard selection as CSV
+      tags: [reports]
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [trials, organizations, user]
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: CSV payload containing trial/organization data
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+  /report/print:
+    get:
+      summary: Render printable report for current filters
+      tags: [reports]
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [trials, organizations, user]
+      responses:
+        "200":
+          description: HTML document
+          content:
+            text/html:
+              schema:
+                type: string
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+    AutocompleteResponse:
+      type: array
+      description: Ordered list of suggestion values
+      items:
+        type: string
+    TrialSummary:
+      type: object
+      properties:
+        title:
+          type: string
+        nct_id:
+          type: string
+        organization:
+          type: string
+          nullable: true
+        user_email:
+          type: string
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+        completion_date:
+          type: string
+          format: date-time
+          nullable: true
+        reporting_due_date:
+          type: string
+          format: date-time
+          nullable: true
+      required: [title, nct_id]

@@ -1,7 +1,7 @@
 import os
 import pytest
 from unittest.mock import patch, MagicMock, call
-from web.db import _get_pool, get_conn, query, execute
+from web.backend.repositories.db import _get_pool, get_conn, query, execute
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -21,9 +21,9 @@ def mock_pool():
 
 
 def test_get_pool_initialization():
-    with patch('web.db.pool.SimpleConnectionPool') as mock_pool_init:
+    with patch('web.backend.repositories.db.pool.SimpleConnectionPool') as mock_pool_init:
         mock_pool_init.return_value = 'test_pool'
-        with patch('web.db._POOL', None):  # Ensure _POOL is None
+        with patch('web.backend.repositories.db._POOL', None):  # Ensure _POOL is None
             # Test with default values
             result = _get_pool()
             assert result == 'test_pool'
@@ -36,9 +36,9 @@ def test_get_pool_initialization():
 
 def test_get_pool_default_pool_size():
     """Test that _get_pool uses default pool size of 5 when not specified."""
-    with patch('web.db.pool.SimpleConnectionPool') as mock_pool_init, \
+    with patch('web.backend.repositories.db.pool.SimpleConnectionPool') as mock_pool_init, \
          patch.dict(os.environ, {}, clear=True), \
-         patch('web.db._POOL', None):
+         patch('web.backend.repositories.db._POOL', None):
         mock_pool_init.return_value = 'test_pool'
         
         result = _get_pool()
@@ -51,7 +51,7 @@ def test_get_pool_default_pool_size():
 
 
 def test_get_pool_with_env_vars():
-    with patch('web.db.pool.SimpleConnectionPool') as mock_pool_init, \
+    with patch('web.backend.repositories.db.pool.SimpleConnectionPool') as mock_pool_init, \
          patch.dict(os.environ, {
              'DB_HOST': 'test_host',
              'DB_PORT': '1234',
@@ -60,7 +60,7 @@ def test_get_pool_with_env_vars():
              'DB_PASSWORD': 'test_pass',
              'DB_POOL_SIZE': '10'
          }):
-        with patch('web.db._POOL', None):  # Ensure _POOL is None
+        with patch('web.backend.repositories.db._POOL', None):  # Ensure _POOL is None
             mock_pool_init.return_value = 'test_pool'
             result = _get_pool()
             assert result == 'test_pool'
@@ -74,16 +74,16 @@ def test_get_pool_with_env_vars():
 
 def test_get_pool_already_initialized():
     """Test that _get_pool returns existing pool if already initialized."""
-    with patch('web.db._POOL', 'existing_pool'):
+    with patch('web.backend.repositories.db._POOL', 'existing_pool'):
         result = _get_pool()
         assert result == 'existing_pool'
 
 
 def test_get_pool_invalid_pool_size():
     """Test that _get_pool gracefully handles invalid DB_POOL_SIZE by using default."""
-    with patch('web.db.pool.SimpleConnectionPool') as mock_pool_init, \
+    with patch('web.backend.repositories.db.pool.SimpleConnectionPool') as mock_pool_init, \
          patch.dict(os.environ, {'DB_POOL_SIZE': 'invalid'}), \
-         patch('web.db._POOL', None):
+         patch('web.backend.repositories.db._POOL', None):
         
         mock_pool_init.return_value = 'test_pool'
         result = _get_pool()
@@ -97,8 +97,8 @@ def test_get_pool_invalid_pool_size():
 
 def test_get_pool_initialization_error():
     """Test behavior when pool initialization fails."""
-    with patch('web.db.pool.SimpleConnectionPool') as mock_pool_init, \
-         patch('web.db._POOL', None):
+    with patch('web.backend.repositories.db.pool.SimpleConnectionPool') as mock_pool_init, \
+         patch('web.backend.repositories.db._POOL', None):
         mock_pool_init.side_effect = psycopg2.OperationalError("could not connect to server")
         
         with pytest.raises(psycopg2.OperationalError):
@@ -108,7 +108,7 @@ def test_get_pool_initialization_error():
 def test_get_conn_context_manager(mock_pool):
     mock_pool_obj, conn_mock, _ = mock_pool
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         with get_conn() as conn:
             assert conn == conn_mock
             mock_pool_obj.getconn.assert_called_once()
@@ -121,7 +121,7 @@ def test_get_conn_with_exception(mock_pool):
     """Test that connection is returned to pool even when exception occurs."""
     mock_pool_obj, conn_mock, _ = mock_pool
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         try:
             with get_conn() as conn:
                 assert conn == conn_mock
@@ -138,7 +138,7 @@ def test_query_fetchall(mock_pool):
     mock_pool_obj, _, cursor_mock = mock_pool
     cursor_mock.fetchall.return_value = [{'id': 1}, {'id': 2}]
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         result = query('SELECT * FROM test')
         assert result == [{'id': 1}, {'id': 2}]
         cursor_mock.execute.assert_called_with('SELECT * FROM test', [])
@@ -149,7 +149,7 @@ def test_query_fetchone(mock_pool):
     mock_pool_obj, _, cursor_mock = mock_pool
     cursor_mock.fetchone.return_value = {'id': 1}
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         result = query('SELECT * FROM test WHERE id=%s', [1], fetchone=True)
         assert result == {'id': 1}
         cursor_mock.execute.assert_called_with('SELECT * FROM test WHERE id=%s', [1])
@@ -165,7 +165,7 @@ def test_query_empty_result(mock_pool):
     cursor_mock.fetchall.return_value = []
     cursor_mock.fetchone.return_value = None
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         # Test fetchall with empty result
         result = query('SELECT * FROM test WHERE id=999')
         assert result == []
@@ -186,7 +186,7 @@ def test_query_sql_injection_protection(mock_pool):
     mock_pool_obj, _, cursor_mock = mock_pool
     malicious_input = "1; DROP TABLE users;"
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         query('SELECT * FROM test WHERE id=%s', [malicious_input])
         
         # The SQL and parameters should be passed separately to execute
@@ -200,7 +200,7 @@ def test_query_sql_injection_protection(mock_pool):
 def test_execute(mock_pool):
     mock_pool_obj, conn_mock, cursor_mock = mock_pool
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         execute('INSERT INTO test VALUES (%s)', [1])
         cursor_mock.execute.assert_called_with('INSERT INTO test VALUES (%s)', [1])
         conn_mock.commit.assert_called_once()
@@ -210,7 +210,7 @@ def test_execute_with_none_params(mock_pool):
     """Test execute with None params."""
     mock_pool_obj, conn_mock, cursor_mock = mock_pool
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         execute('INSERT INTO test VALUES (DEFAULT)', None)
         cursor_mock.execute.assert_called_with('INSERT INTO test VALUES (DEFAULT)', [])
         conn_mock.commit.assert_called_once()
@@ -221,7 +221,7 @@ def test_execute_with_db_error(mock_pool):
     mock_pool_obj, conn_mock, cursor_mock = mock_pool
     cursor_mock.execute.side_effect = psycopg2.Error("Database error")
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         with pytest.raises(psycopg2.Error):
             execute('INSERT INTO test VALUES (%s)', [1])
         
@@ -234,7 +234,7 @@ def test_execute_sql_injection_protection(mock_pool):
     mock_pool_obj, conn_mock, cursor_mock = mock_pool
     malicious_input = "value'); DROP TABLE users; --"
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         execute('INSERT INTO test VALUES (%s)', [malicious_input])
         
         # The SQL and parameters should be passed separately to execute
@@ -250,7 +250,7 @@ def test_nested_transactions(mock_pool):
     """Test nested transactions behavior."""
     mock_pool_obj, conn_mock, cursor_mock = mock_pool
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         # First transaction
         execute('INSERT INTO test VALUES (1)')
         
@@ -270,7 +270,7 @@ def test_pool_getconn_error():
     mock_pool = MagicMock()
     mock_pool.getconn.side_effect = psycopg2.pool.PoolError("Connection pool exhausted")
     
-    with patch('web.db._get_pool', return_value=mock_pool):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool):
         with pytest.raises(psycopg2.pool.PoolError):
             with get_conn():
                 pass  # This should not be executed
@@ -281,7 +281,7 @@ def test_pool_putconn_error(mock_pool):
     mock_pool_obj, conn_mock, _ = mock_pool
     mock_pool_obj.putconn.side_effect = Exception("Error returning connection to pool")
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         # The current implementation doesn't catch exceptions in putconn
         with pytest.raises(Exception, match="Error returning connection to pool"):
             with get_conn() as conn:
@@ -292,7 +292,7 @@ def test_execute_uses_standard_cursor(mock_pool):
     """Test that execute uses standard cursor (not RealDictCursor)."""
     mock_pool_obj, conn_mock, _ = mock_pool
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         execute('INSERT INTO test VALUES (1)')
         # Should not pass cursor_factory parameter
         conn_mock.cursor.assert_called_with()
@@ -303,6 +303,6 @@ def test_connection_closed_during_query(mock_pool):
     mock_pool_obj, conn_mock, cursor_mock = mock_pool
     cursor_mock.execute.side_effect = psycopg2.OperationalError("connection already closed")
     
-    with patch('web.db._get_pool', return_value=mock_pool_obj):
+    with patch('web.backend.repositories.db._get_pool', return_value=mock_pool_obj):
         with pytest.raises(psycopg2.OperationalError):
             query('SELECT * FROM test')

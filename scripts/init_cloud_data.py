@@ -21,7 +21,7 @@ import time
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 # Import the database module
-from web.db import get_conn, is_data_populated, mark_data_populated
+from web.backend.repositories.db import get_conn, is_data_populated, mark_data_populated
 
 
 # --- Configuration ---

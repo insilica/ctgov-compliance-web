@@ -1,6 +1,6 @@
 import pytest
 from flask import Flask
-from web.utils.pagination import Pagination, get_pagination_args, paginate
+from web.backend.services.pagination import Pagination, get_pagination_args, paginate
 
 
 def test_pagination_init():

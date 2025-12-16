@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta, timezone
 from flask import url_for
 from werkzeug.security import generate_password_hash, check_password_hash
-from web.auth import User, load_user, login, register, reset_request, reset_password, bp, login_manager, logout
+from web.backend.api.auth import User, load_user, login, register, reset_request, reset_password, bp, login_manager, logout
 
 @pytest.fixture
 def user_data():
@@ -16,13 +16,13 @@ def user_data():
 
 @pytest.fixture
 def mock_query():
-    with patch('web.auth.query') as mock:
+    with patch('web.backend.api.auth.query') as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_execute():
-    with patch('web.auth.execute') as mock:
+    with patch('web.backend.api.auth.execute') as mock:
         yield mock
 
 
@@ -175,7 +175,7 @@ def test_user_get_with_string_id(mock_query, user_data):
 
 
 def test_load_user(mock_query, user_data):
-    with patch('web.auth.User.get') as mock_get:
+    with patch('web.backend.api.auth.User.get') as mock_get:
         mock_user = MagicMock()
         mock_get.return_value = mock_user
         
@@ -186,7 +186,7 @@ def test_load_user(mock_query, user_data):
 
 
 def test_load_user_not_found(mock_query):
-    with patch('web.auth.User.get') as mock_get:
+    with patch('web.backend.api.auth.User.get') as mock_get:
         mock_get.return_value = None
         
         result = load_user('999')
@@ -197,7 +197,7 @@ def test_load_user_not_found(mock_query):
 
 def test_login_get(flask_app):
     with flask_app.test_request_context('/login', method='GET'):
-        with patch('web.auth.render_template') as mock_render:
+        with patch('web.backend.api.auth.render_template') as mock_render:
             mock_render.return_value = 'login_template'
             
             response = login()
@@ -217,9 +217,9 @@ def test_login_success(flask_app, mock_query, mock_execute):
             'password_hash': generate_password_hash('password')
         }
         
-        with patch('web.auth.login_user') as mock_login, \
-             patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.redirect') as mock_redirect:
+        with patch('web.backend.api.auth.login_user') as mock_login, \
+             patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.redirect') as mock_redirect:
             
             mock_redirect.return_value = 'redirect_response'
             
@@ -259,9 +259,9 @@ def test_login_invalid_credentials(flask_app, mock_query):
             'password_hash': generate_password_hash('password')
         }
         
-        with patch('web.auth.login_user') as mock_login, \
-             patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.render_template') as mock_render:
+        with patch('web.backend.api.auth.login_user') as mock_login, \
+             patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.render_template') as mock_render:
             
             mock_render.return_value = 'template_response'
             
@@ -283,9 +283,9 @@ def test_login_user_not_found(flask_app, mock_query):
         # Mock query result for no user found
         mock_query.return_value = None
         
-        with patch('web.auth.login_user') as mock_login, \
-             patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.render_template') as mock_render:
+        with patch('web.backend.api.auth.login_user') as mock_login, \
+             patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.render_template') as mock_render:
             
             mock_render.return_value = 'template_response'
             
@@ -304,8 +304,8 @@ def test_login_missing_fields(flask_app):
     with flask_app.test_request_context(
         '/login', method='POST', data={'email': 'test@example.com'}  # Missing password
     ):
-        with patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.render_template') as mock_render:
+        with patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.render_template') as mock_render:
             
             mock_render.return_value = 'template_response'
             
@@ -316,7 +316,7 @@ def test_login_missing_fields(flask_app):
 
 def test_register_get(flask_app):
     with flask_app.test_request_context('/register', method='GET'):
-        with patch('web.auth.render_template') as mock_render:
+        with patch('web.backend.api.auth.render_template') as mock_render:
             mock_render.return_value = 'register_template'
             
             response = register()
@@ -332,9 +332,9 @@ def test_register_success(flask_app, mock_query, mock_execute):
         # Mock query for checking existing user - return None to indicate no existing user
         mock_query.return_value = None
         
-        with patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.redirect') as mock_redirect, \
-             patch('web.auth.generate_password_hash') as mock_hash:
+        with patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.redirect') as mock_redirect, \
+             patch('web.backend.api.auth.generate_password_hash') as mock_hash:
             
             mock_hash.return_value = 'hashed_password'
             mock_redirect.return_value = 'redirect_response'
@@ -367,8 +367,8 @@ def test_register_existing_email(flask_app, mock_query):
         # Mock query for checking existing user - return data to indicate user exists
         mock_query.return_value = {'id': 1}
         
-        with patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.render_template') as mock_render:
+        with patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.render_template') as mock_render:
             
             mock_render.return_value = 'template_response'
             
@@ -392,8 +392,8 @@ def test_register_missing_fields(flask_app):
     with flask_app.test_request_context(
         '/register', method='POST', data={'email': 'test@example.com'}  # Missing password
     ):
-        with patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.render_template') as mock_render:
+        with patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.render_template') as mock_render:
             
             mock_render.return_value = 'template_response'
             
@@ -417,7 +417,7 @@ def test_logout_route(flask_app):
 
 def test_reset_request_get(flask_app):
     with flask_app.test_request_context('/reset', method='GET'):
-        with patch('web.auth.render_template') as mock_render:
+        with patch('web.backend.api.auth.render_template') as mock_render:
             mock_render.return_value = 'reset_request_template'
             
             response = reset_request()
@@ -433,11 +433,11 @@ def test_reset_request_user_found(flask_app, mock_query, mock_execute):
         # Mock query for finding user
         mock_query.return_value = {'id': 1}
         
-        with patch('web.auth.secrets.token_urlsafe') as mock_token, \
-             patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.render_template') as mock_render, \
-             patch('web.auth.datetime') as mock_datetime, \
-             patch('web.auth.url_for') as mock_url_for:
+        with patch('web.backend.api.auth.secrets.token_urlsafe') as mock_token, \
+             patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.render_template') as mock_render, \
+             patch('web.backend.api.auth.datetime') as mock_datetime, \
+             patch('web.backend.api.auth.url_for') as mock_url_for:
             
             mock_token.return_value = 'random_token'
             mock_datetime.now.return_value = datetime(2023, 1, 1, tzinfo=timezone.utc)
@@ -475,8 +475,8 @@ def test_reset_request_user_not_found(flask_app, mock_query):
         # Mock query for user not found
         mock_query.return_value = None
         
-        with patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.render_template') as mock_render:
+        with patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.render_template') as mock_render:
             
             mock_render.return_value = 'template_response'
             
@@ -500,8 +500,8 @@ def test_reset_request_missing_email(flask_app):
     with flask_app.test_request_context(
         '/reset', method='POST', data={}  # Missing email
     ):
-        with patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.render_template') as mock_render:
+        with patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.render_template') as mock_render:
             
             mock_render.return_value = 'template_response'
             
@@ -521,7 +521,7 @@ def test_reset_password_get_valid_token(flask_app, mock_query):
             {'email': 'test@example.com'}
         ]
         
-        with patch('web.auth.render_template') as mock_render:
+        with patch('web.backend.api.auth.render_template') as mock_render:
             mock_render.return_value = 'reset_password_template'
             
             response = reset_password(token)
@@ -547,9 +547,9 @@ def test_reset_password_valid_token(flask_app, mock_query, mock_execute):
             {'email': 'test@example.com'}
         ]
         
-        with patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.redirect') as mock_redirect, \
-             patch('web.auth.generate_password_hash') as mock_hash:
+        with patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.redirect') as mock_redirect, \
+             patch('web.backend.api.auth.generate_password_hash') as mock_hash:
             
             mock_hash.return_value = 'new_hashed_password'
             mock_redirect.return_value = 'redirect_response'
@@ -583,8 +583,8 @@ def test_reset_password_invalid_token(flask_app, mock_query):
         # Mock query for invalid token
         mock_query.return_value = None
         
-        with patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.redirect') as mock_redirect:
+        with patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.redirect') as mock_redirect:
             
             mock_redirect.return_value = 'redirect_response'
             
@@ -611,8 +611,8 @@ def test_reset_password_expired_token(flask_app, mock_query):
             'expires_at': datetime.now(timezone.utc) - timedelta(hours=1)
         }
         
-        with patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.redirect') as mock_redirect:
+        with patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.redirect') as mock_redirect:
             
             mock_redirect.return_value = 'redirect_response'
             
@@ -635,8 +635,8 @@ def test_reset_password_user_not_found(flask_app, mock_query):
             None
         ]
         
-        with patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.redirect') as mock_redirect:
+        with patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.redirect') as mock_redirect:
             
             mock_redirect.return_value = 'redirect_response'
             
@@ -694,9 +694,9 @@ def test_login_with_special_characters(flask_app, mock_query, mock_execute):
             'password_hash': generate_password_hash('p@$$w0rd!')
         }
         
-        with patch('web.auth.login_user') as mock_login, \
-             patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.redirect') as mock_redirect:
+        with patch('web.backend.api.auth.login_user') as mock_login, \
+             patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.redirect') as mock_redirect:
             
             mock_redirect.return_value = 'redirect_response'
             
@@ -726,9 +726,9 @@ def test_login_with_unicode_characters(flask_app, mock_query, mock_execute):
             'password_hash': generate_password_hash('пароль123')
         }
         
-        with patch('web.auth.login_user') as mock_login, \
-             patch('web.auth.flash') as mock_flash, \
-             patch('web.auth.redirect') as mock_redirect:
+        with patch('web.backend.api.auth.login_user') as mock_login, \
+             patch('web.backend.api.auth.flash') as mock_flash, \
+             patch('web.backend.api.auth.redirect') as mock_redirect:
             
             mock_redirect.return_value = 'redirect_response'
             
@@ -750,12 +750,12 @@ def test_login_with_empty_fields(flask_app):
     with flask_app.test_request_context(
         '/login', method='POST', data={'email': '', 'password': ''}
     ):
-        with patch('web.auth.query') as mock_query:
+        with patch('web.backend.api.auth.query') as mock_query:
             # Mock empty result for empty credentials
             mock_query.return_value = None
             
-            with patch('web.auth.flash') as mock_flash, \
-                 patch('web.auth.render_template') as mock_render:
+            with patch('web.backend.api.auth.flash') as mock_flash, \
+                 patch('web.backend.api.auth.render_template') as mock_render:
                 
                 response = login()
                 
@@ -770,13 +770,13 @@ def test_register_with_empty_fields(flask_app):
         '/register', method='POST', data={'email': '', 'password': ''}
     ):
         # Empty email should be treated as already registered
-        with patch('web.auth.query') as mock_query:
+        with patch('web.backend.api.auth.query') as mock_query:
             # Return None to simulate no existing user
             mock_query.return_value = None
             
-            with patch('web.auth.flash') as mock_flash, \
-                 patch('web.auth.render_template') as mock_render, \
-                 patch('web.auth.execute') as mock_execute:
+            with patch('web.backend.api.auth.flash') as mock_flash, \
+                 patch('web.backend.api.auth.render_template') as mock_render, \
+                 patch('web.backend.api.auth.execute') as mock_execute:
                 
                 response = register()
                 
@@ -792,13 +792,13 @@ def test_register_with_invalid_email(flask_app):
     with flask_app.test_request_context(
         '/register', method='POST', data={'email': 'not-an-email', 'password': 'password'}
     ):
-        with patch('web.auth.query') as mock_query:
+        with patch('web.backend.api.auth.query') as mock_query:
             # Return None to simulate no existing user
             mock_query.return_value = None
             
-            with patch('web.auth.flash') as mock_flash, \
-                 patch('web.auth.render_template') as mock_render, \
-                 patch('web.auth.execute') as mock_execute:
+            with patch('web.backend.api.auth.flash') as mock_flash, \
+                 patch('web.backend.api.auth.render_template') as mock_render, \
+                 patch('web.backend.api.auth.execute') as mock_execute:
                 
                 response = register()
                 
@@ -815,13 +815,13 @@ def test_very_long_inputs(flask_app):
             'password': 'b' * 50  # Reduced length
         }
     ):
-        with patch('web.auth.query') as mock_query:
+        with patch('web.backend.api.auth.query') as mock_query:
             # Return None to simulate no existing user
             mock_query.return_value = None
             
-            with patch('web.auth.flash') as mock_flash, \
-                 patch('web.auth.redirect') as mock_redirect, \
-                 patch('web.auth.execute') as mock_execute:
+            with patch('web.backend.api.auth.flash') as mock_flash, \
+                 patch('web.backend.api.auth.redirect') as mock_redirect, \
+                 patch('web.backend.api.auth.execute') as mock_execute:
                 
                 response = register()
                 

@@ -38,7 +38,7 @@ def mock_compliance_counts(trials):
 def app():
     # Apply patches before creating the app
     with patch('flask_login.login_required', mock_login_required), \
-         patch('web.utils.route_helpers.compliance_counts', mock_compliance_counts):
+         patch('web.backend.services.route_helpers.compliance_counts', mock_compliance_counts):
         from web import create_app
         app = create_app({
             'TESTING': True,
@@ -86,12 +86,12 @@ def sample_trials():
 # Test compliance_counts function directly using mock to avoid pandas import issues
 def test_compliance_counts_with_data():
     """Test compliance_counts function logic with trial data"""
-    with patch('web.utils.route_helpers.compliance_counts') as mock_compliance_counts:
+    with patch('web.backend.services.route_helpers.compliance_counts') as mock_compliance_counts:
         # Setup mock return value
         mock_compliance_counts.return_value = (10, 5)  # (compliant_count, incompliant_count)
         
         # Call the function directly
-        from web.utils.route_helpers import compliance_counts
+        from web.backend.services.route_helpers import compliance_counts
         
         # Create test data
         rates = [{'compliant_count': 10, 'incompliant_count': 5}]
@@ -107,12 +107,12 @@ def test_compliance_counts_with_data():
 
 def test_compliance_counts_empty_trials():
     """Test compliance_counts function logic with empty trials list"""
-    with patch('web.utils.route_helpers.compliance_counts') as mock_compliance_counts:
+    with patch('web.backend.services.route_helpers.compliance_counts') as mock_compliance_counts:
         # Setup mock return value
         mock_compliance_counts.return_value = (0, 0)  # (compliant_count, incompliant_count)
         
         # Call the function directly
-        from web.utils.route_helpers import compliance_counts
+        from web.backend.services.route_helpers import compliance_counts
         
         # Create empty test data
         rates = [{'compliant_count': 0, 'incompliant_count': 0}]
@@ -128,12 +128,12 @@ def test_compliance_counts_empty_trials():
 
 def test_compliance_counts_all_compliant():
     """Test compliance_counts function logic with all compliant trials"""
-    with patch('web.utils.route_helpers.compliance_counts') as mock_compliance_counts:
+    with patch('web.backend.services.route_helpers.compliance_counts') as mock_compliance_counts:
         # Setup mock return value
         mock_compliance_counts.return_value = (5, 0)  # (compliant_count, incompliant_count)
         
         # Call the function directly
-        from web.utils.route_helpers import compliance_counts
+        from web.backend.services.route_helpers import compliance_counts
         
         # Create test data with all compliant trials
         rates = [{'compliant_count': 5, 'incompliant_count': 0}]
@@ -149,12 +149,12 @@ def test_compliance_counts_all_compliant():
 
 def test_compliance_counts_all_incompliant():
     """Test compliance_counts function logic with all incompliant trials"""
-    with patch('web.utils.route_helpers.compliance_counts') as mock_compliance_counts:
+    with patch('web.backend.services.route_helpers.compliance_counts') as mock_compliance_counts:
         # Setup mock return value
         mock_compliance_counts.return_value = (0, 7)  # (compliant_count, incompliant_count)
         
         # Call the function directly
-        from web.utils.route_helpers import compliance_counts
+        from web.backend.services.route_helpers import compliance_counts
         
         # Create test data with all incompliant trials
         rates = [{'compliant_count': 0, 'incompliant_count': 7}]
@@ -170,12 +170,12 @@ def test_compliance_counts_all_incompliant():
 
 def test_compliance_counts_unknown_statuses():
     """Test compliance_counts function logic with unknown status values"""
-    with patch('web.utils.route_helpers.compliance_counts') as mock_compliance_counts:
+    with patch('web.backend.services.route_helpers.compliance_counts') as mock_compliance_counts:
         # Setup mock return value
         mock_compliance_counts.return_value = (3, 2)  # (compliant_count, incompliant_count)
         
         # Call the function directly
-        from web.utils.route_helpers import compliance_counts
+        from web.backend.services.route_helpers import compliance_counts
         
         # Create test data with mixed statuses
         rates = [{'compliant_count': 3, 'incompliant_count': 2}]
@@ -244,8 +244,8 @@ def test_index_logic():
     mock all external dependencies.
     """
     # Patch the external dependencies to isolate the test
-    with patch('web.utils.queries.QueryManager.get_all_trials') as mock_get_all_trials, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_all_trials') as mock_get_all_trials, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock get_all_trials results
         all_trials = [
@@ -263,8 +263,8 @@ def test_index_logic():
         mock_render.return_value = 'rendered_template'
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -291,8 +291,8 @@ def test_index_logic():
 
 def test_index_logic_empty_trials():
     """Test the index route logic with empty trials"""
-    with patch('web.utils.queries.QueryManager.get_all_trials') as mock_get_all_trials, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_all_trials') as mock_get_all_trials, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock get_all_trials results - empty
         all_trials = []
@@ -307,8 +307,8 @@ def test_index_logic_empty_trials():
         mock_render.return_value = 'rendered_template'
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -335,8 +335,8 @@ def test_index_logic_empty_trials():
 
 def test_search_logic_with_params():
     """Test the core logic of the search route with parameters"""
-    with patch('web.utils.queries.QueryManager.search_trials') as mock_search, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.search_trials') as mock_search, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock search results
         search_results = [
@@ -365,8 +365,8 @@ def test_search_logic_with_params():
         }
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -394,8 +394,8 @@ def test_search_logic_with_params():
 
 def test_search_logic_with_all_params():
     """Test search logic with all possible parameters filled"""
-    with patch('web.utils.queries.QueryManager.search_trials') as mock_search, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.search_trials') as mock_search, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock search results
         search_results = [
@@ -423,8 +423,8 @@ def test_search_logic_with_all_params():
         }
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -452,8 +452,8 @@ def test_search_logic_with_all_params():
 
 def test_search_logic_empty_results():
     """Test search logic when search returns no results"""
-    with patch('web.utils.queries.QueryManager.search_trials') as mock_search, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.search_trials') as mock_search, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock search results - empty
         search_results = []
@@ -479,8 +479,8 @@ def test_search_logic_empty_results():
         }
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -508,12 +508,12 @@ def test_search_logic_empty_results():
 
 def test_search_logic_without_params():
     """Test the core logic of the search route without parameters"""
-    with patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.api.routes.render_template') as mock_render:
         # Setup mock render
         mock_render.return_value = 'rendered_template'
         
         # Call the function directly
-        from web.routes import render_template
+        from web.backend.api.routes import render_template
         
         # Mimic the search route logic with no parameters
         result = render_template('dashboards/home.html')
@@ -525,8 +525,8 @@ def test_search_logic_without_params():
 
 def test_organization_dashboard_logic():
     """Test the core logic of the organization dashboard route"""
-    with patch('web.utils.queries.QueryManager.get_org_trials') as mock_get_org_trials, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_org_trials') as mock_get_org_trials, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock org trials results
         org_trials = [
@@ -547,8 +547,8 @@ def test_organization_dashboard_logic():
         org_ids = [1, 2, 3]
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -576,8 +576,8 @@ def test_organization_dashboard_logic():
 
 def test_organization_dashboard_single_org():
     """Test organization dashboard with single organization ID"""
-    with patch('web.utils.queries.QueryManager.get_org_trials') as mock_get_org_trials, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_org_trials') as mock_get_org_trials, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock org trials results
         org_trials = [
@@ -597,8 +597,8 @@ def test_organization_dashboard_single_org():
         org_ids = [42]
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -626,8 +626,8 @@ def test_organization_dashboard_single_org():
 
 def test_organization_dashboard_empty_org_ids():
     """Test organization dashboard with empty org_ids after filtering"""
-    with patch('web.utils.queries.QueryManager.get_org_trials') as mock_get_org_trials, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_org_trials') as mock_get_org_trials, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock empty trials results
         org_trials = []
@@ -645,8 +645,8 @@ def test_organization_dashboard_empty_org_ids():
         org_ids = []
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -677,8 +677,8 @@ def test_organization_dashboard_url_encoded_ids():
     """Test organization dashboard with URL-encoded org_ids"""
     from urllib.parse import quote
     
-    with patch('web.utils.queries.QueryManager.get_org_trials') as mock_get_org_trials, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_org_trials') as mock_get_org_trials, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock org trials results
         org_trials = [
@@ -701,8 +701,8 @@ def test_organization_dashboard_url_encoded_ids():
         org_ids = [1, 2, 3]
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -730,8 +730,8 @@ def test_organization_dashboard_url_encoded_ids():
 
 def test_compare_organizations_dashboard_logic():
     """Test the core logic of the compare organizations dashboard route"""
-    with patch('web.utils.queries.QueryManager.get_org_compliance') as mock_get_org_compliance, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_org_compliance') as mock_get_org_compliance, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock org compliance results
         org_compliance = [
@@ -762,8 +762,8 @@ def test_compare_organizations_dashboard_logic():
         max_trials = 200
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -791,8 +791,8 @@ def test_compare_organizations_dashboard_logic():
 
 def test_compare_organizations_dashboard_no_params():
     """Test compare organizations dashboard with no parameters"""
-    with patch('web.utils.queries.QueryManager.get_org_compliance') as mock_get_org_compliance, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_org_compliance') as mock_get_org_compliance, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock org compliance results
         org_compliance = [
@@ -817,8 +817,8 @@ def test_compare_organizations_dashboard_no_params():
         mock_render.return_value = 'rendered_template'
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -841,8 +841,8 @@ def test_compare_organizations_dashboard_no_params():
 
 def test_compare_organizations_dashboard_invalid_params():
     """Test compare organizations dashboard with invalid parameters"""
-    with patch('web.utils.queries.QueryManager.get_org_compliance') as mock_get_org_compliance, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_org_compliance') as mock_get_org_compliance, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock org compliance results
         org_compliance = [
@@ -866,8 +866,8 @@ def test_compare_organizations_dashboard_invalid_params():
         max_trials = 0  # Zero value
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -896,8 +896,8 @@ def test_compare_organizations_dashboard_invalid_params():
 
 def test_compare_organizations_dashboard_missing_counts():
     """Test compare organizations dashboard when organizations don't have count fields"""
-    with patch('web.utils.queries.QueryManager.get_org_compliance') as mock_get_org_compliance, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_org_compliance') as mock_get_org_compliance, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock org compliance results with missing count fields
         org_compliance = [
@@ -918,8 +918,8 @@ def test_compare_organizations_dashboard_missing_counts():
         mock_render.return_value = 'rendered_template'
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -945,8 +945,8 @@ def test_compare_organizations_dashboard_missing_counts():
 
 def test_user_dashboard_logic_with_trials():
     """Test the core logic of the user dashboard route with trials"""
-    with patch('web.utils.queries.QueryManager.get_user_trials') as mock_get_user_trials, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_user_trials') as mock_get_user_trials, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock user trials results
         user_trials = [
@@ -967,8 +967,8 @@ def test_user_dashboard_logic_with_trials():
         user_id = 123
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -996,8 +996,8 @@ def test_user_dashboard_logic_with_trials():
 
 def test_user_dashboard_logic_no_trials():
     """Test the core logic of the user dashboard route with no trials"""
-    with patch('web.utils.queries.QueryManager.get_user_trials') as mock_get_user_trials, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_user_trials') as mock_get_user_trials, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock user trials results - empty
         user_trials = []
@@ -1015,8 +1015,8 @@ def test_user_dashboard_logic_no_trials():
         user_id = 123
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -1044,8 +1044,8 @@ def test_user_dashboard_logic_no_trials():
 
 def test_user_dashboard_with_current_user_fallback():
     """Test user dashboard route when no trials and using current_user fallback"""
-    with patch('web.utils.queries.QueryManager.get_user_trials') as mock_get_user_trials, \
-         patch('web.routes.render_template') as mock_render, \
+    with patch('web.backend.repositories.queries.QueryManager.get_user_trials') as mock_get_user_trials, \
+         patch('web.backend.api.routes.render_template') as mock_render, \
          patch('flask_login.current_user') as mock_current_user:
         
         # Setup mock user trials results - empty
@@ -1065,8 +1065,8 @@ def test_user_dashboard_with_current_user_fallback():
         mock_render.return_value = 'rendered_template'
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         import flask_login
         
         # Create an instance of QueryManager
@@ -1176,8 +1176,8 @@ def test_org_list_parsing_edge_cases():
 
 def test_search_logic_with_compliance_status_only():
     """Test search route logic when only compliance_status[] parameter is provided"""
-    with patch('web.utils.queries.QueryManager.search_trials') as mock_search, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.search_trials') as mock_search, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock search results
         search_results = [
@@ -1207,8 +1207,8 @@ def test_search_logic_with_compliance_status_only():
         }
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -1238,8 +1238,8 @@ def test_search_logic_with_compliance_status_only():
 
 def test_compare_organizations_dashboard_valid_params():
     """Test compare organizations dashboard with valid numeric parameters"""
-    with patch('web.utils.queries.QueryManager.get_org_compliance') as mock_get_org_compliance, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_org_compliance') as mock_get_org_compliance, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock org compliance results
         org_compliance = [
@@ -1270,8 +1270,8 @@ def test_compare_organizations_dashboard_valid_params():
         max_trials = 100
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -1299,8 +1299,8 @@ def test_compare_organizations_dashboard_valid_params():
 
 def test_compare_organizations_dashboard_zero_values():
     """Test compare organizations dashboard with zero parameter values"""
-    with patch('web.utils.queries.QueryManager.get_org_compliance') as mock_get_org_compliance, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_org_compliance') as mock_get_org_compliance, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock org compliance results
         org_compliance = [
@@ -1331,8 +1331,8 @@ def test_compare_organizations_dashboard_zero_values():
         max_trials = 0
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -1360,8 +1360,8 @@ def test_compare_organizations_dashboard_zero_values():
 
 def test_organization_dashboard_with_commas_in_url():
     """Test organization dashboard with various comma scenarios in URL"""
-    with patch('web.utils.queries.QueryManager.get_org_trials') as mock_get_org_trials, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_org_trials') as mock_get_org_trials, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock org trials results
         org_trials = [
@@ -1383,8 +1383,8 @@ def test_organization_dashboard_with_commas_in_url():
         org_ids = [1, 2, 3]
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()
@@ -1412,8 +1412,8 @@ def test_organization_dashboard_with_commas_in_url():
 
 def test_user_dashboard_with_mixed_status_trials():
     """Test user dashboard with trials having various status values"""
-    with patch('web.utils.queries.QueryManager.get_user_trials') as mock_get_user_trials, \
-         patch('web.routes.render_template') as mock_render:
+    with patch('web.backend.repositories.queries.QueryManager.get_user_trials') as mock_get_user_trials, \
+         patch('web.backend.api.routes.render_template') as mock_render:
         
         # Setup mock user trials results with mixed statuses
         user_trials = [
@@ -1435,8 +1435,8 @@ def test_user_dashboard_with_mixed_status_trials():
         user_id = 123
         
         # Call the functions directly
-        from web.utils.queries import QueryManager
-        from web.routes import render_template
+        from web.backend.repositories.queries import QueryManager
+        from web.backend.api.routes import render_template
         
         # Create an instance of QueryManager
         query_manager = QueryManager()

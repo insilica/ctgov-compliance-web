@@ -3,7 +3,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, U
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime, timedelta, timezone
 import secrets
-from .db import query, execute
+from ..repositories.db import query, execute
 from opentelemetry import trace
 
 tracer = trace.get_tracer(__name__)

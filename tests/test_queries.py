@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch
 from flask import Flask
-from web.utils.queries import (
+from web.backend.repositories.queries import (
     QueryManager
 )
 
@@ -9,7 +9,7 @@ qm = QueryManager()
 
 @pytest.fixture
 def mock_query():
-    with patch('web.utils.queries.query') as mock:
+    with patch('web.backend.repositories.queries.query') as mock:
         yield mock
 
 

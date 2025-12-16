@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from web.utils.route_helpers import (
+from web.backend.services.route_helpers import (
     compliance_counts, 
     process_index_request, 
     process_search_request, 
@@ -29,10 +29,10 @@ class TestComplianceCounts:
 class TestProcessIndexRequest:
     """Test the process_index_request function."""
     
-    @patch('web.utils.queries.QueryManager.get_compliance_rate')
-    @patch('web.utils.route_helpers.compliance_counts')
-    @patch('web.utils.route_helpers.paginate')
-    @patch('web.utils.queries.QueryManager.get_all_trials')
+    @patch('web.backend.repositories.queries.QueryManager.get_compliance_rate')
+    @patch('web.backend.services.route_helpers.compliance_counts')
+    @patch('web.backend.services.route_helpers.paginate')
+    @patch('web.backend.repositories.queries.QueryManager.get_all_trials')
     def test_process_index_request(self, mock_get_all_trials, mock_paginate, mock_compliance_counts, mock_get_compliance_rate):
         """Test processing index request."""
         # Setup mocks
@@ -64,10 +64,10 @@ class TestProcessIndexRequest:
 class TestProcessSearchRequest:
     """Test the process_search_request function."""
     
-    @patch('web.utils.queries.QueryManager.search_trials')
-    @patch('web.utils.queries.QueryManager.get_compliance_rate')
-    @patch('web.utils.route_helpers.paginate')
-    @patch('web.utils.route_helpers.compliance_counts')
+    @patch('web.backend.repositories.queries.QueryManager.search_trials')
+    @patch('web.backend.repositories.queries.QueryManager.get_compliance_rate')
+    @patch('web.backend.services.route_helpers.paginate')
+    @patch('web.backend.services.route_helpers.compliance_counts')
     def test_process_search_request_with_params(self, mock_compliance_counts, mock_paginate, mock_get_compliance_rate, mock_search_trials):
         """Test processing search request with search parameters."""
         search_params = {'title': 'cancer', 'nct_id': None}
@@ -105,10 +105,10 @@ class TestProcessSearchRequest:
         }
         assert result == expected
 
-    @patch('web.utils.queries.QueryManager.search_trials')
-    @patch('web.utils.queries.QueryManager.get_compliance_rate')
-    @patch('web.utils.route_helpers.paginate')
-    @patch('web.utils.route_helpers.compliance_counts')
+    @patch('web.backend.repositories.queries.QueryManager.search_trials')
+    @patch('web.backend.repositories.queries.QueryManager.get_compliance_rate')
+    @patch('web.backend.services.route_helpers.paginate')
+    @patch('web.backend.services.route_helpers.compliance_counts')
     def test_process_search_request_with_compliance_status(self, mock_compliance_counts, mock_paginate, mock_get_compliance_rate, mock_search_trials):
         """Test processing search request with compliance status only."""
         search_params = {'title': None, 'nct_id': None}

@@ -6,7 +6,7 @@ without Flask context dependencies while maintaining clean separation of concern
 """
 
 from urllib.parse import unquote
-from .queries import QueryManager
+from ..repositories.queries import QueryManager
 from .pagination import paginate, get_pagination_args
 from opentelemetry import trace
 

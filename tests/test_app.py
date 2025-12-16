@@ -52,7 +52,7 @@ def test_app_csrf_protection():
     assert isinstance(csrf_extension, CSRFProtect)
 
 
-@patch('web.auth.login_manager.init_app')
+@patch('web.backend.api.auth.login_manager.init_app')
 def test_app_login_manager(mock_init_app):
     app = create_app()
     

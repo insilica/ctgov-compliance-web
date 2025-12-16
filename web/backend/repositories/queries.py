@@ -1,5 +1,4 @@
-from web.db import query
-from flask import request
+from .db import query
 from opentelemetry import trace
 # Cache imports with compatibility fallback
 from functools import cached_property

@@ -3,16 +3,16 @@ from flask_login import login_required, current_user    # pragma: no cover, curr
 import csv
 import io
 from datetime import datetime
-from .utils.route_helpers import (
+from ..services.route_helpers import (
     process_index_request,
     process_search_request,
     process_organization_dashboard_request,
     process_compare_organizations_request,
     process_user_dashboard_request,
 )
-from .utils.queries import (
-    QueryManager,
-)
+from ..repositories.queries import QueryManager
+from ..repositories.db import query as db_query
+from .schema import AutocompleteResponse, HealthResponse, TrialSummary
 from opentelemetry import trace
 
 tracer = trace.get_tracer(__name__)
@@ -22,7 +22,7 @@ qm = QueryManager()
 
 @bp.route('/health')
 def health():
-    return jsonify({'status': 'ok'}), 200
+    return jsonify(HealthResponse(status='ok').model_dump()), 200
 
 # Autocomplete API endpoints
 @bp.route('/api/autocomplete/titles')
@@ -36,7 +36,6 @@ def autocomplete_titles():
     if len(query) < 2:
         return jsonify([])
     
-    from .db import query as db_query
     sql = '''
         SELECT DISTINCT t.title
         FROM trial t
@@ -45,9 +44,9 @@ def autocomplete_titles():
         LIMIT 10
         '''
     results = db_query(sql, [f"%{query}%"])
-    suggestions = [row['title'] for row in results if row['title']]
-    current_span.set_attribute("results.count", len(suggestions))
-    return jsonify(suggestions)
+    response = AutocompleteResponse(items=[row['title'] for row in results if row['title']])
+    current_span.set_attribute("results.count", len(response.items))
+    return jsonify(response.items)
 
 @bp.route('/api/autocomplete/organizations')
 @login_required    # pragma: no cover
@@ -60,7 +59,6 @@ def autocomplete_organizations():
     if len(query) < 2:
         return jsonify([])
     
-    from .db import query as db_query
     sql = '''
         SELECT DISTINCT o.name
         FROM organization o
@@ -69,9 +67,9 @@ def autocomplete_organizations():
         LIMIT 10
         '''
     results = db_query(sql, [f"%{query}%"])
-    suggestions = [row['name'] for row in results if row['name']]
-    current_span.set_attribute("results.count", len(suggestions))
-    return jsonify(suggestions)
+    response = AutocompleteResponse(items=[row['name'] for row in results if row['name']])
+    current_span.set_attribute("results.count", len(response.items))
+    return jsonify(response.items)
 
 @bp.route('/api/autocomplete/nct_ids')
 @login_required    # pragma: no cover
@@ -84,7 +82,6 @@ def autocomplete_nct_ids():
     if len(query) < 3:
         return jsonify([])
     
-    from .db import query as db_query
     sql = '''
         SELECT DISTINCT t.nct_id
         FROM trial t
@@ -93,9 +90,9 @@ def autocomplete_nct_ids():
         LIMIT 10
         '''
     results = db_query(sql, [f"%{query}%"])
-    suggestions = [row['nct_id'] for row in results if row['nct_id']]
-    current_span.set_attribute("results.count", len(suggestions))
-    return jsonify(suggestions)
+    response = AutocompleteResponse(items=[row['nct_id'] for row in results if row['nct_id']])
+    current_span.set_attribute("results.count", len(response.items))
+    return jsonify(response.items)
 
 @bp.route('/api/autocomplete/user_emails')
 @login_required    # pragma: no cover
@@ -108,7 +105,6 @@ def autocomplete_user_emails():
     if len(query) < 2:
         return jsonify([])
     
-    from .db import query as db_query
     sql = '''
         SELECT DISTINCT u.email
         FROM ctgov_user u
@@ -117,9 +113,9 @@ def autocomplete_user_emails():
         LIMIT 10
         '''
     results = db_query(sql, [f"%{query}%"])
-    suggestions = [row['email'] for row in results if row['email']]
-    current_span.set_attribute("results.count", len(suggestions))
-    return jsonify(suggestions)
+    response = AutocompleteResponse(items=[row['email'] for row in results if row['email']])
+    current_span.set_attribute("results.count", len(response.items))
+    return jsonify(response.items)
 
 @bp.route('/')
 @login_required    # pragma: no cover
@@ -284,15 +280,16 @@ def export_csv():
         # Format data for CSV
         csv_data = []
         for trial in data:
+            summary = TrialSummary.model_validate(trial)
             csv_data.append([
-                trial.get('title', ''),
-                trial.get('nct_id', ''),
-                trial.get('name', ''),
-                trial.get('email', ''),
-                trial.get('status', ''),
-                trial.get('start_date').strftime('%m/%d/%Y') if trial.get('start_date') else '',
-                trial.get('completion_date').strftime('%m/%d/%Y') if trial.get('completion_date') else '',
-                trial.get('reporting_due_date').strftime('%m/%d/%Y') if trial.get('reporting_due_date') else ''
+                summary.title,
+                summary.nct_id,
+                summary.organization or '',
+                summary.user_email or '',
+                summary.status or '',
+                summary.start_date.strftime('%m/%d/%Y') if summary.start_date else '',
+                summary.completion_date.strftime('%m/%d/%Y') if summary.completion_date else '',
+                summary.reporting_due_date.strftime('%m/%d/%Y') if summary.reporting_due_date else ''
             ])
     
     # Create CSV in memory

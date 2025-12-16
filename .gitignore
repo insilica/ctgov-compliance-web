@@ -17,6 +17,8 @@ __pycache__/*
 *.pyw
 *.pyz
 
+agent.md
+
 # development postgres
 .postgres
 

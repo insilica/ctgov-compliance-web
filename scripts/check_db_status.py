@@ -12,7 +12,7 @@ import pathlib
 # Add the project root to the Python path
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from web.db import is_data_populated, query
+from web.backend.repositories.db import is_data_populated, query
 
 
 def main():
