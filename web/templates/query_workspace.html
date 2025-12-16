@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+
+{% block title %}| Query Workspace{% endblock %}
+
+{% block content %}
+<section class="query-workspace" data-query-workspace>
+    <div class="grid-container-widescreen">
+        <div class="query-workspace-shell">
+            <header class="query-workspace-header">
+                <div class="query-workspace-heading">
+                    <p class="query-workspace-eyebrow">ClinicalTrials.gov MCP</p>
+                    <h1 class="margin-top-0">Query Workspace</h1>
+                    <p class="margin-0 text-base">
+                        A minimalist chat for ctgov_mcp. Ask a question, iterate, and keep everything in a single thread.
+                    </p>
+                </div>
+                <div class="query-workspace-controls">
+                    <label for="query-workspace-mode" class="usa-label">Parser</label>
+                    <select id="query-workspace-mode" class="usa-select usa-select--small">
+                        <option value="llm" {% if default_use_llm %}selected{% endif %}>LLM (Claude)</option>
+                        <option value="pattern" {% if not default_use_llm %}selected{% endif %}>Pattern parser</option>
+                    </select>
+                    <span id="query-workspace-mode-indicator" class="query-workspace-mode__indicator">
+                        {% if default_use_llm %}LLM parsing{% else %}Pattern parsing{% endif %}
+                    </span>
+                    <button type="button" id="query-workspace-reset" class="usa-button usa-button--unstyled">
+                        Reset conversation
+                    </button>
+                </div>
+            </header>
+
+            <div class="query-chat">
+                <div id="query-workspace-log" class="query-chat__log" aria-live="polite"></div>
+                <form id="query-workspace-form" class="query-chat__composer" autocomplete="off">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <label for="query-workspace-input" class="usa-sr-only">Ask a question</label>
+                    <div class="query-chat__input-row">
+                        <textarea id="query-workspace-input" class="usa-textarea query-chat__input" rows="1" placeholder="Message ctgov_mcp..."></textarea>
+                        <button type="submit" id="query-workspace-send" class="usa-button query-chat__send">
+                            Send
+                        </button>
+                    </div>
+                </form>
+                <div class="query-workspace-prompts query-workspace-prompts--bottom">
+                    {% for prompt in sample_prompts %}
+                    <button type="button" class="usa-button usa-button--outline query-workspace-prompt" data-prompt="{{ prompt }}">
+                        {{ prompt }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% set workspace_config = {
+    'endpoints': {
+        'message': url_for('routes.handle_query_workspace_message'),
+        'reset': url_for('routes.reset_query_workspace')
+    },
+    'defaultMode': default_use_llm,
+    'welcomeMessage': welcome_message
+} %}
+<script>
+    window.QUERY_WORKSPACE_CONFIG = {{ workspace_config | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/query-workspace.js') }}" defer></script>
+{% endblock %}

@@ -23,7 +23,7 @@ def test_get_all_trials(mock_query):
     mock_query.assert_called_once()
     # Verify SQL contains expected tables
     sql = mock_query.call_args[0][0]
-    assert 'joined_trials' in sql
+    assert 'enriched_trials' in sql
 
 
 def test_get_all_trials_empty_result(mock_query):
@@ -164,7 +164,7 @@ def test_search_trials_no_conditions(mock_query):
         mock_query.assert_called_once()
         # Should only have base SQL without additional conditions
         sql, params = mock_query.call_args[0]
-        assert "FROM joined_trials" in sql
+        assert "FROM enriched_trials" in sql
         assert "WHERE" not in sql  # No WHERE clause should be present
         assert params == []
 
@@ -232,6 +232,19 @@ def test_search_trials_complex(mock_query):
         assert "%user@example.com%" in params
         assert "2022-01-01" in params
         assert "2022-12-31" in params
+
+
+def test_get_reporting_metrics(mock_query):
+    expected = [{'total_trials': 10, 'compliant_count': 7}]
+    mock_query.return_value = expected
+
+    result = qm.get_reporting_metrics()
+
+    assert result == expected
+    mock_query.assert_called_once()
+    sql = mock_query.call_args[0][0]
+    assert 'avg_reporting_delay_days' in sql
+    assert 'trials_with_issues_count' in sql
 
 
 def test_search_trials_only_date_from(mock_query):
@@ -305,7 +318,7 @@ def test_search_trials_pending_status(mock_query):
         
         # Verify SQL contains pending status condition
         sql, params = mock_query.call_args[0]
-        assert "compliance_status IS NULL" in sql
+        assert "compliance_status = 'Pending'" in sql
 
 
 def test_search_trials_mixed_compliance_status(mock_query):
@@ -333,7 +346,7 @@ def test_search_trials_mixed_compliance_status(mock_query):
         sql, params = mock_query.call_args[0]
         assert "compliance_status = 'Compliant'" in sql
         assert "compliance_status = 'Incompliant'" in sql
-        assert "compliance_status IS NULL" in sql
+        assert "compliance_status = 'Pending'" in sql
 
 
 def test_search_trials_start_date_type(mock_query):
@@ -451,9 +464,9 @@ def test_search_trials_empty_compliance_status_list(mock_query):
         # Verify SQL doesn't contain compliance status WHERE conditions since 'unknown' isn't handled
         sql, params = mock_query.call_args[0]
         # Should not contain any compliance conditions in WHERE clause
-        assert "tc.status = 'Compliant'" not in sql
-        assert "tc.status = 'Incompliant'" not in sql
-        assert "tc.status IS NULL" not in sql
+        assert "compliance_status = 'Compliant'" not in sql
+        assert "compliance_status = 'Incompliant'" not in sql
+        assert "compliance_status = 'Pending'" not in sql
 
 
 def test_search_trials_with_status_param(mock_query):
@@ -701,6 +714,39 @@ def test_search_trials_no_compliance_status_in_request(mock_query):
         mock_query.assert_called_once()
         sql, params = mock_query.call_args[0]
         # Should not contain compliance status conditions
-        assert "tc.status = 'Compliant'" not in sql
-        assert "tc.status = 'Incompliant'" not in sql
-        assert "tc.status IS NULL" not in sql
+        assert "compliance_status = 'Compliant'" not in sql
+        assert "compliance_status = 'Incompliant'" not in sql
+        assert "compliance_status = 'Pending'" not in sql
+
+
+def test_get_trial_cumulative_time_series_default(mock_query):
+    expected_data = [
+        {'period_start': '2024-01-01', 'compliance_status': 'Compliant', 'trials_in_month': 3, 'cumulative_trials': 3}
+    ]
+    mock_query.return_value = expected_data
+
+    result = qm.get_trial_cumulative_time_series()
+
+    assert result == expected_data
+    mock_query.assert_called_once()
+    sql, params = mock_query.call_args[0]
+    assert 'trials_with_status AS' in sql
+    assert 'monthly_completed AS' in sql
+    assert 'avg_reporting_delay_days' in sql
+    assert 'new_trials' in sql
+    assert 'ORDER BY cumulative_counts.period_start ASC, cumulative_counts.compliance_status ASC' in sql
+    assert params == []
+
+
+def test_get_trial_cumulative_time_series_with_dates(mock_query):
+    expected_data = [{'period_start': '2024-02-01', 'compliance_status': 'Incompliant', 'trials_in_month': 5, 'cumulative_trials': 10}]
+    mock_query.return_value = expected_data
+
+    result = qm.get_trial_cumulative_time_series(start_date='2024-01-01', end_date='2024-03-01')
+
+    assert result == expected_data
+    mock_query.assert_called_once()
+    sql, params = mock_query.call_args[0]
+    assert 'DATE(et.start_date) >= %s' in sql
+    assert 'DATE(et.start_date) <= %s' in sql
+    assert params == ['2024-01-01', '2024-03-01']
